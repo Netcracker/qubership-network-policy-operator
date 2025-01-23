@@ -1,0 +1,27 @@
+# permissions for end users to view externalnamespaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: externalnamespace-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: npcv1
+    app.kubernetes.io/part-of: npcv1
+    app.kubernetes.io/managed-by: kustomize
+  name: externalnamespace-viewer-role
+rules:
+- apiGroups:
+  - netcracker.com
+  resources:
+  - externalnamespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netcracker.com
+  resources:
+  - externalnamespaces/status
+  verbs:
+  - get

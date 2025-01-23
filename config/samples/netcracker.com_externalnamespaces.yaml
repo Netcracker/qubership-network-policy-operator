@@ -1,0 +1,13 @@
+apiVersion: netcracker.com/v1alpha1
+kind: ExternalNamespace
+metadata:
+  labels:
+    app.kubernetes.io/name: externalnamespace
+    app.kubernetes.io/instance: externalnamespace-sample
+    app.kubernetes.io/part-of: npcv1
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: npcv1
+  #name: externalnamespace-sample
+  name: ba27a1ad-3653-4bd7-b2b5-b15dc2eca471-6d1bb519-4937-4f21-ae20-65c02e925503
+spec: {}
+  # TODO(user): Add fields here

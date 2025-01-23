@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/instance: remote-cluster-rolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: npcv1
+    app.kubernetes.io/part-of: npcv1
+    app.kubernetes.io/managed-by: kustomize
+  name: remote-cluster2-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: remote-cluster2
+  namespace: system

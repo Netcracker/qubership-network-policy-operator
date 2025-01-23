@@ -1,0 +1,205 @@
+{{- if .Values.manager.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+  name: {{ .Values.manager.rbac.role }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - namespaces/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - netcracker.com
+  resources:
+  - externalnamespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netcracker.com
+  resources:
+  - externalnamespaces/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - netcracker.com
+  resources:
+  - networkpolicyconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - netcracker.com
+  resources:
+  - networkpolicyconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - netcracker.com
+  resources:
+  - networkpolicyconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - netcracker.com
+  resources:
+  - remoteclusterconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - netcracker.com
+  resources:
+  - remoteclusterconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - netcracker.com
+  resources:
+  - remoteclusterconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - networkpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - networkpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - networkpolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+{{- end }}

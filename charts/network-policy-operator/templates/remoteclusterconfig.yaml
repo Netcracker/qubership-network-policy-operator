@@ -1,0 +1,22 @@
+{{- $outer := . -}}
+{{- if .Values.dr.install }}
+{{- range $key, $value := .Values.dr.remoteClusters }}
+{{- with $outer -}}
+---
+apiVersion: netcracker.com/v1alpha1
+kind: RemoteClusterConfig
+metadata:
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+  name: remoteclusterconfig-{{ $value.name }}
+spec:
+  localCluster:
+    api: {{ $.Values.dr.localCluster.api }}
+    name: {{ $.Values.dr.localCluster.name }}
+  remoteCluster:
+    api: {{ $value.api }}
+    name: {{ $value.name }}
+    remoteSecret: {{ $value.secret }}
+{{- end }}
+{{ end }}
+{{ end }}

@@ -1,0 +1,108 @@
+apiVersion: netcracker.com/v1alpha1
+kind: NetworkPolicyConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: networkpolicyconfig
+    app.kubernetes.io/instance: networkpolicyconfig-sample
+    app.kubernetes.io/part-of: npcv1
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: npcv1
+  name: default
+spec:
+  enabled: true
+  scope: {}
+  allowAnnotation: "network-policy.netcracker.com/allowed-from"
+  controlPlane: "kube-,openshift,calico,tigera,ingress-nginx,cert-manager,site-manager"
+  implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
+  logs:
+    enabled: false
+    collectingAll: true
+    namespaceScope: "network-policy.netcracker.com/collecting-logs"
+  policies:
+    AllowWithinNamespace: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: allow-within-ns
+        namespace: default
+      spec:
+        selector: all()
+        types:
+          - Ingress
+        ingress:
+          - action: Allow
+            source:
+              selector: all()
+    AllowFromNamespace: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: allow-from-ns
+        namespace: default
+      spec:
+        selector: all()
+        types:
+          - Ingress
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+          - action: Allow
+            source:
+              namespaceSelector: all()
+    DefaultDeny: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: default-deny
+        namespace: default
+      spec:
+        selector: all()
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+        types:
+          - Ingress
+    RestrictService: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: restrict-service
+        namespace: default
+      spec:
+        order: 10
+        egress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+        - action: Allow
+          destination:
+            nets:
+              - 0.0.0.0/0
+        selector: all()
+        types:
+        - Egress
+    DefaultLog: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: default-log
+        namespace: default
+      spec:
+        selector: all()
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+          - action: Allow
+            source:
+              nets:
+                - 0.0.0.0/0
+        types:
+          - Ingress
+    CustomPolicies: ""

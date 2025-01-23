@@ -1,0 +1,7 @@
+## Append samples of your project ##
+resources:
+- externalnamespace.yaml
+- remoteclusterconfig_1.yaml
+- remoteclusterconfig_2.yaml
+- networkpolicyconfig.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,18 @@
+apiVersion: netcracker.com/v1alpha1
+kind: RemoteClusterConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: remoteclusterconfig
+    app.kubernetes.io/instance: remoteclusterconfig-sample
+    app.kubernetes.io/part-of: npcv1
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: npcv1
+  name: remoteclusterconfig-sample
+spec:
+  localCluster:
+    api: cluster-1.domain.com:6443
+    name: cluster-1
+  remoteCluster:
+    api: cluster-2.domain.com:6443
+    name: cluster-2
+    remoteSecret: remote-cluster2

@@ -1,0 +1,101 @@
+apiVersion: netcracker.com/v1alpha1
+kind: NetworkPolicyConfig
+metadata:
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+  name: {{ .Values.networkPolicies.name }}
+spec:
+  enabled: {{ .Values.networkPolicies.enabled }}
+  {{- if .Values.networkPolicies.scope }}
+  scope: {{- toYaml .Values.networkPolicies.scope | nindent 4 }}
+  {{- end }}
+  allowAnnotation: "{{ .Values.networkPolicies.allowAnnotation }}"
+  controlPlane: "{{ .Values.networkPolicies.controlPlane }}"
+  implicitNamespaces: "{{ .Values.networkPolicies.implicitNamespaces }}"
+  logs:
+    enabled: {{ .Values.networkPolicies.logs.enabled }}
+    collectingAll: {{ .Values.networkPolicies.logs.collectingAll }}
+    namespaceScope: {{ .Values.networkPolicies.logs.namespaceScope }}
+  policies:
+    AllowWithinNamespace: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: allow-within-ns
+        namespace: default
+      spec:
+        selector: all()
+        types:
+          - Ingress
+        ingress:
+          - action: Allow
+            source:
+              selector: all()
+    AllowFromNamespace: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: allow-from-ns
+        namespace: default
+      spec:
+        selector: all()
+        types:
+          - Ingress
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+          - action: Allow
+            source:
+              namespaceSelector: all()
+    DefaultDeny: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: default-deny
+        namespace: default
+      spec:
+        selector: all()
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+        types:
+          - Ingress
+    DefaultLog: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: default-log
+        namespace: default
+      spec:
+        selector: all()
+        ingress:
+          - action: Log
+            source:
+              nets:
+                - 0.0.0.0/0
+          - action: Allow
+            source:
+              nets:
+                - 0.0.0.0/0
+        types:
+          - Ingress
+    RestrictService: |
+      apiVersion: projectcalico.org/v3
+      kind: NetworkPolicy
+      metadata:
+        name: restrict-service
+      spec:
+        order: 10
+        egress:
+        - action: Allow
+          destination:
+            nets:
+              - 0.0.0.0/0
+        selector: all()
+        types:
+        - Egress
+    CustomPolicies: {{- toYaml .Values.networkPolicies.customPolicies | nindent 6 }}
