@@ -1,0 +1,9 @@
+{{- if .Capabilities.APIVersions.Has "projectcalico.org/v3/Tier" }}
+apiVersion: projectcalico.org/v3
+kind: Tier
+metadata:
+  name: {{ .Values.networkPolicies.defaultTier }}
+spec:
+  defaultAction: Pass
+  order: 10000
+{{- end }}

@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
 )
 
 // PodReconciler reconciles a Pod object

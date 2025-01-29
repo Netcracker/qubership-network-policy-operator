@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 

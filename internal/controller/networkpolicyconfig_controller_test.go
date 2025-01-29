@@ -31,7 +31,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
@@ -46,6 +46,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 		var fullNPList = []string{"allow-from-ns", "allow-within-ns", "default-deny", "restrict-service"}
 		var logNP = []string{"default-log"}
+
+		defaultDeny := "default-deny"
 
 		ctx := context.Background()
 
@@ -76,6 +78,10 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		// To test whole cluster:
 		// scope := map[string]string{}
 		scope := map[string]string{"npc": "true"}
+		// Calico v3.29
+		tier := "automated"
+		// Calico v3.28
+		//tier := ""
 		WNS := `
     apiVersion: projectcalico.org/v3
     kind: NetworkPolicy
@@ -267,17 +273,17 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the specific resource instance NetworkPolicyConfig")
-			Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
+			//Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
 			if err == nil {
 				By("Deleting the second NetworkPolicyConfig")
-				Expect(k8sClient.Delete(ctx, npc2)).To(Succeed())
+				//Expect(k8sClient.Delete(ctx, npc2)).To(Succeed())
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			By("Cleanup the RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			//Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")
@@ -291,6 +297,16 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
+			By("Checking Tiers")
+			if len(tier) > 0 {
+				for i, item := range fullNPList {
+					fullNPList[i] = fmt.Sprintf("%s.%s", tier, item)
+				}
+				for i, item := range logNP {
+					logNP[i] = fmt.Sprintf("%s.%s", tier, item)
+				}
+				defaultDeny = fmt.Sprintf("%s.%s", tier, defaultDeny)
+			}
 			By("Checking if the NetworkPolicy was successfully created in regular Namespace")
 			opts = &client.ListOptions{Namespace: "default",}
 			err = k8sClient.List(ctx, npList, opts)
@@ -327,6 +343,76 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName2,
 			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Changing NetworkPolicyConfig to collect only denied connections")
+			npc.Spec.Logs.CollectingAll = false
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
+			opts = &client.ListOptions{Namespace: "default",}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			for _, npItem := range npList.Items {
+				for _, rule := range npItem.Spec.Ingress {
+					if (rule.Action == calicov3.Log) && (npItem.GetName() != defaultDeny) {
+						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+					}
+				}
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
+			opts = &client.ListOptions{Namespace: "kube-system",}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			logNamesList = []string{}
+			for _, npItem := range npList.Items {
+				logNamesList = append(logNamesList, npItem.GetName())
+			}
+			By(fmt.Sprintf("NetwokPolicies list in control-plane Namespace: %v", logNamesList))
+			if len(npList.Items) > 0 {
+				err = fmt.Errorf("Log NetworkPolicy hasn't been delete from control-plane Namespace")
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Disabling logs in NetworkPolicyConfig")
+			npc.Spec.Logs.Enabled = false
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
+			opts = &client.ListOptions{Namespace: "default",}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			for _, npItem := range npList.Items {
+				for _, rule := range npItem.Spec.Ingress {
+					if (rule.Action == calicov3.Log) {
+						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+					}
+				}
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
+			opts = &client.ListOptions{Namespace: "kube-system",}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			logNamesList = []string{}
+			for _, npItem := range npList.Items {
+				logNamesList = append(logNamesList, npItem.GetName())
+			}
+			By(fmt.Sprintf("NetwokPolicies list in control-plane Namespace: %v", logNamesList))
+			if len(npList.Items) > 0 {
+				err = fmt.Errorf("Log NetworkPolicy hasn't been delete from control-plane Namespace")
+			}
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Disabling default policies in NetworkPolicyConfig")

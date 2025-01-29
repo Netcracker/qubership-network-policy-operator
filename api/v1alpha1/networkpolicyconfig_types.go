@@ -35,6 +35,8 @@ type NetworkPolicyConfigSpec struct {
 	ControlPlane		string `json:"controlPlane,omitempty"`
 	ImplicitNamespaces	string `json:"implicitNamespaces,omitempty"`
 	Logs			LogsSpec `json:"logs"`
+	DefaultTier             string `json:"defaultTier,omitempty"`
+	CustomTier	        string `json:"customTier,omitempty"`
 }
 
 // NetworkPolicyConfigStatus defines the observed state of NetworkPolicyConfig

@@ -38,7 +38,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
-	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
 )
 
 const (
@@ -53,6 +53,8 @@ var ControlPlane          string = "kube-,openshift,calico,tigera,ingress-nginx"
 var ImplicitNamespaces    string = "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
 var AllowAnnotation       string = "network-policy.qubership.org/allowed-from"
 var NetworkPolicyLogLabel string = "network-policy.qubership.org/collecting-logs"
+var DefaultTier		  string = "automated"
+var CustomTier		  string = "default"
 
 var LogsEnabled		  bool
 var CollectAllLogs	  bool
@@ -78,6 +80,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	var templateName string
 	var cpNSList, cpPrfx, tunnelIPs []string
+
 
 	npc := &npcv1.NetworkPolicyConfig{}
 	err := r.Get(ctx, req.NamespacedName, npc)
@@ -139,6 +142,25 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			CollectAllLogs = true
 		}
 	}
+	// Checking the Tiers availability
+	trList := &calicov3.TierList{}
+	err = r.List(ctx, trList, &client.ListOptions{})
+	if err != nil {
+		log.Error(err, "Faled to list Tiers. Let's work without NetworkPolicies Tiers")
+		DefaultTier = ""
+		CustomTier = ""
+	} else {
+		// TODO: Checking the default and custom Tiers
+		log.Info("Tiers has been listed")
+		if len(npc.Spec.DefaultTier) > 0 {
+			DefaultTier = npc.Spec.DefaultTier
+		}
+		if len(npc.Spec.CustomTier) > 0 {
+			CustomTier = npc.Spec.CustomTier
+		}
+		log.Info(fmt.Sprintf("The DefaultTier is '%s'; The CustomTier is '%s'", DefaultTier, CustomTier))
+	}
+
 	// Getting slices from string
 	for _, item := range strings.Split(ControlPlane, ",") {
 		if len(item) > 0 {
@@ -423,7 +445,13 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			continue
 		}
 		policy, err = r.decodeNetworkPolicy([]byte(npc.Spec.Policies[templateName]))
+		// Setting Namespace
 		policy.SetNamespace(ns.GetName())
+		// Processing Tiers and changing name
+		if len(DefaultTier) != 0 {
+			policy.Spec.Tier = DefaultTier
+			policy.SetName(fmt.Sprintf("%s.%s", DefaultTier, policy.GetName()))
+		}
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to decode '%s' NetworkPolicy template", templateName))
 			return err
@@ -559,6 +587,11 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 	labels[NetworkPolicyLabel] = "true"
 	maps.Copy(labels, getLabels)
 	accessor.SetLabels(labels)
+	// Processing Tiers and changing name
+	if len(DefaultTier) != 0 {
+		policy.Spec.Tier = CustomTier
+		policy.SetName(fmt.Sprintf("%s.%s", CustomTier, policy.GetName()))
+	}
 	// Checking if NetworkPolicy must be created or updated
 	err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetName(), Namespace: policy.GetNamespace()}, getPolicy)
 	if err != nil {

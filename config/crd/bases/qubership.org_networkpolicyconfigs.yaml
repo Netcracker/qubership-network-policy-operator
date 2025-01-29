@@ -12,6 +12,8 @@ spec:
     listKind: NetworkPolicyConfigList
     plural: networkpolicyconfigs
     singular: networkpolicyconfig
+    shortNames:
+      - npc
   scope: Cluster
   versions:
   - name: v1alpha1
@@ -38,6 +40,10 @@ spec:
               allowAnnotation:
                 type: string
               controlPlane:
+                type: string
+              customTier:
+                type: string
+              defaultTier:
                 type: string
               enabled:
                 type: boolean

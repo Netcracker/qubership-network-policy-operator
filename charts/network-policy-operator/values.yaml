@@ -178,6 +178,10 @@ networkPolicies:
     enabled: false
     collectingAll: true
     namespaceScope: "network-policy.qubership.org/collecting-logs"
+  # Default NetwokPolicies Tier
+  defaultTier: automated
+  # NetwokPolicies Tier for custom NetworkPolicies
+  customTier: default
 # RemoteClusterConfig section
 dr:
   install: false

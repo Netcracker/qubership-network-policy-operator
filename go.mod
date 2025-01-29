@@ -1,4 +1,4 @@
-module github.com/Netcracker/qubership-network-policy-operator
+module git.netcracker.com/PROD.Platform.HA/network-policy-operator
 
 go 1.22.3
 
@@ -7,12 +7,12 @@ toolchain go1.22.6
 require (
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
-	github.com/projectcalico/api v0.0.0-20240708202104-e3f70b269c2c
+	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/projectcalico/libcalico-go v1.7.3
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.30.1
-	k8s.io/apimachinery v0.30.1
-	k8s.io/client-go v0.30.1
+	k8s.io/api v0.30.5
+	k8s.io/apimachinery v0.30.5
+	k8s.io/client-go v0.30.5
 	sigs.k8s.io/controller-runtime v0.18.4
 )
 
