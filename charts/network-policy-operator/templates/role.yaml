@@ -19,12 +19,8 @@ rules:
   resources:
   - namespaces
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -38,8 +34,6 @@ rules:
   - namespaces/status
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
@@ -53,12 +47,8 @@ rules:
   resources:
   - pods
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -72,8 +62,6 @@ rules:
   - pods/status
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
@@ -87,12 +75,8 @@ rules:
   resources:
   - services
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -107,7 +91,6 @@ rules:
   verbs:
   - get
   - patch
-  - update
 - apiGroups:
   - qubership.org
   resources:
@@ -129,12 +112,8 @@ rules:
   resources:
   - networkpolicyconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - qubership.org
@@ -155,12 +134,8 @@ rules:
   resources:
   - remoteclusterconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - qubership.org

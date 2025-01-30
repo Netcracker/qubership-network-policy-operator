@@ -77,7 +77,7 @@ type RemoteClusterConfigReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch

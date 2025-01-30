@@ -63,7 +63,7 @@ type NetworkPolicyConfigReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
