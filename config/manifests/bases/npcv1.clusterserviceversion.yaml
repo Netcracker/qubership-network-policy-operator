@@ -13,23 +13,23 @@ spec:
     - description: ExternalNamespace is the Schema for the externalnamespaces API
       displayName: External Namespace
       kind: ExternalNamespace
-      name: externalnamespaces..netcracker.com
+      name: externalnamespaces..qubership.org
       version: v1alpha1
     - description: ExternalNamespace is the Schema for the externalnamespaces API
       displayName: External Namespace
       kind: ExternalNamespace
-      name: externalnamespaces.netcracker.com
+      name: externalnamespaces.qubership.org
       version: v1alpha1
     - description: NetworkPolicyConfig is the Schema for the networkpolicyconfig API
       displayName: Network Policy Config
       kind: NetworkPolicyConfig
-      name: networkpolicyconfigs.netcracker.com
+      name: networkpolicyconfigs.qubership.org
       version: v1alpha1
     - description: RemoteClusterConfig is the Schema for the remoteclusterconfigs
         API
       displayName: Remote Cluster Config
       kind: RemoteClusterConfig
-      name: remoteclusterconfigs.netcracker.com
+      name: remoteclusterconfigs.qubership.org
       version: v1alpha1
   description: Calico NetworkPolicies for standalone and multi-cluster
   displayName: Network Policy Config
@@ -57,12 +57,10 @@ spec:
   - name: Npcv1
     url: https://npcv1.domain
   maintainers:
-  - email: aleksandr.arefev@netcracker.com
+  - email: aleksandr.arefev@qubership.org
     name: Aleksandr Arefev
-  - email: sergey.kryazhev@netcracker.com
-    name: Sergey Kryazhev
   maturity: alpha
   provider:
-    name: netcracker.com
-    url: netcracker.com
+    name: qubership.org
+    url: qubership.org
   version: 0.0.0

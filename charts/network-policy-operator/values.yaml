@@ -44,7 +44,7 @@ manager:
     # This sets the pull policy for images.
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    #tag: "0.3.5"
+    #tag: "0.4.0"
 
   # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
@@ -152,7 +152,7 @@ networkPolicies:
   #   my-lable: skiped-namespace
   scope: {}
   # Namespace annotation that is a coma separated list of namespaces from where access must be allowed
-  allowAnnotation: "network-policy.netcracker.com/allowed-from"
+  allowAnnotation: "network-policy.qubership.org/allowed-from"
   # List of namespaces prefixes that are not restricted by NetworkPlolicies, therefore connections to pods in that namespaces are allowed
   # `kube-` means `kube-sytem`, `kube-public` `kube-node-lease` namespace are not resticted
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
@@ -163,7 +163,7 @@ networkPolicies:
   logs:
     enabled: false
     collectingAll: true
-    namespaceScope: "network-policy.netcracker.com/collecting-logs"
+    namespaceScope: "network-policy.qubership.org/collecting-logs"
 # RemoteClusterConfig section
 dr:
   install: false

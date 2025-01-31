@@ -139,14 +139,14 @@ The main part of operator needs NetworkPolicyConfig custom resource that describ
 `NetworkPolicyConfig` spec example:
 
 ```
-apiVersion: netcracker.com/v1alpha1
+apiVersion: qubership.org/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
   name: npc-example
 spec:
   enabled: true
   scope: {}
-  allowAnnotation: "network-policy.netcracker.com/allowed-from"
+  allowAnnotation: "network-policy.qubership.org/allowed-from"
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
   implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress" 
   policies:
@@ -226,7 +226,7 @@ Let's call the NetworkPolicy that must be extended to cover remote cluster pods 
 `RemoteClusterConfig` spec example:
 
 ```
-apiVersion: netcracker.com/v1alpha1
+apiVersion: qubership.org/v1alpha1
 kind: RemoteClusterConfig
 metadata:
   name: test-remote-cluster-config
@@ -244,7 +244,7 @@ spec:
 `ExternalNamespace` spec example:
 
 ```
-apiVersion: netcracker.com/v1alpha1
+apiVersion: qubership.org/v1alpha1
 kind: ExternalNamespace
 metadata:
   labels:
@@ -287,7 +287,7 @@ networkPolicies:
   install: true
   name: "default"
   scope: {} 
-  allowAnnotation: "network-policy.netcracker.com/allowed-from"
+  allowAnnotation: "network-policy.qubership.org/allowed-from"
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
   implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
 customPolicies:
@@ -324,7 +324,7 @@ Options description:
 
 * `networkPolicies.install` enables/disables default NetworkPolicies
 * `networkPolicies.scope` sets namespace label that identifies namespaces which must be protected by NetworkPolicies
-* `networkPolicies.allowAnnotation` sets the annotation with coma separated namespaces list the traffic from where should be allowed. For instance, `network-policy.netcracker.com/allowed-from:app-1,app-2` annotation allows network access from `app-1`, `app-2` namespaces to annotated namespace
+* `networkPolicies.allowAnnotation` sets the annotation with coma separated namespaces list the traffic from where should be allowed. For instance, `network-policy.qubership.org/allowed-from:app-1,app-2` annotation allows network access from `app-1`, `app-2` namespaces to annotated namespace
 * `networkPolicies.controlPlane` sets the list of namespaces prefixes that are not restricted by NetworkPlolicies
 * `networkPolicies.implicitNamespaces` sets namespaces from where outgoing traffic to any other namespaces is allowed by default. It's useful for monitoring
 * `customPolicies` is a key-value map where arbitrary NetworkPolicies could be described

@@ -9,7 +9,7 @@ Before the new application installation the following steps must be performed to
 * If the new application id a part of control-pale, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
-Then create namespace for application and set the list of allowed namespaces into `network-policy.netcracker.com/allowed-from` annotation
+Then create namespace for application and set the list of allowed namespaces into `network-policy.qubership.org/allowed-from` annotation
 
 After that check the list of NetworkPolicies in application namespace and install application if it's acceptable for particular case.
 
@@ -54,7 +54,7 @@ The outgoing traffic policy:
 
 * restrict-service restricts egress connections to the neighbor cluster services subnet
 
-All of the NetworkPolicies that has been created by operator have `network-policy.netcracker.com/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.netcracker.com/target-policy: "true"` label in addition
+All of the NetworkPolicies that has been created by operator have `network-policy.qubership.org/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.qubership.org/target-policy: "true"` label in addition
 
 In DR clusters `Externalnamespaces` will be created after the clusters are coupled.
 

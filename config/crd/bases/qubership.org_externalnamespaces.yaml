@@ -4,21 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: remoteclusterconfigs.netcracker.com
+  name: externalnamespaces.qubership.org
 spec:
-  group: netcracker.com
+  group: qubership.org
   names:
-    kind: RemoteClusterConfig
-    listKind: RemoteClusterConfigList
-    plural: remoteclusterconfigs
-    singular: remoteclusterconfig
+    kind: ExternalNamespace
+    listKind: ExternalNamespaceList
+    plural: externalnamespaces
+    singular: externalnamespace
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: RemoteClusterConfig is the Schema for the remoteclusterconfigs
-          API
+        description: ExternalNamespace is the Schema for the externalnamespaces API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,41 +32,64 @@ spec:
           metadata:
             type: object
           spec:
-            description: RemoteClusterConfigSpec defines the desired state of RemoteClusterConfig
+            description: ExternalNamespaceSpec defines the desired state of ExternalNamespace
             properties:
-              localCluster:
-                description: LocalCluster is needed to indicate the local cluster
-                  resources on remote cluster
-                properties:
-                  api:
-                    type: string
-                  name:
-                    type: string
-                required:
-                - api
-                - name
-                type: object
               remoteCluster:
-                description: RemoteCluster defines remote cluster address and credentials
-                  to connect to
+                type: string
+              remoteNamespace:
+                type: string
+              resources:
+                description: Resource defines resource specification
                 properties:
-                  api:
-                    type: string
-                  name:
-                    type: string
-                  remoteSecret:
-                    type: string
-                required:
-                - api
-                - name
-                - remoteSecret
+                  pods:
+                    items:
+                      description: Pod defines the most important options of regular
+                        Pod
+                      properties:
+                        hostIP:
+                          type: string
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        nodeName:
+                          type: string
+                        podIP:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  services:
+                    items:
+                      description: Service defines the most important options of regular
+                        Service
+                      properties:
+                        clusterIP:
+                          type: string
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        selectors:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
                 type: object
             required:
-            - localCluster
             - remoteCluster
+            - remoteNamespace
             type: object
           status:
-            description: RemoteClusterConfigStatus defines the observed state of RemoteClusterConfig
+            description: ExternalNamespaceStatus defines the observed state of ExternalNamespace
             properties:
               conditions:
                 items:
@@ -137,18 +159,6 @@ spec:
                   - type
                   type: object
                 type: array
-              coreDNSService:
-                type: string
-              coupleCoreDNSService:
-                type: string
-              coupleKubeAPIService:
-                type: string
-              coupleServiceSubnet:
-                type: string
-              kubeAPIService:
-                type: string
-              serviceSubnet:
-                type: string
             type: object
         type: object
     served: true

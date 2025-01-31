@@ -12,7 +12,7 @@ metadata:
   name: networkpolicyconfig-viewer-role
 rules:
 - apiGroups:
-  - netcracker.com
+  - qubership.org
   resources:
   - networkpolicyconfigs
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - netcracker.com
+  - qubership.org
   resources:
   - networkpolicyconfigs/status
   verbs:
