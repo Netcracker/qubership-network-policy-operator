@@ -50,7 +50,7 @@ type ServiceReconciler struct {
 func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var extNamespace = schema.GroupVersionResource{Group: "netcracker.com",
+	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
 		Version: "v1alpha1", Resource: "externalnamespaces"}
 	var accessor metav1.Object
 
@@ -187,7 +187,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			isSkiped = true
 			continue
 		}
-		unstructured.SetNestedField(unstr.Object, "netcracker.com/v1alpha1", "apiVersion")
+		unstructured.SetNestedField(unstr.Object, "qubership.org/v1alpha1", "apiVersion")
 		unstructured.SetNestedField(unstr.Object, "ExternalNamespace", "kind")
 		log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
 		// Getting ExternalNamespace

@@ -2,7 +2,7 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: netcracker.com
+domain: qubership.org
 layout:
 - go.kubebuilder.io/v4
 plugins:
@@ -14,40 +14,40 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: ExternalNamespace
   path: github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1
   version: v1alpha1
 - controller: true
-  domain: netcracker.com
+  domain: qubership.org
   group: projectcalico.org
   kind: NetworkPolicy
   version: v1
 - controller: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: Namespace
   version: v1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: RemoteClusterConfig
   path: github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1
   version: v1alpha1
 - controller: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: Pod
   version: v1
 - api:
     crdVersion: v1
   controller: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: NetworkPolicyConfig
   path: github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1
   version: v1alpha1
 - controller: true
-  domain: netcracker.com
+  domain: qubership.org
   kind: Service
   version: v1
 version: "3"
