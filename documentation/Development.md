@@ -20,7 +20,7 @@ privileges or be logged in as admin.
 **Deploy default NetworkPolicyConfig:**
 
 ```sh
-kubectl apply -k config/samples/netcracker.com_networkpolicyconfig.yaml
+kubectl apply -k config/samples/networkpolicyconfig.yaml
 ```
 
 > **NOTE**: The file above could be changed if it's needed
@@ -46,10 +46,10 @@ than:
 kubectl -n netpolconf-system patch secret remote-cluster2  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
-Edit config/samples/netcracker.com_remoteclusterconfig_1.yaml and apply it:
+Edit config/samples/remoteclusterconfig_1.yaml and apply it:
 
 ```sh
-kubectl -n netpolconf-system apply -k config/samples/netcracker.com_remoteclusterconfig_1.yaml
+kubectl -n netpolconf-system apply -k config/samples/remoteclusterconfig_1.yaml
 ```
 
 **Prepare DR on Cluster2:**
@@ -66,10 +66,10 @@ than:
 kubectl -n netpolconf-system patch secret remote-cluster1  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
-Edit config/samples/netcracker.com_remoteclusterconfig_2.yaml and apply it:
+Edit config/samples/remoteclusterconfig_2.yaml and apply it:
 
 ```sh
-kubectl -n netpolconf-system apply -k config/samples/netcracker.com_remoteclusterconfig_2.yaml
+kubectl -n netpolconf-system apply -k config/samples/remoteclusterconfig_2.yaml
 ```
 
 ## To Uninstall

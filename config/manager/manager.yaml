@@ -70,7 +70,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: artifactorycn.netcracker.com:17009/alar0318/npc-operator:0.2.0
+        image: ghcr.io/netcracker/qubership-network-policy-operator:main
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

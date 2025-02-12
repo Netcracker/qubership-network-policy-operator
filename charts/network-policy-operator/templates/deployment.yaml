@@ -39,7 +39,7 @@ spec:
           name: manager
           securityContext:
             {{- toYaml .Values.manager.securityContext | nindent 12 }}
-          image: "{{ printf "%s:%s" .Values.manager.image.repository (.Values.manager.image.tag | default .Chart.AppVersion) }}"
+          image: {{ template "operator.image" . }}
           imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
           livenessProbe:
             {{- toYaml .Values.manager.livenessProbe | nindent 12 }}
@@ -59,7 +59,7 @@ spec:
         - name: kube-rbac-proxy
           securityContext:
             {{- toYaml .Values.authProxy.securityContext | nindent 12 }}
-          image: "{{ printf "%s:%s" .Values.authProxy.image.repository .Values.authProxy.image.tag }}"
+          image: {{ template "authProxy.image" . }}
           imagePullPolicy: {{ .Values.authProxy.image.pullPolicy }}
           args:
           - "--secure-listen-address=0.0.0.0:8443"

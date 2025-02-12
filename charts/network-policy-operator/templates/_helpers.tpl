@@ -68,3 +68,18 @@ Allows overriding it for multi-namespace deployments in combined charts.
 {{- define "network-policy-operator.namespace" -}}
 {{- default .Release.Namespace .Values.namespaceOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{/*
+Network Policy Operator image.
+*/}}
+{{- define "operator.image" -}}
+    {{ printf "%s:%s" .Values.manager.image.repository (.Values.manager.image.tag | default .Chart.AppVersion) }}
+{{- end -}}
+
+{{/*
+Auth Proxy image.
+*/}}
+
+{{- define "authProxy.image" -}}
+    {{ printf "%s:%s" .Values.authProxy.image.repository .Values.authProxy.image.tag }}
+{{- end -}}

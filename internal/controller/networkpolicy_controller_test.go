@@ -94,8 +94,8 @@ metadata:
   name: restrict-service
   namespace: test
   labels:
-    network-policy.netcracker.com/generated: "true"
-    network-policy.netcracker.com/egress-svc: "true"
+    network-policy.qubership.org/generated: "true"
+    network-policy.qubership.org/egress-svc: "true"
 spec:
   order: 10
   egress:
@@ -167,7 +167,7 @@ spec:
 		}
 		// It's needed to check Services NetworkPolicies
 		nsAnnotations := map[string]string{
-			"network-policy.netcracker.com/allowed-from": "test2",
+			"network-policy.qubership.org/allowed-from": "test2",
 		}
 
 		npList := &calicov3.NetworkPolicyList{}

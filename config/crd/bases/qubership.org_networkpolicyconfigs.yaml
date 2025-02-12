@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: networkpolicyconfigs.netcracker.com
+  name: networkpolicyconfigs.qubership.org
 spec:
-  group: netcracker.com
+  group: qubership.org
   names:
     kind: NetworkPolicyConfig
     listKind: NetworkPolicyConfigList
@@ -62,6 +62,7 @@ spec:
                 type: object
             required:
             - enabled
+            - logs
             type: object
           status:
             description: NetworkPolicyConfigStatus defines the observed state of NetworkPolicyConfig

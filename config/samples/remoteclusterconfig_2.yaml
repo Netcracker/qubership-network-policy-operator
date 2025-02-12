@@ -1,4 +1,4 @@
-apiVersion: netcracker.com/v1alpha1
+apiVersion: qubership.org/v1alpha1
 kind: RemoteClusterConfig
 metadata:
   labels:
@@ -10,9 +10,9 @@ metadata:
   name: remoteclusterconfig-sample
 spec:
   localCluster:
-    api: cluster-1.domain.com:6443
-    name: cluster-1
-  remoteCluster:
     api: cluster-2.domain.com:6443
     name: cluster-2
-    remoteSecret: remote-cluster2
+  remoteCluster:
+    api: cluster-1.domain.com:6443
+    name: cluster-1
+    remoteSecret: remote-cluster1

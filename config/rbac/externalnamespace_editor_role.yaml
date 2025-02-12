@@ -12,7 +12,7 @@ metadata:
   name: externalnamespace-editor-role
 rules:
 - apiGroups:
-  - netcracker.com
+  - qubership.org
   resources:
   - externalnamespaces
   verbs:
@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - netcracker.com
+  - qubership.org
   resources:
   - externalnamespaces/status
   verbs:

@@ -107,74 +107,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - netcracker.com
-  resources:
-  - externalnamespaces
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - netcracker.com
-  resources:
-  - externalnamespaces/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - netcracker.com
-  resources:
-  - networkpolicyconfigs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netcracker.com
-  resources:
-  - networkpolicyconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - netcracker.com
-  resources:
-  - networkpolicyconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - netcracker.com
-  resources:
-  - remoteclusterconfigs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netcracker.com
-  resources:
-  - remoteclusterconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - netcracker.com
-  resources:
-  - remoteclusterconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - projectcalico.org
   resources:
   - networkpolicies
@@ -196,6 +128,74 @@ rules:
   - projectcalico.org
   resources:
   - networkpolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - qubership.org
+  resources:
+  - externalnamespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - qubership.org
+  resources:
+  - externalnamespaces/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - qubership.org
+  resources:
+  - networkpolicyconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - qubership.org
+  resources:
+  - networkpolicyconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - qubership.org
+  resources:
+  - networkpolicyconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - qubership.org
+  resources:
+  - remoteclusterconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - qubership.org
+  resources:
+  - remoteclusterconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - qubership.org
+  resources:
+  - remoteclusterconfigs/status
   verbs:
   - get
   - patch

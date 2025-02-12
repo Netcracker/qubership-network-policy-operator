@@ -2,9 +2,9 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/netcracker.com_externalnamespaces.yaml
-- bases/netcracker.com_remoteclusterconfigs.yaml
-- bases/netcracker.com_networkpolicyconfigs.yaml
+- bases/qubership.org_externalnamespaces.yaml
+- bases/qubership.org_remoteclusterconfigs.yaml
+- bases/qubership.org_networkpolicyconfigs.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
