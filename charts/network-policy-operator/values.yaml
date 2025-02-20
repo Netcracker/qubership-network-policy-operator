@@ -66,6 +66,8 @@ manager:
     # readOnlyRootFilesystem: true
     # runAsNonRoot: true
     # runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
   
   resources: 
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -122,6 +124,8 @@ authProxy:
     capabilities:
       drop:
         - "ALL"
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: 
     limits:
