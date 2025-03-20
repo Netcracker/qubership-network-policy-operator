@@ -26,6 +26,60 @@ spec:
 
 ## Deployment with Helm Chart
 
+### Parameters
+
+| Parameter                           |	Type   |	Default value                                                                                                                           |	Description          |
+|-------------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
+| nameOverride                        | string | ""                                                                                                                                         |                        |
+| fullnameOverride                    | string | ""                                                                                                                                         |                        |
+| replicaCount                        | int    | 1                                                                                                                                          |                        |
+| podAnnotations                      | object | {}                                                                                                                                         |                        |
+| podLabels                           | object | {}                                                                                                                                         |                        |
+| podSecurityContext.runAsNonRoot     | bool   | true                                                                                                                                       |                        |
+| serviceAccount.create               | bool   | true                                                                                                                                       |                        |
+| serviceAccount.automount            | bool   | true                                                                                                                                       |                        |
+| serviceAccount.annotations          | object | {}                                                                                                                                         |                        |
+| serviceAccount.name                 | string | "network-policy-operator"                                                                                                                  |                        |
+| leaderElection.role                 | string | leader-election-role                                                                                                                       |                        |
+| leaderElection.rolebinding          | string | leader-election-rolebinding                                                                                                                |                        |
+| manager.image.repository            | string | ghcr.io/netcracker/qubership-network-policy-operator                                                                                       |                        |
+| manager.image.pullPolicy            | string | IfNotPresent                                                                                                                               |                        |
+| manager.imagePullSecrets            | array  | []                                                                                                                                         |                        |
+| manager.rbac.create                 | bool   | true                                                                                                                                       |                        |
+| manager.rbac.role                   | string | network-policy-operator-role                                                                                                               |                        |
+| manager.rbac.rolebinding            | string | network-policy-operator-rolebinding                                                                                                        |                        |
+| manager.securityContext             | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} |                        |
+| manager.resources                   | object | {"limits": {"cpu": "500m", "memory": "512Mi"}, "requests": {"cpu": "100m", "memory": "128Mi"}}                                             |                        |
+| manager.livenessProbe               | object | {"httpGet": {"path": "/healthz", "port": 8081}, "initialDelaySeconds": 15, "periodSeconds": 20}                                            |                        |
+| manager.readinessProbe              | object | {"httpGet": {"path": "/readyz", "port": 8081}, "initialDelaySeconds": 5, "periodSeconds": 10}                                              |                        |
+| manager.volumes                     | array  | []                                                                                                                                         |                        |
+| manager.volumeMounts                | array  | []                                                                                                                                         |                        |
+| authProxy.image.repository          | string | gcr.io/kubebuilder/kube-rbac-proxy                                                                                                         |                        |
+| authProxy.image.pullPolicy          | string | IfNotPresent                                                                                                                               |                        |
+| authProxy.image.tag                 | string | "v0.15.0"                                                                                                                                  |                        |
+| authProxy.imagePullSecrets          | array  | []                                                                                                                                         |                        |
+| authProxy.securityContext           | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} |                        |
+| authProxy.resources                 | object | {"limits": {"cpu": "500m", "memory": "512Mi"}, "requests": {"cpu": "50m", "memory": "64Mi"}}                                               |                        |
+| authProxy.rbac.create               | bool   | true                                                                                                                                       |                        |
+| authProxy.rbac.role                 | string | network-policy-operator-proxy-role                                                                                                         |                        |
+| authProxy.rbac.rolebinding          | string | network-policy-operator-proxy-rolebinding                                                                                                  |                        |
+| authProxy.rbac.metrics              | string | metrics-reader                                                                                                                             |                        |
+| nodeSelector                        | object | {}                                                                                                                                         |                        |
+| tolerations                         | array  | []                                                                                                                                         |                        |
+| affinity                            | object | {}                                                                                                                                         |                        |
+| networkPolicies.name                | string | "default"                                                                                                                                  |                        |
+| networkPolicies.enabled             | bool   | true                                                                                                                                       |                        |
+| networkPolicies.scope               | object | {}                                                                                                                                         |                        |
+| networkPolicies.allowAnnotation     | string | "network-policy.qubership.org/allowed-from"                                                                                                |                        |
+| networkPolicies.controlPlane        | string | "kube-,openshift,calico,tigera,ingress-nginx"                                                                                              |                        |
+| networkPolicies.implicitNamespaces  | string | "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"                                                                 |                        |
+| networkPolicies.customPolicies      | string | ""                                                                                                                                         |                        |
+| networkPolicies.logs.enabled        | bool   | false                                                                                                                                      |                        |
+| networkPolicies.logs.collectingAll  | bool   | true                                                                                                                                       |                        |
+| networkPolicies.logs.namespaceScope | bool   | "network-policy.qubership.org/collecting-logs"                                                                                             |                        |
+| dr.install                          | bool   | false                                                                                                                                      |                        |
+| dr.localCluster                     | object | {}                                                                                                                                         |                        |
+| dr.remoteClusters                   | array  | []                                                                                                                                         |                        |
 ### Basic Installation
 
 The installation procedure must be performed on each of the clusters in case of DR scheme
