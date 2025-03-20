@@ -81,7 +81,22 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   
 
 ## Audit logs
 
-The `NetworkPolicyConfig` allows to manage the connections logs collecting. Connections logs for particular pod are collected on the node where the pod has been started. If the logs collecting has been enabled it's possible to revise them on the following maner.
+The `NetworkPolicyConfig` allows to manage the connections logs collecting. The following NetworkPolicyConfig options allows to configure logs.
+
+```
+spec:
+...
+  logs:
+    enabled: false
+    collectingAll: true
+    namespaceScope: "network-policy.qubership.org/collecting-logs"
+```
+
+* `logs.enable` enables and disables the collecting connection logs
+* `logs.collectingAll` allowes to change collecting logs for all of the connections or only denied connections
+* `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace
+
+Connections logs for particular pod are collected on the node where the pod has been started. If the logs collecting has been enabled it's possible to revise them on the following maner.
 
 * Connect to the particular node by SSH or by usage the `kubectl debug` option
 * Run the `journalctl` command e.g.:
