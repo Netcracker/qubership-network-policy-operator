@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	corev1 "k8s.io/api/core/v1"
 
-	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
+	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 )
 
 var _ = Describe("Namespace Controller", func() {

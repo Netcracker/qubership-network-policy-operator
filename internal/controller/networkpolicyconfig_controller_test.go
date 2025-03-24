@@ -31,7 +31,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	npcv1 "git.netcracker.com/PROD.Platform.HA/network-policy-operator/api/v1alpha1"
+	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
@@ -273,17 +273,17 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the specific resource instance NetworkPolicyConfig")
-			//Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
 			if err == nil {
 				By("Deleting the second NetworkPolicyConfig")
-				//Expect(k8sClient.Delete(ctx, npc2)).To(Succeed())
+				Expect(k8sClient.Delete(ctx, npc2)).To(Succeed())
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			By("Cleanup the RemoteClusterConfig")
-			//Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")

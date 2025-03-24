@@ -1,4 +1,4 @@
-module git.netcracker.com/PROD.Platform.HA/network-policy-operator
+module github.com/Netcracker/qubership-network-policy-operator
 
 go 1.22.3
 
