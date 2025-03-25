@@ -161,6 +161,8 @@ Take the output of previous command and run the command on the other clusters (d
 kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
+Do the same procedure with other clusters in DR scheme.
+
 ### Check installation
 
 The the successfull instalation could be checked by `NetworkPolicyConfig` custom resource:

@@ -38,7 +38,7 @@ import (
 var _ = Describe("NetworkPolicy Controller", func() {
 	Context("When reconciling a resource", func() {
 /*
-For comprehensive test running the NetworkPolicyConfig reconciliation must be disabled the `test` namespaces must be ceated the following policies must be applied in it:
+For comprehensive test running the NetworkPolicyConfig reconciliation must be disabled and in the `test` namespaces must be ceated the following policies:
 apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
 metadata:

@@ -78,10 +78,32 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		// To test whole cluster:
 		// scope := map[string]string{}
 		scope := map[string]string{"npc": "true"}
+		// TODO: Automated definition of Tiers availability
+		tr1 := &calicov3.Tier{}
+		tr2 := &calicov3.Tier{}
+		tr3 := &calicov3.Tier{}
 		// Calico v3.29
-		tier := "automated"
+		dfTier := "automated"
+		dfNewTier := "renewed"
+		cmTier := "customized"
+		dfOrder := float64(10000)
+		dfNewOrder := float64(11000)
+		cmOrder := float64(110000)
 		// Calico v3.28
-		//tier := ""
+		//dfTier := ""
+		typeNamespacedNameT1 := types.NamespacedName{
+			Name:      dfTier,
+			Namespace: "",
+		}
+		typeNamespacedNameT2 := types.NamespacedName{
+			Name:      dfNewTier,
+			Namespace: "",
+		}
+		typeNamespacedNameT3 := types.NamespacedName{
+			Name:      cmTier,
+			Namespace: "",
+		}
+		act :=	calicov3.Pass
 		WNS := `
     apiVersion: projectcalico.org/v3
     kind: NetworkPolicy
@@ -210,7 +232,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		policies["DefaultLog"]		 = DL
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind NetworkPolicyConfig")
+			By("Creating the NetworkPolicyConfig")
 			err := k8sClient.Get(ctx, typeNamespacedName1, npc)
 			if err != nil && errors.IsNotFound(err) {
 				npc = &npcv1.NetworkPolicyConfig{
@@ -229,7 +251,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				}
 				Expect(k8sClient.Create(ctx, npc)).To(Succeed())
 			}
-			By("Creating RemoteClusterConfig")
+			By("Creating the RemoteClusterConfig")
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			if err != nil && errors.IsNotFound(err) {
 				rcl = &npcv1.RemoteClusterConfig{
@@ -266,6 +288,50 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			rcl.Status.CoupleCoreDNSService = "172.30.0.10"
 			Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
 
+			By("Creating the Default Tier")
+			err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
+			if err != nil && errors.IsNotFound(err) {
+				tr1 = &calicov3.Tier{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dfTier,
+					},
+					Spec: calicov3.TierSpec{
+						Order:		&dfOrder,
+						DefaultAction:	&act,
+					},
+				}
+				Expect(k8sClient.Create(ctx, tr1)).To(Succeed())
+			}
+
+			By("Creating the new Default Tier")
+			err = k8sClient.Get(ctx, typeNamespacedNameT2, tr2)
+			if err != nil && errors.IsNotFound(err) {
+				tr2 = &calicov3.Tier{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dfNewTier,
+					},
+					Spec: calicov3.TierSpec{
+						Order:		&dfNewOrder,
+						DefaultAction:	&act,
+					},
+				}
+				Expect(k8sClient.Create(ctx, tr2)).To(Succeed())
+			}
+
+			By("Creating the Custom Tier")
+			err = k8sClient.Get(ctx, typeNamespacedNameT3, tr3)
+			if err != nil && errors.IsNotFound(err) {
+				tr3 = &calicov3.Tier{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      cmTier,
+					},
+					Spec: calicov3.TierSpec{
+						Order:		&cmOrder,
+						DefaultAction:	&act,
+					},
+				}
+				Expect(k8sClient.Create(ctx, tr3)).To(Succeed())
+			}
 		})
 
 		AfterEach(func() {
@@ -277,13 +343,25 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
 			if err == nil {
-				By("Deleting the second NetworkPolicyConfig")
+				By("Cleanup the second NetworkPolicyConfig")
 				Expect(k8sClient.Delete(ctx, npc2)).To(Succeed())
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			By("Cleanup the RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
+			By("Cleanup the Default Tier")
+			Expect(k8sClient.Delete(ctx, tr1)).To(Succeed())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameT2, tr2)
+			By("Cleanup the new Default Tier")
+			Expect(k8sClient.Delete(ctx, tr2)).To(Succeed())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameT3, tr3)
+			By("Cleanup the Custom Tier")
+			Expect(k8sClient.Delete(ctx, tr3)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")
@@ -298,14 +376,14 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking Tiers")
-			if len(tier) > 0 {
+			if len(dfTier) > 0 {
 				for i, item := range fullNPList {
-					fullNPList[i] = fmt.Sprintf("%s.%s", tier, item)
+					fullNPList[i] = fmt.Sprintf("%s.%s", dfTier, item)
 				}
 				for i, item := range logNP {
-					logNP[i] = fmt.Sprintf("%s.%s", tier, item)
+					logNP[i] = fmt.Sprintf("%s.%s", dfTier, item)
 				}
-				defaultDeny = fmt.Sprintf("%s.%s", tier, defaultDeny)
+				defaultDeny = fmt.Sprintf("%s.%s", dfTier, defaultDeny)
 			}
 			By("Checking if the NetworkPolicy was successfully created in regular Namespace")
 			opts = &client.ListOptions{Namespace: "default",}
@@ -415,8 +493,70 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			}
 			Expect(err).NotTo(HaveOccurred())
 
+			By("Reconciling non-existent Default Tier")
+			npc.Spec.DefaultTier = "nonexistent"
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).To(MatchError("Default Tier doesn't exist"))
+
+			By("Reconciling non-existent Custom Tier")
+			npc.Spec.DefaultTier = dfTier
+			npc.Spec.CustomTier = "nonexistent"
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).To(MatchError("Custom Tier doesn't exist"))
+
+			By("Reconciling wrong order of Custom Tier")
+			npc.Spec.DefaultTier = dfTier
+			npc.Spec.CustomTier = dfTier
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).To(MatchError("Custom Tier Order must be higher than Default Tier Order"))
+
+			By("Reconciling change of Default Tier")
+			npc.Spec.DefaultTier = dfNewTier
+			npc.Spec.CustomTier = "default"
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			opts = &client.ListOptions{}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			for _, npItem := range npList.Items {
+				if npItem.Spec.Tier == dfTier {
+					err = fmt.Errorf("The Default NetworkPolicies that belong to the previous Tier have not been deleted")
+				}
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Reconciling change of Custom Tier")
+			npc.Spec.CustomTier = cmTier
+			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			opts = &client.ListOptions{}
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
+			for _, npItem := range npList.Items {
+				if npItem.Spec.Tier == "default" {
+					err = fmt.Errorf("The Custom NetworkPolicies that belong to the previous Tier have not been deleted")
+				}
+			}
+			Expect(err).NotTo(HaveOccurred())
+
 			By("Disabling default policies in NetworkPolicyConfig")
 			npc.Spec.Enabled = false
+			npc.Spec.CustomTier = "default"
 			Expect(k8sClient.Update(ctx, npc)).To(Succeed())
 			By("Reconciling the Deletion")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
