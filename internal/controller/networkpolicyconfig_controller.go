@@ -633,7 +633,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 		// Creating NetworkPolicy
 		err = r.Create(context.TODO(), policy)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
 			return err
 		}
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been created", policy.GetName(), policy.GetNamespace()))
