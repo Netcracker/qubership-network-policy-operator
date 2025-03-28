@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,6 +41,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		const (
 			npcName    = "default"
 			npcNameAdd = "default2"
+			nsName     = "test"
 			rclName    = "test-remote-cluster-config"
 			rclNS      = "default"
 		)
@@ -67,11 +69,16 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Name:      rclName,
 			Namespace: rclNS,
 		}
+		typeNamespacedNameN := types.NamespacedName{
+			Name:      nsName,
+			Namespace: nsName,
+		}
 		npc := &npcv1.NetworkPolicyConfig{}
 		npc2 := &npcv1.NetworkPolicyConfig{}
 		rcl := &npcv1.RemoteClusterConfig{}
 		npList := &calicov3.NetworkPolicyList{}
 		opts := &client.ListOptions{}
+		ns := &corev1.Namespace{}
 		en := true
 		// To test particular namespace set the following:
 		// scope := map[string]string{"kubernetes.io/metadata.name": "<NAMESPACE>"}
@@ -285,6 +292,18 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			rcl.Status.CoupleCoreDNSService = "172.30.0.10"
 			Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
 
+			// Creating separate Namespace for Custom NetworkPolicies
+			By("Creating the Namespace resource")
+			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
+			if err != nil && errors.IsNotFound(err) {
+				ns = &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      nsName,
+					},
+				}
+				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			}
+
 			// Tiers availability check
 			trList := &calicov3.TierList{}
 			err = k8sClient.List(ctx, trList, &client.ListOptions{})
@@ -358,6 +377,12 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			By("Cleanup the RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the Namespace")
+			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 			// Tiers availability check
 			trList := &calicov3.TierList{}

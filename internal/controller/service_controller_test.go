@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 )
@@ -36,12 +37,16 @@ import (
 var _ = Describe("Service Controller", func() {
 	Context("When reconciling a resource", func() {
 		const (
-			rclName = "test-remote-cluster-config"
+			rclName       = "test-remote-cluster-config"
 			rclCoupleName = "couple-remote-cluster-config"
-			nsName	= "test-ns-svc"
-			svcName = "test-svc"
-			podName = "test-pod"
-			rclNS   = "default"
+			nsName	      = "test-ns-svc"
+			svcName       = "test-svc"
+			podName       = "test-pod"
+			rclNS         = "default"
+			s1Name	      = "remote-cluster1"
+			s2Name	      = "remote-cluster2"
+			roleName      = "npo-role"
+			rbName	      = "npo-rb"
 		)
 
 
@@ -50,6 +55,7 @@ var _ = Describe("Service Controller", func() {
 		label := map[string]string{
 			"remote": "true",
 		}
+		ann := make(map[string]string)
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      rclName,
@@ -67,11 +73,32 @@ var _ = Describe("Service Controller", func() {
 			Name:      svcName,
 			Namespace: nsName,
 		}
+		typeNamespacedNameS1 := types.NamespacedName{
+			Name:      s1Name,
+			Namespace: rclNS,
+		}
+		typeNamespacedNameS2 := types.NamespacedName{
+			Name:      s2Name,
+			Namespace: rclNS,
+		}
+		typeNamespacedNameR := types.NamespacedName{
+			Name:      roleName,
+		}
+		typeNamespacedNameRB := types.NamespacedName{
+			Name:      rbName,
+		}
 		rcl := &npcv1.RemoteClusterConfig{}
 		rclCouple := &npcv1.RemoteClusterConfig{}
 		ens := &npcv1.ExternalNamespace{}
 		ns := &corev1.Namespace{}
 		svc := &corev1.Service{}
+		sa1 := &corev1.ServiceAccount{}
+		sa2 := &corev1.ServiceAccount{}
+		s1 := &corev1.Secret{}
+		s2 := &corev1.Secret{}
+		role := &rbac.ClusterRole{}
+		rb := &rbac.ClusterRoleBinding{}
+		sl :=[]string{"*"}
 
 		BeforeEach(func() {
 			By("Creating RemoteClusterConfig")
@@ -189,13 +216,106 @@ var _ = Describe("Service Controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, ens)).To(Succeed())
+
+			By("Creating the ServiceAccounts and Secrets")
+			err = k8sClient.Get(ctx, typeNamespacedNameS1, sa1)
+			if err != nil && errors.IsNotFound(err) {
+				sa1 = &corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:	   s1Name,
+						Namespace: rclNS,
+					},
+					Secrets: []corev1.ObjectReference{{
+						Name: s1Name,
+					}},
+				}
+				Expect(k8sClient.Create(ctx, sa1)).To(Succeed())
+			}
+			err = k8sClient.Get(ctx, typeNamespacedNameS1, s1)
+			if err != nil && errors.IsNotFound(err) {
+				ann["kubernetes.io/service-account.name"] = s1Name
+				s1 = &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        s1Name,
+						Namespace:   rclNS,
+						Annotations: ann,
+					},
+					Type: "kubernetes.io/service-account-token",
+				}
+				Expect(k8sClient.Create(ctx, s1)).To(Succeed())
+			}
+			err = k8sClient.Get(ctx, typeNamespacedNameS2, sa2)
+			if err != nil && errors.IsNotFound(err) {
+				sa2 = &corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      s2Name,
+						Namespace: rclNS,
+					},
+					Secrets: []corev1.ObjectReference{{
+						Name: s2Name,
+					}},
+				}
+				Expect(k8sClient.Create(ctx, sa2)).To(Succeed())
+			}
+			err = k8sClient.Get(ctx, typeNamespacedNameS2, s2)
+			if err != nil && errors.IsNotFound(err) {
+				ann["kubernetes.io/service-account.name"] = s2Name
+				s2 = &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        s2Name,
+						Namespace:   rclNS,
+						Annotations: ann,
+					},
+					Type: "kubernetes.io/service-account-token",
+				}
+				Expect(k8sClient.Create(ctx, s2)).To(Succeed())
+			}
+
+			By("Creating the ClusterRole and ClusterRoleBinding")
+			err = k8sClient.Get(ctx, typeNamespacedNameR, role)
+			if err != nil && errors.IsNotFound(err) {
+				role = &rbac.ClusterRole{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: roleName,
+					},
+					Rules: []rbac.PolicyRule{{
+						Verbs:	   sl,
+						APIGroups: sl,
+						Resources: sl,
+					}},
+				}
+				Expect(k8sClient.Create(ctx, role)).To(Succeed())
+			}
+			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
+			if err != nil && errors.IsNotFound(err) {
+				rb := &rbac.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: rbName,
+					},
+					Subjects: []rbac.Subject{{
+						Kind:	   "ServiceAccount",
+						Name:	   s1Name,
+						Namespace: rclNS,
+					}, {
+						Kind:	   "ServiceAccount",
+						Name:	   s2Name,
+						Namespace: rclNS,
+					}},
+					RoleRef: rbac.RoleRef{
+						Kind:	  "ClusterRole",
+						APIGroup: "rbac.authorization.k8s.io",
+						Name:	  roleName,
+					},
+				}
+				Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			}
 		})
 
 		AfterEach(func() {
 			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance RemoteClusterConfig")
+			By("Cleanup the RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
 			
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rclCouple)
@@ -207,9 +327,30 @@ var _ = Describe("Service Controller", func() {
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance Namespace")
+			By("Cleanup the Namespace")
 			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
+			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
+			Expect(err).NotTo(HaveOccurred())
+			err = k8sClient.Get(ctx, typeNamespacedNameR, role)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the ClusterRole and ClusterRoleBinding")
+			Expect(k8sClient.Delete(ctx, role)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, rb)).To(Succeed())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameS1, sa1)
+			Expect(err).NotTo(HaveOccurred())
+			err = k8sClient.Get(ctx, typeNamespacedNameS1, s1)
+			Expect(err).NotTo(HaveOccurred())
+			err = k8sClient.Get(ctx, typeNamespacedNameS2, sa2)
+			Expect(err).NotTo(HaveOccurred())
+			err = k8sClient.Get(ctx, typeNamespacedNameS2, s2)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the ServiceAccounts and Secrets")
+			Expect(k8sClient.Delete(ctx, sa1)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, sa2)).To(Succeed())
 		})
 
 		It("Should successfully reconcile the resource", func() {
