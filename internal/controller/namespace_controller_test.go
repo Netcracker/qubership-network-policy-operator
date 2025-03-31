@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -89,50 +90,54 @@ var _ = Describe("Namespace Controller", func() {
 		BeforeEach(func() {
 			By("Creating the RemoteClusterConfig")
 			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
-			if err != nil && errors.IsNotFound(err) {
-				rcl = &npcv1.RemoteClusterConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      rclName,
-						Namespace: rclNS,
-					},
-					Spec: npcv1.RemoteClusterConfigSpec{
-						RemoteCluster: npcv1.RemoteCluster{
-							Name:   "cluster-2",
-							API:    "all.new.local:6443",
-							Secret: "remote-cluster2",
+			if err != nil {
+				if errors.IsNotFound(err) {
+					rcl = &npcv1.RemoteClusterConfig{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      rclName,
+							Namespace: rclNS,
 						},
-						LocalCluster: npcv1.LocalCluster{
-							Name: "cluster-1",
-							API:  "all.new.local:6443",
+						Spec: npcv1.RemoteClusterConfigSpec{
+							RemoteCluster: npcv1.RemoteCluster{
+								Name:   "cluster-2",
+								API:    "all.new.local:6443",
+								Secret: "remote-cluster2",
+							},
+							LocalCluster: npcv1.LocalCluster{
+								Name: "cluster-1",
+								API:  "all.new.local:6443",
+							},
 						},
-					},
-					Status: npcv1.RemoteClusterConfigStatus{
-						Conditions: []metav1.Condition{{
-							LastTransitionTime: metav1.Now(),
-							Message: "Couple is identified",
-							Reason: "Initializing",
-							Status: "True",
-							Type: "Coupled",
-						}},
-    					},
-
-				}
-				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
-				meta.SetStatusCondition(&rcl.Status.Conditions, 
-							metav1.Condition{
-								Type: TypeCoupled,
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
+						Status: npcv1.RemoteClusterConfigStatus{
+							Conditions: []metav1.Condition{{
+								LastTransitionTime: metav1.Now(),
 								Message: "Couple is identified",
-							})
-				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.KubeAPIService = "172.30.0.1"
-				rcl.Status.CoreDNSService = "172.30.0.10"
-				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
-				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-				Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
+								Reason: "Initializing",
+								Status: "True",
+								Type: "Coupled",
+							}},
+						},
+					}
+					Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+				} else {
+					Fail(fmt.Sprint("Failed to get RemoteClusterConfig:", err))
+				}
 			}
+			meta.SetStatusCondition(&rcl.Status.Conditions,
+						metav1.Condition{
+							Type: TypeCoupled,
+							Status: metav1.ConditionTrue,
+							Reason: "Initializing",
+							Message: "Couple is identified",
+						})
+			rcl.Status.ServiceSubnet  = "172.30.0.0/16"
+			rcl.Status.KubeAPIService = "172.30.0.1"
+			rcl.Status.CoreDNSService = "172.30.0.10"
+			rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
+			rcl.Status.CoupleKubeAPIService = "172.30.0.1"
+			rcl.Status.CoupleCoreDNSService = "172.30.0.10"
+			Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
+
 			By("Creating the couple for RemoteClusterConfig")
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rcl)
 			if err != nil && errors.IsNotFound(err) {

@@ -53,12 +53,9 @@ type NamespaceReconciler struct {
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
-		Version: "v1alpha1", Resource: "externalnamespaces"}
 	var accessor metav1.Object
 
 	nsAnn := make(map[string]string)
-	unstr := &unstructured.Unstructured{}
 
 	rc := &RemoteClusterConfigReconciler{}
 	oprNamespace = rc.getOperatorNamespace()
@@ -95,13 +92,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	log.Info(fmt.Sprintf("RemoteClusterConfigs list is: %v", rclList))
 
-	remoteConfig := &rest.Config{}
-	dynamicClient := &dynamic.DynamicClient{}
-	secret := &corev1.Secret{}
 	podList := &corev1.PodList{}
 	svcList := &corev1.ServiceList{}
-	ens := &npcv1.ExternalNamespace{}
-	ensGet := &npcv1.ExternalNamespace{}
 	opts = &client.ListOptions{Namespace: ns.GetName(),}
 	err = r.List(ctx, podList, opts)
 	if err != nil {
@@ -118,149 +110,18 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, fmt.Sprintf("Failed to get tunnel interface IPs for reconciliation in '%s' Namespace", ns.GetName()))
 		return ctrl.Result{}, err
 	}
-	isSkiped := false
 	// Processing RemoteCluster by RemoteCluster in the following maner:
 	// Getting Pods from Namespace
 	// Applying ExtenalNamespace description to remote cluster
+	cErr := make(chan error)
 	for _, rclItem := range rclList.Items {
-		// Checking if RemoteClusterConfig has valid status
-		log.Info(fmt.Sprintln("RemoteClusterConfigStatus:", rclItem.Status))
-		if !meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeCoupled) {
-			log.Info(fmt.Sprintf("'%s' RemoteClusterConfig is not coupled, so it's skipped", rclItem.GetName()))
-			continue
-		}
-		// Getting credentials to connect to remote cluster
-		err = r.Get(ctx, types.NamespacedName{Name: rclItem.Spec.RemoteCluster.Secret,
-			Namespace: oprNamespace}, secret)
+		go r.processRCL(&rclItem, podList, svcList, ns, labels, tunnelIPs, nsAnn, cErr)
+		err := <- cErr
 		if err != nil {
-			log.Info(fmt.Sprintf("Secret to connect to '%s' remote cluster does not exist", rclItem.Spec.RemoteCluster.Name))
-			isSkiped = true
-			continue
-		}
-
-		// Create configuration for client to connect to remote cluster
-		remoteConfig = &rest.Config{
-			Host:        rclItem.Spec.RemoteCluster.API,
-			APIPath:     "/apis",
-			BearerToken: string(secret.Data["token"]),
-			TLSClientConfig: rest.TLSClientConfig{
-				Insecure:   true,
-				ServerName: strings.Split(rclItem.Spec.RemoteCluster.API, ":")[0],
-				//CAData:     []byte(secret.Data["ca.crt"]),
-			},
-		}
-		dynamicClient, err = dynamic.NewForConfig(remoteConfig)
-		if err != nil {
-			log.Info(fmt.Sprintf("Failed to create remote client for '%s' remote cluster", rclItem.Spec.RemoteCluster.Name))
-			isSkiped = true
-			continue
-		}
-
-		// Checking if the RemoteClusterConfig has the correct couple on remote cluster
-		rclCouple, err := rc.getCouple(&rclItem, dynamicClient)
-		if err != nil {
-			log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rclItem.GetName(), err))
-			isSkiped = true
-			continue
-		}
-		log.Info(fmt.Sprintf("The couple for '%s' RemoteClusterConfig is '%s'", rclItem.GetName(), rclCouple.GetName()))
-
-		// Method from other controller
-		ens, err = rc.ExternalNamespaceForRemoteCluster(podList, svcList, &rclItem, rclCouple,
-				ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", ns.GetName()))
-			isSkiped = true
-			continue
-		}
-		// Setting ExternalNamespace owner
-		err = ctrl.SetControllerReference(rclCouple, ens, r.Scheme)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to set owner of '%s' ExternalNamespace", ens.GetName()))
-			isSkiped = true
-			continue
-		}
-		// Setting ExternalNamespace owner
-		err = ctrl.SetControllerReference(rclCouple, ens, r.Scheme)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to set owner of '%s' ExternalNamespace", ens.GetName()))
-			isSkiped = true
-			continue
-		}
-		log.Info(fmt.Sprintf("ExternalNamespace: %v", ens))
-		// Convert ExtenalNamespace to Unstructured
-		unstr.Object, err = runtime.DefaultUnstructuredConverter.
-				ToUnstructured(ens)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to convert '%s' ExternalNamespace to Unstructured", ens.GetName()))
-			isSkiped = true
-			continue
-		}
-		unstructured.SetNestedField(unstr.Object, "qubership.org/v1alpha1", "apiVersion")
-		unstructured.SetNestedField(unstr.Object, "ExternalNamespace", "kind")
-		log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
-		if ns.GetDeletionTimestamp() == nil {
-			// Checking ExternalNamespace
-			resp, err := dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
-				Get(ctx, ens.GetName(), metav1.GetOptions{})
-			if err != nil && !errors.IsNotFound(err) {
-				log.Error(err, fmt.Sprintf("Failed to get '%s' ExternalNamespace", ens.GetName()))
-				isSkiped = true
-				continue
-			}
-			// Creating ExternalNamespace
-			if errors.IsNotFound(err) {
-				_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
-					Create(ctx, unstr, metav1.CreateOptions{})
-				if err != nil {
-					log.Error(err, fmt.Sprintf("Failed to create '%s' ExternalNamespace", ens.GetName()))
-					isSkiped = true
-					continue
-				}
-				log.Info(fmt.Sprintf("'%s' ExternalNamespace has been created", ens.GetName()))
-			// Updating ExternalNamespace
-			} else {
-				err = runtime.DefaultUnstructuredConverter.
-					FromUnstructured(resp.UnstructuredContent(), &ensGet)
-				if err != nil {
-					log.Error(err, "Failed to convert Unstructured to ExternalNamespace")
-					isSkiped = true
-					continue
-				}
-				// Setting ResourceVersion
-				unstructured.SetNestedField(unstr.Object, ensGet.GetResourceVersion(), "metadata", "resourceVersion")
-				_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
-					Update(ctx, unstr, metav1.UpdateOptions{})
-				if err != nil {
-					log.Error(err, fmt.Sprintf("Failed to update '%s' ExternalNamespace", ens.GetName()))
-					isSkiped = true
-					continue
-				}
-				log.Info(fmt.Sprintf("'%s' ExternalNamespace has been updated", ens.GetName()))
-			}
-		} else {
-			// Delete ExternalNamespace
-			err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
-				Delete(ctx, ens.GetName(), metav1.DeleteOptions{})
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ens.GetName()))
-				isSkiped = true
-				continue
-			}
-		}
-		// Updating RemoteClusterConfig status
-		meta.SetStatusCondition(&rclItem.Status.Conditions, metav1.Condition{Type: TypeSynchronized, Status: metav1.ConditionTrue, Reason: "Synchronization", Message: "ExternalNamespaces have been updated"})
-		err = r.Status().Update(ctx, &rclItem)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rclItem.GetName()))
-			isSkiped = true
-			continue
+			return ctrl.Result{}, err
 		}
 	}
 
-	if isSkiped {
-		return ctrl.Result{}, err
-	}
 	log.Info("Namespace Reconciler loop has been finished")
 	return ctrl.Result{}, nil
 }
@@ -270,4 +131,141 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		Complete(r)
+}
+
+// processRCL
+func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList *corev1.PodList, svcList *corev1.ServiceList, ns *corev1.Namespace, labels map[string]string, tunnelIPs map[string]string, nsAnn map[string]string, cErr chan error) {
+
+	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
+		Version: "v1alpha1", Resource: "externalnamespaces"}
+
+	rc := &RemoteClusterConfigReconciler{}
+	log := log.FromContext(context.TODO())
+	remoteConfig := &rest.Config{}
+	dynamicClient := &dynamic.DynamicClient{}
+	secret := &corev1.Secret{}
+	ens := &npcv1.ExternalNamespace{}
+	ensGet := &npcv1.ExternalNamespace{}
+	unstr := &unstructured.Unstructured{}
+
+	// Checking if RemoteClusterConfig has valid status
+	log.Info(fmt.Sprintln("RemoteClusterConfigStatus:", rcl.Status))
+	if !meta.IsStatusConditionTrue(rcl.Status.Conditions, TypeCoupled) {
+		log.Info(fmt.Sprintf("'%s' RemoteClusterConfig is not coupled, so it's skipped", rcl.GetName()))
+	}
+	// Getting credentials to connect to remote cluster
+	err := r.Get(context.TODO(), types.NamespacedName{Name: rcl.Spec.RemoteCluster.Secret,
+		Namespace: oprNamespace}, secret)
+	if err != nil {
+		log.Info(fmt.Sprintf("Secret to connect to '%s' remote cluster does not exist", rcl.Spec.RemoteCluster.Name))
+		cErr <- err
+	}
+
+	// Create configuration for client to connect to remote cluster
+	remoteConfig = &rest.Config{
+		Host:        rcl.Spec.RemoteCluster.API,
+		APIPath:     "/apis",
+		BearerToken: string(secret.Data["token"]),
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure:   true,
+			ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+			//CAData:     []byte(secret.Data["ca.crt"]),
+		},
+	}
+	dynamicClient, err = dynamic.NewForConfig(remoteConfig)
+	if err != nil {
+		log.Info(fmt.Sprintf("Failed to create remote client for '%s' remote cluster", rcl.Spec.RemoteCluster.Name))
+		cErr <- err
+	}
+
+	// Checking if the RemoteClusterConfig has the correct couple on remote cluster
+	rclCouple, err := rc.getCouple(rcl, dynamicClient)
+	if err != nil {
+		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
+		cErr <- err
+	}
+	log.Info(fmt.Sprintf("The couple for '%s' RemoteClusterConfig is '%s'", rcl.GetName(), rclCouple.GetName()))
+
+	// Method from other controller
+	ens, err = rc.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
+			ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", ns.GetName()))
+		cErr <- err
+	}
+	// Setting ExternalNamespace owner
+	err = ctrl.SetControllerReference(rclCouple, ens, r.Scheme)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' ExternalNamespace", ens.GetName()))
+		cErr <- err
+	}
+	// Setting ExternalNamespace owner
+	err = ctrl.SetControllerReference(rclCouple, ens, r.Scheme)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' ExternalNamespace", ens.GetName()))
+		cErr <- err
+	}
+	log.Info(fmt.Sprintf("ExternalNamespace: %v", ens))
+	// Convert ExtenalNamespace to Unstructured
+	unstr.Object, err = runtime.DefaultUnstructuredConverter.
+			ToUnstructured(ens)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to convert '%s' ExternalNamespace to Unstructured", ens.GetName()))
+		cErr <- err
+	}
+	unstructured.SetNestedField(unstr.Object, "qubership.org/v1alpha1", "apiVersion")
+	unstructured.SetNestedField(unstr.Object, "ExternalNamespace", "kind")
+	log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
+	if ns.GetDeletionTimestamp() == nil {
+		// Checking ExternalNamespace
+		resp, err := dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+			Get(context.TODO(), ens.GetName(), metav1.GetOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			log.Error(err, fmt.Sprintf("Failed to get '%s' ExternalNamespace", ens.GetName()))
+			cErr <- err
+		}
+		// Creating ExternalNamespace
+		if errors.IsNotFound(err) {
+			_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+				Create(context.TODO(), unstr, metav1.CreateOptions{})
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to create '%s' ExternalNamespace", ens.GetName()))
+				cErr <- err
+			}
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace has been created", ens.GetName()))
+		// Updating ExternalNamespace
+		} else {
+			err = runtime.DefaultUnstructuredConverter.
+				FromUnstructured(resp.UnstructuredContent(), &ensGet)
+			if err != nil {
+				log.Error(err, "Failed to convert Unstructured to ExternalNamespace")
+				cErr <- err
+			}
+			// Setting ResourceVersion
+			unstructured.SetNestedField(unstr.Object, ensGet.GetResourceVersion(), "metadata", "resourceVersion")
+			_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+				Update(context.TODO(), unstr, metav1.UpdateOptions{})
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to update '%s' ExternalNamespace", ens.GetName()))
+				cErr <- err
+			}
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace has been updated", ens.GetName()))
+		}
+	} else {
+		// Delete ExternalNamespace
+		err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+			Delete(context.TODO(), ens.GetName(), metav1.DeleteOptions{})
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ens.GetName()))
+			cErr <- err
+		}
+	}
+	// Updating RemoteClusterConfig status
+	meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: TypeSynchronized, Status: metav1.ConditionTrue, Reason: "Synchronization", Message: "ExternalNamespaces have been updated"})
+	err = r.Status().Update(context.TODO(), rcl)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
+		cErr <- err
+	}
+	cErr <- nil
 }
