@@ -111,8 +111,7 @@ var _ = Describe("Namespace Controller", func() {
 		BeforeEach(func() {
 			By("Creating the RemoteClusterConfig")
 			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
-			if err != nil {
-				if errors.IsNotFound(err) {
+			if err != nil && errors.IsNotFound(err) {
 					rcl = &npcv1.RemoteClusterConfig{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      rclName,
@@ -140,9 +139,8 @@ var _ = Describe("Namespace Controller", func() {
 						},
 					}
 					Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
-				} else {
-					Fail(fmt.Sprint("Failed to get RemoteClusterConfig:", err))
-				}
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
 			meta.SetStatusCondition(&rcl.Status.Conditions,
 						metav1.Condition{
@@ -180,6 +178,8 @@ var _ = Describe("Namespace Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the couple for RemoteClusterConfig:", err))
 			}
 
 			By("Creating the Namespace")
@@ -191,6 +191,8 @@ var _ = Describe("Namespace Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Namespace:", err))
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameP, pod)
@@ -218,6 +220,8 @@ var _ = Describe("Namespace Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, sa1)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS1, s1)
 			if err != nil && errors.IsNotFound(err) {
@@ -231,6 +235,8 @@ var _ = Describe("Namespace Controller", func() {
 					Type: "kubernetes.io/service-account-token",
 				}
 				Expect(k8sClient.Create(ctx, s1)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS2, sa2)
 			if err != nil && errors.IsNotFound(err) {
@@ -244,6 +250,8 @@ var _ = Describe("Namespace Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, sa2)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS2, s2)
 			if err != nil && errors.IsNotFound(err) {
@@ -257,6 +265,8 @@ var _ = Describe("Namespace Controller", func() {
 					Type: "kubernetes.io/service-account-token",
 				}
 				Expect(k8sClient.Create(ctx, s2)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
 
 			By("Creating the ClusterRole and ClusterRoleBinding")
@@ -273,6 +283,8 @@ var _ = Describe("Namespace Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, role)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ClusterRole:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			if err != nil && errors.IsNotFound(err) {
@@ -296,6 +308,8 @@ var _ = Describe("Namespace Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ClusterRoleBinding:", err))
 			}
 		})
 

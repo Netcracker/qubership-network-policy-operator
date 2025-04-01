@@ -18,10 +18,12 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	corev1 "k8s.io/api/core/v1"
@@ -44,6 +46,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			rbName		= "npo-rb"
 		)
 
+		var accessor metav1.Object
+		var rclUID types.UID
 		ctx := context.Background()
 		ann := make(map[string]string)
 
@@ -78,6 +82,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 		role := &rbac.ClusterRole{}
 		rb := &rbac.ClusterRoleBinding{}
 		sl :=[]string{"*"}
+		ensList := &npcv1.ExternalNamespaceList{}
+		owns := []metav1.OwnerReference{}
 
 		BeforeEach(func() {
 			By("Creating the RemoteClusterConfig")
@@ -101,6 +107,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
 
 			By("Creating the couple for RemoteClusterConfig")
@@ -124,6 +132,19 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rclCouple)).To(Succeed())
+				meta.SetStatusCondition(&rclCouple.Status.Conditions,
+							metav1.Condition{
+								Type: TypeCoupled,
+								Status: metav1.ConditionTrue,
+								Reason: "Initializing",
+								Message: "Couple is identified",
+							})
+				rclCouple.Status.ServiceSubnet  = "172.31.0.0/16"
+				rclCouple.Status.KubeAPIService = "172.31.0.1"
+				rclCouple.Status.CoreDNSService = "172.31.0.10"
+				Expect(k8sClient.Status().Update(ctx, rclCouple)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the couple for RemoteClusterConfig:", err))
 			}
 
 			By("Creating the ServiceAccounts and Secrets")
@@ -139,6 +160,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, sa1)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS1, s1)
 			if err != nil && errors.IsNotFound(err) {
@@ -152,6 +175,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					Type: "kubernetes.io/service-account-token",
 				}
 				Expect(k8sClient.Create(ctx, s1)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS2, sa2)
 			if err != nil && errors.IsNotFound(err) {
@@ -165,6 +190,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, sa2)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameS2, s2)
 			if err != nil && errors.IsNotFound(err) {
@@ -178,6 +205,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					Type: "kubernetes.io/service-account-token",
 				}
 				Expect(k8sClient.Create(ctx, s2)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
 
 			By("Creating the ClusterRole and ClusterRoleBinding")
@@ -194,6 +223,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					}},
 				}
 				Expect(k8sClient.Create(ctx, role)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ClusterRole:", err))
 			}
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			if err != nil && errors.IsNotFound(err) {
@@ -217,6 +248,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ClusterRoleBinding:", err))
 			}
 		})
 
@@ -229,9 +262,27 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rclCouple)
 			Expect(err).NotTo(HaveOccurred())
+			accessor, err = meta.Accessor(rclCouple)
+			rclUID = accessor.GetUID()
 
 			By("Cleanup the couple for RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rclCouple)).To(Succeed())
+
+			// It's a workaround to fix the cascading deletion
+			err = k8sClient.List(ctx, ensList)
+			Expect(err).NotTo(HaveOccurred())
+			if len(ensList.Items) > 0 {
+				By("Cleanup the ExternalNamespace")
+				for _, ensItem := range ensList.Items {
+					accessor, err = meta.Accessor(&ensItem)
+					owns = accessor.GetOwnerReferences()
+					for _, own := range owns{
+						if own.UID == rclUID {
+							Expect(k8sClient.Delete(ctx, &ensItem)).To(Succeed())
+						}
+					}
+				}
+			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			Expect(err).NotTo(HaveOccurred())
@@ -261,16 +312,8 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 				Scheme: k8sClient.Scheme(),
 			}
 
-			// Let's reconcile the couple RemoteClusterConfig. It will be skipped basically,
-			// since it hasn't had couple yet, but it's necessary for further comprehensive
-			// local RemoteClusterConfig reconciliation
-			By("Reconciling the RemoteClusterConfig couple")
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedNameC,
-			})
-
 			By("Reconciling the RemoteClusterConfig")
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())

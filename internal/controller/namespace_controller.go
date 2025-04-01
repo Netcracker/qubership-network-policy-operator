@@ -120,10 +120,11 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Getting Pods and Services from Namespace
 	// Applying ExtenalNamespace description to remote cluster
 	cErr := make(chan error)
+	defer close(cErr)
 	for _, rclItem := range rclList.Items {
 		go r.processRCL(&rclItem, podList, svcList, ns, labels, tunnelIPs, nsAnn, cErr)
-		err := <- cErr
-		if err != nil {
+		err, ok := <- cErr
+		if ok && err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -307,6 +308,5 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 		return
 	}
 	cErr <- nil
-	close(cErr)
 	return
 }

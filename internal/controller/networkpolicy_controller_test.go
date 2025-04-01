@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	corev1 "k8s.io/api/core/v1"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
@@ -114,29 +115,19 @@ spec:
 			rclNS	     = "default"
 			ensName	     = "ext-ns"
 			podName      = "test-pod1"
-			ns           = "test"
+			nsName       = "test"
 			nsOpr        = "default"
-			policyName1  = "allow-from-ns"
-			policyName2  = "restrict-service"
 			npcName	     = "default"
 		)
 
 		var pod1IP, pod2IP string = "10.132.132.132", "10.132.132.133"
 		ctx := context.Background()
+		policyName1  := "allow-from-ns"
+		policyName2  := "restrict-service"
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      ensName,
 			Namespace: nsOpr,
-		}
-
-		typeNamespacedNameNP := types.NamespacedName{
-			Name:      policyName1,
-			Namespace: ns,
-		}
-
-		typeNamespacedNameNP2 := types.NamespacedName{
-			Name:      policyName2,
-			Namespace: ns,
 		}
 
 		typeNamespacedNameR := types.NamespacedName{
@@ -147,6 +138,11 @@ spec:
 		typeNamespacedNameNPC := types.NamespacedName{
 			Name:      npcName,
 			Namespace: "",
+		}
+
+		typeNamespacedNameN := types.NamespacedName{
+			Name:      nsName,
+			Namespace: nsName,
 		}
 
 		ens := &npcv1.ExternalNamespace{}
@@ -163,7 +159,7 @@ spec:
 		}
 
 		nsLabels := map[string]string{
-			"kubernetes.io/metadata.name": ns,
+			"kubernetes.io/metadata.name": nsName,
 		}
 		// It's needed to check Services NetworkPolicies
 		nsAnnotations := map[string]string{
@@ -175,6 +171,17 @@ spec:
 		var accessor metav1.Object
 		nsAnn := make(map[string]string)
 		scope := map[string]string{"kubernetes.io/metadata.name": "test"}
+		isTier := false
+		dfTier := "automated"
+		dfOrder := float64(10000)
+		act :=	calicov3.Pass
+		tr1 := &calicov3.Tier{}
+		typeNamespacedNameT1 := types.NamespacedName{
+			Name:      dfTier,
+			Namespace: "",
+		}
+		ns := &corev1.Namespace{}
+		npLabels := make(map[string]string)
 
 		WNS := `
     apiVersion: projectcalico.org/v3
@@ -283,7 +290,7 @@ spec:
 					},
 					Spec: npcv1.ExternalNamespaceSpec{
 						RemoteCluster:   "cluster-2",
-						RemoteNamespace: ns,
+						RemoteNamespace: nsName,
 						Resources: npcv1.Resources{
 							Pods: []npcv1.Pod{{
 								Labels:   podLabels,
@@ -308,6 +315,8 @@ spec:
 					},
 				}
 				Expect(k8sClient.Create(ctx, ens)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the ExternalNamespace:", err))
 			}
 			By("Creating the RemoteClusterConfig")
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
@@ -344,6 +353,8 @@ spec:
 				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
 				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
 				Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameNPC, npc)
@@ -363,6 +374,46 @@ spec:
 					},
 				}
 				Expect(k8sClient.Create(ctx, npc)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
+			}
+
+			By("Creating the Namespace")
+			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
+			if err != nil && errors.IsNotFound(err) {
+				ns = &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      nsName,
+					},
+				}
+				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Namespace:", err))
+			}
+
+			// Tiers availability check
+			trList := &calicov3.TierList{}
+			err = k8sClient.List(ctx, trList, &client.ListOptions{})
+			if err == nil {
+				// Calico 3.29
+				isTier = true
+				By("Current Calico version supports Tiers, so it's 3.29 and higher")
+				By("Creating the Default Tier")
+				err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
+				if err != nil && errors.IsNotFound(err) {
+					tr1 = &calicov3.Tier{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      dfTier,
+						},
+						Spec: calicov3.TierSpec{
+							Order:		&dfOrder,
+							DefaultAction:	&act,
+						},
+					}
+					Expect(k8sClient.Create(ctx, tr1)).To(Succeed())
+				} else if err != nil {
+					Fail(fmt.Sprint("Failed to get the Tier:", err))
+				}
 			}
 		})
 
@@ -370,28 +421,53 @@ spec:
 			err := k8sClient.Get(ctx, typeNamespacedName, ens)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance ExternalNamespace")
+			By("Cleanup the ExternalNamespace")
 			Expect(k8sClient.Delete(ctx, ens)).To(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance RemoteClusterConfig")
+			By("Cleanup the RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
 
 			By("Cleanup NetworkPoliciyConfig")
 			Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
 
-			By("Cleanup the target NetworkPolicies")
+			// It's a workaround to fix the cascading deletion
+			By("Cleanup the NetworkPolicies")
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			for _, npItem := range npList.Items {
 				accessor, err = meta.Accessor(&npItem)
 				Expect(err).NotTo(HaveOccurred())
-				nsAnn = accessor.GetAnnotations()
-				if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
+				npLabels = accessor.GetLabels()
+				// Local NetworkPolicy Deleting
+				_, ok := npLabels[NetworkPolicyLabel]
+				if ok {
+					By(fmt.Sprintf("Cleanup the '%s' NetworkPolicy", npItem.GetName()))
 					Expect(k8sClient.Delete(ctx, &npItem)).To(Succeed())
 				}
+				// DR NetworkPolicy Deleting
+				_, ok = npLabels[NetworkPolicyTargetLabel]
+				if ok {
+					By(fmt.Sprintf("Cleanup the '%s' NetworkPolicy", npItem.GetName()))
+					Expect(k8sClient.Delete(ctx, &npItem)).To(Succeed())
+				}
+			}
+
+			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the Namespace")
+			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
+
+			// Tiers availability check
+			trList := &calicov3.TierList{}
+			err = k8sClient.List(ctx, trList, &client.ListOptions{})
+			if err == nil {
+				err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
+				By("Cleanup the Default Tier")
+				Expect(k8sClient.Delete(ctx, tr1)).To(Succeed())
 			}
 		})
 
@@ -408,6 +484,20 @@ spec:
 				NamespacedName: typeNamespacedNameNPC,
 			})
 			// End comment
+
+			if isTier {
+				policyName1 = fmt.Sprintf("%s.%s", dfTier, policyName1)
+				policyName2 = fmt.Sprintf("%s.%s", dfTier, policyName2)
+			}
+			typeNamespacedNameNP := types.NamespacedName{
+				Name:      policyName1,
+				Namespace: nsName,
+			}
+	
+			typeNamespacedNameNP2 := types.NamespacedName{
+				Name:      policyName2,
+				Namespace: nsName,
+			}
 
 			By("Reconciling the NetworkPolicy")
 			controllerReconciler := &NetworkPolicyReconciler{

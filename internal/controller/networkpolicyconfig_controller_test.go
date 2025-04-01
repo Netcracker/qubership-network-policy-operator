@@ -254,6 +254,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, npc)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
 			}
 			By("Creating the RemoteClusterConfig")
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
@@ -276,24 +278,26 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+				meta.SetStatusCondition(&rcl.Status.Conditions,
+							metav1.Condition{
+								Type: TypeCoupled,
+								Status: metav1.ConditionTrue,
+								Reason: "Initializing",
+								Message: "Couple is identified",
+							})
+				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.KubeAPIService = "172.30.0.1"
+				rcl.Status.CoreDNSService = "172.30.0.10"
+				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
+				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
+				Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
-			meta.SetStatusCondition(&rcl.Status.Conditions,
-						metav1.Condition{
-							Type: TypeCoupled,
-							Status: metav1.ConditionTrue,
-							Reason: "Initializing",
-							Message: "Couple is identified",
-						})
-			rcl.Status.ServiceSubnet  = "172.30.0.0/16"
-			rcl.Status.KubeAPIService = "172.30.0.1"
-			rcl.Status.CoreDNSService = "172.30.0.10"
-			rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
-			rcl.Status.CoupleKubeAPIService = "172.30.0.1"
-			rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-			Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
 
 			// Creating separate Namespace for Custom NetworkPolicies
-			By("Creating the Namespace resource")
+			By("Creating the Namespace")
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			if err != nil && errors.IsNotFound(err) {
 				ns = &corev1.Namespace{
@@ -302,6 +306,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Namespace:", err))
 			}
 
 			// Tiers availability check
@@ -324,6 +330,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 						},
 					}
 					Expect(k8sClient.Create(ctx, tr1)).To(Succeed())
+				} else if err != nil {
+					Fail(fmt.Sprint("Failed to get the Tier:", err))
 				}
 
 				By("Creating the new Default Tier")
@@ -339,6 +347,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 						},
 					}
 					Expect(k8sClient.Create(ctx, tr2)).To(Succeed())
+				} else if err != nil {
+					Fail(fmt.Sprint("Failed to get the Tier:", err))
 				}
 
 				By("Creating the Custom Tier")
@@ -354,6 +364,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 						},
 					}
 					Expect(k8sClient.Create(ctx, tr3)).To(Succeed())
+				} else if err != nil {
+					Fail(fmt.Sprint("Failed to get the Tier:", err))
 				}
 			} else {
 				// Calico 3.28
