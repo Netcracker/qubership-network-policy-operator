@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,9 @@ var _ = Describe("Namespace Controller", func() {
 		const (
 			rclName	      = "test-remote-cluster-config"
 			rclCoupleName = "couple-remote-cluster-config"
-			nsName	      = "test-ns-nsc"
+			nsName	      = "test-ns-npo"
+			podName	      = "test-pod"
+			svcName       = "test-svc"
 			rclNS	      = "default"
 			s1Name	      = "remote-cluster1"
 			s2Name	      = "remote-cluster2"
@@ -47,8 +50,15 @@ var _ = Describe("Namespace Controller", func() {
 		)
 
 
+		var accessor metav1.Object
+		var num int
 		ctx := context.Background()
 		ann := make(map[string]string)
+		args := []string{"sleep", "infinity"}
+		label := map[string]string{
+			"remote": "true",
+		}
+		ensLabels := make(map[string]string)
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      rclName,
@@ -76,8 +86,17 @@ var _ = Describe("Namespace Controller", func() {
 		typeNamespacedNameRB := types.NamespacedName{
 			Name:      rbName,
 		}
+		typeNamespacedNameP := types.NamespacedName{
+			Name:      podName,
+			Namespace: nsName,
+		}
+		typeNamespacedNameS := types.NamespacedName{
+			Name:      svcName,
+			Namespace: nsName,
+		}
 		rcl := &npcv1.RemoteClusterConfig{}
 		ensList := &npcv1.ExternalNamespaceList{}
+		spec := &npcv1.ExternalNamespaceSpec{}
 		ns := &corev1.Namespace{}
 		sa1 := &corev1.ServiceAccount{}
 		sa2 := &corev1.ServiceAccount{}
@@ -86,6 +105,8 @@ var _ = Describe("Namespace Controller", func() {
 		role := &rbac.ClusterRole{}
 		rb := &rbac.ClusterRoleBinding{}
 		sl :=[]string{"*"}
+		pod := &corev1.Pod{}
+		svc := &corev1.Service{}
 
 		BeforeEach(func() {
 			By("Creating the RemoteClusterConfig")
@@ -160,13 +181,29 @@ var _ = Describe("Namespace Controller", func() {
 				}
 				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
 			}
-			By("Creating the Namespace resource")
-			ns = &corev1.Namespace{
+
+			By("Creating the Namespace")
+			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
+			if err != nil && errors.IsNotFound(err) {
+				ns = &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      nsName,
 					},
 				}
-			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			}
+
+			err = k8sClient.Get(ctx, typeNamespacedNameP, pod)
+			if err == nil {
+				By("Deleting the Pod before the test")
+				Expect(k8sClient.Delete(ctx, pod)).To(Succeed())
+			}
+
+			err = k8sClient.Get(ctx, typeNamespacedNameS, svc)
+			if err == nil {
+				By("Deleting the Service before the test")
+				Expect(k8sClient.Delete(ctx, svc)).To(Succeed())
+			}
 
 			By("Creating the ServiceAccounts and Secrets")
 			err = k8sClient.Get(ctx, typeNamespacedNameS1, sa1)
@@ -266,23 +303,14 @@ var _ = Describe("Namespace Controller", func() {
 			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance RemoteClusterConfig")
+			By("Cleanup the RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
-
-			err = k8sClient.List(ctx, ensList)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = k8sClient.List(ctx, ensList)
-			Expect(err).NotTo(HaveOccurred())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the couple for RemoteClusterConfig")
 			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
-
-			By("Cleanup the Namespace")
-			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			Expect(err).NotTo(HaveOccurred())
@@ -308,7 +336,7 @@ var _ = Describe("Namespace Controller", func() {
 		})
 
 		It("Should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
+			By("Reconciling the created Namespace")
 			controllerReconciler := &NamespaceReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
@@ -319,19 +347,139 @@ var _ = Describe("Namespace Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Reconciling the updated resource")
+			By("Creating the Pod resource")
+			err = k8sClient.Get(ctx, typeNamespacedNameP, pod)
+			if err != nil && errors.IsNotFound(err) {
+				pod = &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        podName,
+						Namespace:   nsName,
+						Labels:      label,
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Name:            podName,
+							Image:           "debian:bookworm-slim",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args:            args,
+						}},
+					},
+				}
+				Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			}
+
+			By("Reconciling the updated Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedNameN,
 			})
 
-			ns := &corev1.Namespace{}
+			By("Creating the Service resource")
+			err = k8sClient.Get(ctx, typeNamespacedNameS, svc)
+			if err != nil && errors.IsNotFound(err) {
+				svc = &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        svcName,
+						Namespace:   nsName,
+						Labels:	     label,
+					},
+					Spec: corev1.ServiceSpec{
+						Selector:  label,
+						ClusterIP: "172.30.10.10",
+						Ports:	   []corev1.ServicePort{{
+							Port:	    5000,
+							Name:	    "random",
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.IntOrString{
+								Type:   intstr.Int,
+								IntVal: 5000,
+							},
+						}},
+					},
+				}
+				Expect(k8sClient.Create(ctx, svc)).To(Succeed())
+			}
+
+			By("Reconciling the updated Namespace")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedNameN,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking the ExternalNamespace spec after creation")
+			err = k8sClient.List(ctx, ensList)
+			Expect(err).NotTo(HaveOccurred())
+			for _, ensItem := range ensList.Items {
+				accessor, err = meta.Accessor(&ensItem)
+				ensLabels = accessor.GetLabels()
+				num = 0
+				if ensLabels["kubernetes.io/metadata.name"] == nsName {
+					num++
+					spec = &ensItem.Spec
+				}
+			}
+			if num > 1 {
+				Fail("The ExternalNamespace must be only one")
+			}
+			if len(spec.Resources.Pods) > 1 {
+				Fail("The Pod in the ExternalNamespace must be only one")
+			}
+			if len(spec.Resources.Services) > 1 {
+				Fail("The Service in the ExternalNamespace must be only one")
+			}
+
+			err = k8sClient.Get(ctx, typeNamespacedNameP, pod)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Deleting the specific Pod")
+			Expect(k8sClient.Delete(ctx, pod)).To(Succeed())
+
+			By("Reconciling the deleted Pod")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedNameN,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = k8sClient.Get(ctx, typeNamespacedNameS, svc)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Deleting the specific Service")
+			Expect(k8sClient.Delete(ctx, svc)).To(Succeed())
+
+			By("Reconciling the deleted Service")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedNameN,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking the ExternalNamespace spec after deletion")
+			err = k8sClient.List(ctx, ensList)
+			Expect(err).NotTo(HaveOccurred())
+			for _, ensItem := range ensList.Items {
+				accessor, err = meta.Accessor(&ensItem)
+				ensLabels = accessor.GetLabels()
+				num = 0
+				if ensLabels["kubernetes.io/metadata.name"] == nsName {
+					num++
+					spec = &ensItem.Spec
+				}
+			}
+			if num > 1 {
+				Fail("The ExternalNamespace must be only one")
+			}
+			if len(spec.Resources.Pods) > 0 {
+				Fail("The Pod in the ExternalNamespace has not been deleted")
+			}
+			if len(spec.Resources.Services) > 0 {
+				Fail("The Service in the ExternalNamespace has not been deleted")
+			}
+
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Deleting the specific Namespace")
 			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
-			By("Reconciling the deleted resource")
+			By("Reconciling the deleted Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedNameN,
 			})

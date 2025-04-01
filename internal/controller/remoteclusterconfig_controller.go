@@ -287,6 +287,9 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 	svc := &npcv1.Service{}
 	svcs := []npcv1.Service{}
 	for _, podItem := range podList.Items {
+		if podItem.GetDeletionTimestamp() != nil {
+			continue
+		}
 		// `hostNetwork` pods IPs must be replaced by tunnel IPs
 		if podItem.Status.PodIP == podItem.Status.HostIP {
 			_, ok := tunnelIPs[podItem.Status.HostIP]
@@ -306,6 +309,9 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 		pods	     = append(pods, *pod)
 	}
 	for _, svcItem := range svcList.Items {
+		if svcItem.GetDeletionTimestamp() != nil {
+			continue
+		}
 		// Only Services with `clusterIP` are needed
 		if len(svcItem.Spec.ClusterIP) > 0 && svcItem.Spec.ClusterIP != "None" {
 			svc.Selector  = svcItem.Spec.Selector
