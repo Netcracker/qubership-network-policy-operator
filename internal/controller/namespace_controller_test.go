@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -112,50 +113,55 @@ var _ = Describe("Namespace Controller", func() {
 			By("Creating the RemoteClusterConfig")
 			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
 			if err != nil && errors.IsNotFound(err) {
-					rcl = &npcv1.RemoteClusterConfig{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      rclName,
-							Namespace: rclNS,
+				rcl = &npcv1.RemoteClusterConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      rclName,
+						Namespace: rclNS,
+					},
+					Spec: npcv1.RemoteClusterConfigSpec{
+						RemoteCluster: npcv1.RemoteCluster{
+							Name:   "cluster-2",
+							API:    "all.new.local:6443",
+							Secret: "remote-cluster2",
 						},
-						Spec: npcv1.RemoteClusterConfigSpec{
-							RemoteCluster: npcv1.RemoteCluster{
-								Name:   "cluster-2",
-								API:    "all.new.local:6443",
-								Secret: "remote-cluster2",
-							},
-							LocalCluster: npcv1.LocalCluster{
-								Name: "cluster-1",
-								API:  "all.new.local:6443",
-							},
+						LocalCluster: npcv1.LocalCluster{
+							Name: "cluster-1",
+							API:  "all.new.local:6443",
 						},
-						Status: npcv1.RemoteClusterConfigStatus{
-							Conditions: []metav1.Condition{{
-								LastTransitionTime: metav1.Now(),
-								Message: "Couple is identified",
+					},
+					Status: npcv1.RemoteClusterConfigStatus{
+						Conditions: []metav1.Condition{{
+							LastTransitionTime: metav1.Now(),
+							Message: "Couple is identified",
+							Reason: "Initializing",
+							Status: "True",
+							Type: "Coupled",
+						}},
+					},
+				}
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
+
+				meta.SetStatusCondition(&rcl.Status.Conditions,
+							metav1.Condition{
+								Type: TypeCoupled,
+								Status: metav1.ConditionTrue,
 								Reason: "Initializing",
-								Status: "True",
-								Type: "Coupled",
-							}},
-						},
-					}
-					Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+								Message: "Couple is identified",
+							})
+				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.KubeAPIService = "172.30.0.1"
+				rcl.Status.CoreDNSService = "172.30.0.10"
+				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
+				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
+				Eventually(func() error {
+					return k8sClient.Status().Update(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
-			meta.SetStatusCondition(&rcl.Status.Conditions,
-						metav1.Condition{
-							Type: TypeCoupled,
-							Status: metav1.ConditionTrue,
-							Reason: "Initializing",
-							Message: "Couple is identified",
-						})
-			rcl.Status.ServiceSubnet  = "172.30.0.0/16"
-			rcl.Status.KubeAPIService = "172.30.0.1"
-			rcl.Status.CoreDNSService = "172.30.0.10"
-			rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
-			rcl.Status.CoupleKubeAPIService = "172.30.0.1"
-			rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-			Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
 
 			By("Creating the couple for RemoteClusterConfig")
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rcl)
@@ -177,7 +183,9 @@ var _ = Describe("Namespace Controller", func() {
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the couple for RemoteClusterConfig:", err))
 			}
@@ -190,7 +198,9 @@ var _ = Describe("Namespace Controller", func() {
 						Name:      nsName,
 					},
 				}
-				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, ns)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Namespace:", err))
 			}
@@ -198,13 +208,17 @@ var _ = Describe("Namespace Controller", func() {
 			err = k8sClient.Get(ctx, typeNamespacedNameP, pod)
 			if err == nil {
 				By("Deleting the Pod before the test")
-				Expect(k8sClient.Delete(ctx, pod)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Delete(ctx, pod)
+				}, time.Minute, time.Second).Should(Succeed())
 			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameS, svc)
 			if err == nil {
 				By("Deleting the Service before the test")
-				Expect(k8sClient.Delete(ctx, svc)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Delete(ctx, svc)
+				}, time.Minute, time.Second).Should(Succeed())
 			}
 
 			By("Creating the ServiceAccounts and Secrets")
@@ -219,7 +233,9 @@ var _ = Describe("Namespace Controller", func() {
 						Name: s1Name,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, sa1)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, sa1)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
@@ -234,7 +250,9 @@ var _ = Describe("Namespace Controller", func() {
 					},
 					Type: "kubernetes.io/service-account-token",
 				}
-				Expect(k8sClient.Create(ctx, s1)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, s1)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
@@ -249,7 +267,9 @@ var _ = Describe("Namespace Controller", func() {
 						Name: s2Name,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, sa2)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, sa2)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
@@ -264,7 +284,9 @@ var _ = Describe("Namespace Controller", func() {
 					},
 					Type: "kubernetes.io/service-account-token",
 				}
-				Expect(k8sClient.Create(ctx, s2)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, s2)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
@@ -282,7 +304,9 @@ var _ = Describe("Namespace Controller", func() {
 						Resources: sl,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, role)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, role)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ClusterRole:", err))
 			}
@@ -307,7 +331,9 @@ var _ = Describe("Namespace Controller", func() {
 						Name:	  roleName,
 					},
 				}
-				Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rb)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ClusterRoleBinding:", err))
 			}
@@ -318,13 +344,17 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rcl)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the couple for RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rcl)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			Expect(err).NotTo(HaveOccurred())
@@ -332,8 +362,12 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the ClusterRole and ClusterRoleBinding")
-			Expect(k8sClient.Delete(ctx, role)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, rb)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, role)
+			}, time.Minute, time.Second).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rb)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameS1, sa1)
 			Expect(err).NotTo(HaveOccurred())
@@ -345,8 +379,12 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the ServiceAccounts and Secrets")
-			Expect(k8sClient.Delete(ctx, sa1)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, sa2)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, sa1)
+			}, time.Minute, time.Second).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, sa2)
+			}, time.Minute, time.Second).Should(Succeed())
 		})
 
 		It("Should successfully reconcile the resource", func() {
@@ -379,7 +417,11 @@ var _ = Describe("Namespace Controller", func() {
 						}},
 					},
 				}
-				Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, pod)
+				}, time.Minute, time.Second).Should(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Pod:", err))
 			}
 
 			By("Reconciling the updated Namespace")
@@ -410,7 +452,11 @@ var _ = Describe("Namespace Controller", func() {
 						}},
 					},
 				}
-				Expect(k8sClient.Create(ctx, svc)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, svc)
+				}, time.Minute, time.Second).Should(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Pod:", err))
 			}
 
 			By("Reconciling the updated Namespace")
@@ -445,7 +491,9 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Deleting the specific Pod")
-			Expect(k8sClient.Delete(ctx, pod)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, pod)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the deleted Pod")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
@@ -457,7 +505,9 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Deleting the specific Service")
-			Expect(k8sClient.Delete(ctx, svc)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, svc)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the deleted Service")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
@@ -491,7 +541,9 @@ var _ = Describe("Namespace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Deleting the specific Namespace")
-			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, ns)
+			}, 3*time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the deleted Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{

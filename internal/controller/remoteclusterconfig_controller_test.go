@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -106,7 +107,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
@@ -131,7 +134,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, rclCouple)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rclCouple)
+				}, time.Minute, time.Second).Should(Succeed())
 				meta.SetStatusCondition(&rclCouple.Status.Conditions,
 							metav1.Condition{
 								Type: TypeCoupled,
@@ -142,7 +147,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 				rclCouple.Status.ServiceSubnet  = "172.31.0.0/16"
 				rclCouple.Status.KubeAPIService = "172.31.0.1"
 				rclCouple.Status.CoreDNSService = "172.31.0.10"
-				Expect(k8sClient.Status().Update(ctx, rclCouple)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Status().Update(ctx, rclCouple)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the couple for RemoteClusterConfig:", err))
 			}
@@ -159,7 +166,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						Name: s1Name,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, sa1)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, sa1)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
@@ -174,7 +183,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					},
 					Type: "kubernetes.io/service-account-token",
 				}
-				Expect(k8sClient.Create(ctx, s1)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, s1)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
@@ -189,7 +200,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						Name: s2Name,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, sa2)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, sa2)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ServiceAccount:", err))
 			}
@@ -204,7 +217,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					},
 					Type: "kubernetes.io/service-account-token",
 				}
-				Expect(k8sClient.Create(ctx, s2)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, s2)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Secret:", err))
 			}
@@ -222,7 +237,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						Resources: sl,
 					}},
 				}
-				Expect(k8sClient.Create(ctx, role)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, role)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ClusterRole:", err))
 			}
@@ -247,7 +264,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 						Name:	  roleName,
 					},
 				}
-				Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rb)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ClusterRoleBinding:", err))
 			}
@@ -258,7 +277,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rcl)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameC, rclCouple)
 			Expect(err).NotTo(HaveOccurred())
@@ -266,7 +287,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			rclUID = accessor.GetUID()
 
 			By("Cleanup the couple for RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rclCouple)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rclCouple)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			// It's a workaround to fix the cascading deletion
 			err = k8sClient.List(ctx, ensList)
@@ -278,7 +301,9 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 					owns = accessor.GetOwnerReferences()
 					for _, own := range owns{
 						if own.UID == rclUID {
-							Expect(k8sClient.Delete(ctx, &ensItem)).To(Succeed())
+							Eventually(func() error {
+								return k8sClient.Delete(ctx, &ensItem)
+							}, time.Minute, time.Second).Should(Succeed())
 						}
 					}
 				}
@@ -290,8 +315,12 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the ClusterRole and ClusterRoleBinding")
-			Expect(k8sClient.Delete(ctx, role)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, rb)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, role)
+			}, time.Minute, time.Second).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rb)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameS1, sa1)
 			Expect(err).NotTo(HaveOccurred())
@@ -303,8 +332,12 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the ServiceAccounts and Secrets")
-			Expect(k8sClient.Delete(ctx, sa1)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, sa2)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, sa1)
+			}, time.Minute, time.Second).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, sa2)
+			}, time.Minute, time.Second).Should(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			controllerReconciler := &RemoteClusterConfigReconciler{

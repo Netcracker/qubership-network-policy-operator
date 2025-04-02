@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
 metadata:
   name: allow-from-ns
-  namespace: test
+  namespace: test1
 spec:
   egress:
   - action: Allow
@@ -93,7 +94,7 @@ apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
 metadata:
   name: restrict-service
-  namespace: test
+  namespace: test1
   labels:
     network-policy.qubership.org/generated: "true"
     network-policy.qubership.org/egress-svc: "true"
@@ -115,7 +116,7 @@ spec:
 			rclNS	     = "default"
 			ensName	     = "ext-ns"
 			podName      = "test-pod1"
-			nsName       = "test"
+			nsName       = "test1"
 			nsOpr        = "default"
 			npcName	     = "default"
 		)
@@ -167,10 +168,11 @@ spec:
 		}
 
 		npList := &calicov3.NetworkPolicyList{}
+		labelSet := labels.Set{NetworkPolicyTargetLabel: "true"}
 		opts := &client.ListOptions{}
 		var accessor metav1.Object
 		nsAnn := make(map[string]string)
-		scope := map[string]string{"kubernetes.io/metadata.name": "test"}
+		scope := map[string]string{"kubernetes.io/metadata.name": nsName}
 		isTier := false
 		dfTier := "automated"
 		dfOrder := float64(10000)
@@ -182,6 +184,8 @@ spec:
 		}
 		ns := &corev1.Namespace{}
 		npLabels := make(map[string]string)
+		var found bool
+		targetNP := &calicov3.NetworkPolicy{}
 
 		WNS := `
     apiVersion: projectcalico.org/v3
@@ -314,7 +318,10 @@ spec:
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, ens)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, ens)
+				}, time.Minute, time.Second).Should(Succeed())
+
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the ExternalNamespace:", err))
 			}
@@ -338,7 +345,9 @@ spec:
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, rcl)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
 				meta.SetStatusCondition(&rcl.Status.Conditions,
 							metav1.Condition{
 								Type: TypeCoupled,
@@ -352,7 +361,9 @@ spec:
 				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
 				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
 				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-				Expect(k8sClient.Status().Update(ctx, rcl)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Status().Update(ctx, rcl)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
 			}
@@ -373,7 +384,9 @@ spec:
 						},
 					},
 				}
-				Expect(k8sClient.Create(ctx, npc)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, npc)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
 			}
@@ -386,7 +399,9 @@ spec:
 						Name:      nsName,
 					},
 				}
-				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Create(ctx, ns)
+				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Namespace:", err))
 			}
@@ -410,7 +425,9 @@ spec:
 							DefaultAction:	&act,
 						},
 					}
-					Expect(k8sClient.Create(ctx, tr1)).To(Succeed())
+					Eventually(func() error {
+						return k8sClient.Create(ctx, tr1)
+					}, time.Minute, time.Second).Should(Succeed())
 				} else if err != nil {
 					Fail(fmt.Sprint("Failed to get the Tier:", err))
 				}
@@ -422,19 +439,26 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the ExternalNamespace")
-			Expect(k8sClient.Delete(ctx, ens)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, ens)
+			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the RemoteClusterConfig")
-			Expect(k8sClient.Delete(ctx, rcl)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, rcl)
+			}, time.Minute, time.Second).Should(Succeed())
 
-			By("Cleanup NetworkPoliciyConfig")
-			Expect(k8sClient.Delete(ctx, npc)).To(Succeed())
+			By("Cleanup the NetworkPoliciyConfig")
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, npc)
+			}, 3*time.Minute, time.Second).Should(Succeed())
 
 			// It's a workaround to fix the cascading deletion
 			By("Cleanup the NetworkPolicies")
+			opts = &client.ListOptions{}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			for _, npItem := range npList.Items {
@@ -445,13 +469,17 @@ spec:
 				_, ok := npLabels[NetworkPolicyLabel]
 				if ok {
 					By(fmt.Sprintf("Cleanup the '%s' NetworkPolicy", npItem.GetName()))
-					Expect(k8sClient.Delete(ctx, &npItem)).To(Succeed())
+					Eventually(func() error {
+						return k8sClient.Delete(ctx, &npItem)
+					}, time.Minute, time.Second).Should(Succeed())
 				}
 				// DR NetworkPolicy Deleting
 				_, ok = npLabels[NetworkPolicyTargetLabel]
 				if ok {
 					By(fmt.Sprintf("Cleanup the '%s' NetworkPolicy", npItem.GetName()))
-					Expect(k8sClient.Delete(ctx, &npItem)).To(Succeed())
+					Eventually(func() error {
+						return k8sClient.Delete(ctx, &npItem)
+					}, time.Minute, time.Second).Should(Succeed())
 				}
 			}
 
@@ -459,7 +487,9 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the Namespace")
-			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, ns)
+			}, 3*time.Minute, time.Second).Should(Succeed())
 
 			// Tiers availability check
 			trList := &calicov3.TierList{}
@@ -467,7 +497,9 @@ spec:
 			if err == nil {
 				err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
 				By("Cleanup the Default Tier")
-				Expect(k8sClient.Delete(ctx, tr1)).To(Succeed())
+				Eventually(func() error {
+					return k8sClient.Delete(ctx, tr1)
+				}, time.Minute, time.Second).Should(Succeed())
 			}
 		})
 
@@ -510,67 +542,49 @@ spec:
 			})
 
 			By("Checking if the NetworkPolicy was successfully created")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
+			opts = &client.ListOptions{
+				LabelSelector: labels.SelectorFromSet(labelSet),
+			}
 			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if len(nsAnn) > 0 {
-						if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-							return nil
-						}
+				return k8sClient.List(ctx, npList, opts)
+			}, time.Minute, time.Second).Should(Succeed())
+			found = false
+			for _, npItem := range npList.Items {
+				accessor, err = meta.Accessor(&npItem)
+				if err != nil {
+					Fail(fmt.Sprint("Failed to get the Annotation:", err))
+				}
+				nsAnn = accessor.GetAnnotations()
+				if len(nsAnn) > 0 {
+					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
+						found = true
+						targetNP = &npItem
 					}
 				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}
+			if !found {
+				Fail("Failed to find the NetworkPolicy")
+			}
 
 			By("Checking Ingress IPs in NetworkPolicy")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-						if slices.Contains(npItem.Spec.Ingress[0].Source.Nets, 
-								fmt.Sprintf("%s/32", pod1IP)) &&
-							slices.Contains(npItem.Spec.Ingress[0].Source.Nets, 
-									fmt.Sprintf("%s/32", pod2IP)) &&
-							(len(npItem.Spec.Ingress[0].Source.Nets) == 2) {
-								return nil
-						}
-					}
-				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
+					fmt.Sprintf("%s/32", pod1IP)) &&
+				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
+						fmt.Sprintf("%s/32", pod2IP)) &&
+				(len(targetNP.Spec.Ingress[0].Source.Nets) == 2) {
+					By("Ingress IPs are matched")
+			} else {
+				Fail("Ingress IPs are not mached")
+			}
 
-			By("Checking Egress IPs in NetworkPolicy")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-						if len(npItem.Spec.Egress) > 0 {
-							if slices.Contains(npItem.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(npItem.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(npItem.Spec.Egress[0].Destination.Nets) == 2) {
-								return nil
-							}
-						}
-					}
+			if len(targetNP.Spec.Egress) > 0 {
+				By("Checking Egress IPs in NetworkPolicy")
+				if slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(targetNP.Spec.Egress[0].Destination.Nets) == 2) {
+						By("Egress IPs are matched")
+				} else {
+					Fail("Egress IPs are not mached")
 				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}
 
 			By("Update the ExternalNamespace")
 			pod1IP = "10.132.132.128"
@@ -579,6 +593,7 @@ spec:
 			ens.Spec.Resources.Pods[0].PodIP = pod1IP
 			ens.Spec.Resources.Pods[1].PodIP = pod2IP
 			err = k8sClient.Update(ctx, ens)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("Reconciling the ExternalNamespace update")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
@@ -586,67 +601,47 @@ spec:
 			})
 
 			By("Checking if the NetworkPolicy was successfully updated")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
 			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
+				return k8sClient.List(ctx, npList, opts)
+			}, time.Minute, time.Second).Should(Succeed())
+			Expect(err).NotTo(HaveOccurred())
+			found = false
+			for _, npItem := range npList.Items {
+				accessor, err = meta.Accessor(&npItem)
+				if err != nil {
+					Fail(fmt.Sprint("Failed to get the Annotation:", err))
+				}
+				nsAnn = accessor.GetAnnotations()
+				if len(nsAnn) > 0 {
 					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-						return nil
+						found = true
+						targetNP = &npItem
 					}
 				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}
+			if !found {
+				Fail("Failed to find the NetworkPolicy")
+			}
 
 			By("Checking Ingress IPs in NetworkPolicy")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-						if slices.Contains(npItem.Spec.Ingress[0].Source.Nets, 
-								fmt.Sprintf("%s/32", pod1IP)) &&
-							slices.Contains(npItem.Spec.Ingress[0].Source.Nets, 
-									fmt.Sprintf("%s/32", pod2IP)) &&
-							(len(npItem.Spec.Ingress[0].Source.Nets) == 2) {
-								return nil
-						}
-					}
-				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
+					fmt.Sprintf("%s/32", pod1IP)) &&
+				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
+						fmt.Sprintf("%s/32", pod2IP)) &&
+				(len(targetNP.Spec.Ingress[0].Source.Nets) == 2) {
+					By("Ingress IPs are matched")
+			} else {
+				Fail("Ingress IPs are not mached")
+			}
 
-			By("Checking Egress IPs in NetworkPolicy")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
-						if len(npItem.Spec.Egress) > 0 {
-							if slices.Contains(npItem.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(npItem.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(npItem.Spec.Egress[0].Destination.Nets) == 2) {
-								return nil
-							}
-						}
-					}
+			if len(targetNP.Spec.Egress) > 0 {
+				By("Checking Egress IPs in NetworkPolicy")
+				if slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(targetNP.Spec.Egress[0].Destination.Nets) == 2) {
+						By("Egress IPs are matched")
+				} else {
+					Fail("Egress IPs are not mached")
 				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
-
-			Expect(err).NotTo(HaveOccurred())			
+			}
 
 			By("Reconciling Services NetworkPolicy")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
@@ -654,23 +649,27 @@ spec:
 			})
 
 			By("Checking if the Services NetworkPolicy was successfully created")
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
 			Eventually(func() error {
-				for _, npItem := range npList.Items {
-					accessor, err = meta.Accessor(&npItem)
-					if err != nil {
-						return err
-					}
-					nsAnn = accessor.GetAnnotations()
-					if len(nsAnn) > 0 {
-						if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName2 {
-							return nil
-						}
+				return k8sClient.List(ctx, npList, opts)
+			}, time.Minute, time.Second).Should(Succeed())
+			Expect(err).NotTo(HaveOccurred())
+			found = false
+			for _, npItem := range npList.Items {
+				accessor, err = meta.Accessor(&npItem)
+				if err != nil {
+					Fail(fmt.Sprint("Failed to get the Annotation:", err))
+				}
+				nsAnn = accessor.GetAnnotations()
+				if len(nsAnn) > 0 {
+					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName2 {
+						found = true
+						targetNP = &npItem
 					}
 				}
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}
+			if !found {
+				Fail(fmt.Sprint("Failed to find the NetworkPolicy:", err))
+			}
 
 		})
 	})
