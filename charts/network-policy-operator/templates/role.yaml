@@ -182,18 +182,14 @@ rules:
   - projectcalico.org
   resources:
   - tiers
-  resourceNames:
-  - default
-  - automated
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - projectcalico.org
   resources:
   - tier.networkpolicies
-  resourceNames:
-  - 'default.*'
-  - 'automated.*'
   verbs:
   - create
   - delete
