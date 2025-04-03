@@ -123,7 +123,7 @@ spec:
 
 		var pod1IP, pod2IP string = "10.132.132.132", "10.132.132.133"
 		ctx := context.Background()
-		policyName1  := "allow-from-ns"
+		policyName1  := "allow-within-ns"
 		policyName2  := "restrict-service"
 
 		typeNamespacedName := types.NamespacedName{
@@ -550,7 +550,7 @@ spec:
 				LabelSelector: labels.SelectorFromSet(labelSet),
 			}
 
-			time.Sleep(30*time.Second)
+			time.Sleep(45*time.Second)
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			found = false

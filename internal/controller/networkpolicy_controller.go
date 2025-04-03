@@ -340,8 +340,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 			if len(ingressRules[i].Source.NamespaceSelector) > 0 {
 				// The ExternalNamespace must be proccesed if:
 				// ExternalNamespace labels and labels in NetworkPolicy namespaceSelector match
-				// or 'kubernetes.io/metadata.name' ExternalNamespace label and NetworkPolicy Namespace is equal
-				if nsSelector.Evaluate(nsLabels) || nsLabels["kubernetes.io/metadata.name"] == policy.GetNamespace() {
+				if nsSelector.Evaluate(nsLabels) {
 					// Getting applicable pods from ExternalNamespace
 					log.Info(fmt.Sprintf("Matching '%s' pod selectors", ingressRules[i].Source.Selector))
 					podSelector, err = selector.Parse(ingressRules[i].Source.Selector)
