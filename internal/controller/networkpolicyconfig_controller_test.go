@@ -445,6 +445,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					return k8sClient.Delete(ctx, tr3)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
+
+			time.Sleep(30*time.Second)
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")

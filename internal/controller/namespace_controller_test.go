@@ -385,6 +385,8 @@ var _ = Describe("Namespace Controller", func() {
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, sa2)
 			}, time.Minute, time.Second).Should(Succeed())
+
+			time.Sleep(30*time.Second)
 		})
 
 		It("Should successfully reconcile the resource", func() {
@@ -543,7 +545,7 @@ var _ = Describe("Namespace Controller", func() {
 			By("Deleting the specific Namespace")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, ns)
-			}, 3*time.Minute, time.Second).Should(Succeed())
+			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the deleted Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{

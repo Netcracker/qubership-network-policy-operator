@@ -118,7 +118,7 @@ spec:
 			podName      = "test-pod1"
 			nsName       = "test1"
 			nsOpr        = "default"
-			npcName	     = "default"
+			npcName	     = "default1"
 		)
 
 		var pod1IP, pod2IP string = "10.132.132.132", "10.132.132.133"
@@ -454,7 +454,9 @@ spec:
 			By("Cleanup the NetworkPoliciyConfig")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, npc)
-			}, 3*time.Minute, time.Second).Should(Succeed())
+			}, time.Minute, time.Second).Should(Succeed())
+
+			time.Sleep(15*time.Second)
 
 			// It's a workaround to fix the cascading deletion
 			By("Cleanup the NetworkPolicies")
@@ -489,7 +491,7 @@ spec:
 			By("Cleanup the Namespace")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, ns)
-			}, 3*time.Minute, time.Second).Should(Succeed())
+			}, time.Minute, time.Second).Should(Succeed())
 
 			// Tiers availability check
 			trList := &calicov3.TierList{}
@@ -501,6 +503,8 @@ spec:
 					return k8sClient.Delete(ctx, tr1)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
+
+			time.Sleep(30*time.Second)
 		})
 
 		It("should successfully reconcile the resource", func() {
@@ -545,9 +549,10 @@ spec:
 			opts = &client.ListOptions{
 				LabelSelector: labels.SelectorFromSet(labelSet),
 			}
-			Eventually(func() error {
-				return k8sClient.List(ctx, npList, opts)
-			}, time.Minute, time.Second).Should(Succeed())
+
+			time.Sleep(30*time.Second)
+			err = k8sClient.List(ctx, npList, opts)
+			Expect(err).NotTo(HaveOccurred())
 			found = false
 			for _, npItem := range npList.Items {
 				accessor, err = meta.Accessor(&npItem)

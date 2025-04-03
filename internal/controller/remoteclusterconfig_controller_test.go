@@ -291,23 +291,6 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 				return k8sClient.Delete(ctx, rclCouple)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			// It's a workaround to fix the cascading deletion
-			err = k8sClient.List(ctx, ensList)
-			Expect(err).NotTo(HaveOccurred())
-			if len(ensList.Items) > 0 {
-				By("Cleanup the ExternalNamespace")
-				for _, ensItem := range ensList.Items {
-					accessor, err = meta.Accessor(&ensItem)
-					owns = accessor.GetOwnerReferences()
-					for _, own := range owns{
-						if own.UID == rclUID {
-							Eventually(func() error {
-								return k8sClient.Delete(ctx, &ensItem)
-							}, time.Minute, time.Second).Should(Succeed())
-						}
-					}
-				}
-			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			Expect(err).NotTo(HaveOccurred())
@@ -338,6 +321,28 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, sa2)
 			}, time.Minute, time.Second).Should(Succeed())
+
+			time.Sleep(15*time.Second)
+
+			// It's a workaround to fix the cascading deletion
+			err = k8sClient.List(ctx, ensList)
+			Expect(err).NotTo(HaveOccurred())
+			if len(ensList.Items) > 0 {
+				By("Cleanup the ExternalNamespace")
+				for _, ensItem := range ensList.Items {
+					accessor, err = meta.Accessor(&ensItem)
+					owns = accessor.GetOwnerReferences()
+					for _, own := range owns{
+						if own.UID == rclUID {
+							Eventually(func() error {
+								return k8sClient.Delete(ctx, &ensItem)
+							}, time.Minute, time.Second).Should(Succeed())
+						}
+					}
+				}
+			}
+
+			time.Sleep(30*time.Second)
 		})
 		It("should successfully reconcile the resource", func() {
 			controllerReconciler := &RemoteClusterConfigReconciler{
