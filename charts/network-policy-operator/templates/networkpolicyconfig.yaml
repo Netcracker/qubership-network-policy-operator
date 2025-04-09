@@ -16,6 +16,8 @@ spec:
     enabled: {{ .Values.networkPolicies.logs.enabled }}
     collectingAll: {{ .Values.networkPolicies.logs.collectingAll }}
     namespaceScope: {{ .Values.networkPolicies.logs.namespaceScope }}
+  defaultTier: {{ .Values.networkPolicies.defaultTier }}
+  customTier: {{ .Values.networkPolicies.customTier }}
   policies:
     AllowWithinNamespace: |
       apiVersion: projectcalico.org/v3
