@@ -78,6 +78,8 @@ spec:
 | networkPolicies.logs.enabled        | bool   | false                                                                                                                                      | If true the `Log` action will be added into NetworkPolicies                                        |
 | networkPolicies.logs.collectingAll  | bool   | true                                                                                                                                       | If true the all of the connections are logged, if false only denied                                |
 | networkPolicies.logs.namespaceScope | bool   | "network-policy.qubership.org/collecting-logs"                                                                                             | Namespace label key to disable logs flexible                                                       |
+| networkPolicies.defaultTier         | string | automated                                                                                                                                  | OOB NetworkPolicies Tier                                                                           |
+| networkPolicies.customTier          | string | default                                                                                                                                    | Custom NetworkPolicies Tier                                                                        |
 | dr.install                          | bool   | false                                                                                                                                      | If true RemoteClusterConfig will be created                                                        |
 | dr.localCluster                     | object | {}                                                                                                                                         | Local cluster configuration                                                                        |
 | dr.remoteClusters                   | array  | []                                                                                                                                         | List of remote cluster configuration                                                               |
@@ -118,6 +120,22 @@ The `logs` section manages the connections logs. There are several options to co
 * if `collectingAll` is `true` the all of the connections are logged, if it `false` only denied connections arelogged
 * `namespaceScope` defines the label that must be set in `false` or `none` to exclude the labeled namespace connections from logs
 * `enabled` option enables and disables the connections logs globally within the cluster
+
+Calico v3.29 and higher needs to set the NetwokPolicies `Tiers`. The default values are the following:
+
+```
+...
+networkPolicies:
+...
+  defaultTier: automated
+  customTier: default
+...
+```
+
+* `defaultTier` sets the `Tier` that is used for all OOB NetworkPolicies
+* `customTier` sets the custom NetworkPolicies `Tier`
+
+The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind the `customTier` order must be biger than `defaultTier` order which is `10000`. More information in official [documentation](https://docs.tigera.io/calico/latest/reference/resources/tier)
 
 In case of DR scheme check the [DR preparation](#dr-preparation) article below
 
@@ -161,6 +179,8 @@ Take the output of previous command and run the command on the other clusters (d
 kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
+Do the same procedure with other clusters in DR scheme.
+
 ### Check installation
 
 The the successfull instalation could be checked by `NetworkPolicyConfig` custom resource:
@@ -189,6 +209,20 @@ test                allow-within-ns   2024-10-15T11:43:08Z
 test                default-deny      2024-10-15T11:43:08Z
 ```
 
+In case of Calico v3.29+ check the `Tiers`:
+
+```sh
+kubectl get tiers
+```
+
+The output is similar to the following:
+
+```
+NAME                 CREATED AT
+adminnetworkpolicy   2024-12-06T10:47:17Z
+automated            2025-04-08T13:07:32Z
+default              2024-12-06T10:47:15Z
+```
 
 The the successfull instalation in DR scheme could be checked by `RemoteClusterConfig` custom resource:
 

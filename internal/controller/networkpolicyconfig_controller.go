@@ -53,6 +53,8 @@ var ControlPlane          string = "kube-,openshift,calico,tigera,ingress-nginx"
 var ImplicitNamespaces    string = "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
 var AllowAnnotation       string = "network-policy.qubership.org/allowed-from"
 var NetworkPolicyLogLabel string = "network-policy.qubership.org/collecting-logs"
+var DefaultTier		  string = "automated"
+var CustomTier		  string = "default"
 
 var LogsEnabled		  bool
 var CollectAllLogs	  bool
@@ -78,6 +80,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	var templateName string
 	var cpNSList, cpPrfx, tunnelIPs []string
+	var DefaultTierOrder, CustomTierOrder float64
 
 	npc := &npcv1.NetworkPolicyConfig{}
 	err := r.Get(ctx, req.NamespacedName, npc)
@@ -139,6 +142,48 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			CollectAllLogs = true
 		}
 	}
+	// Checking the Tiers availability
+	trList := &calicov3.TierList{}
+	err = r.List(ctx, trList, &client.ListOptions{})
+	if err != nil {
+		log.Error(err, "Faled to list Tiers. Let's work without NetworkPolicies Tiers")
+		DefaultTier = ""
+		CustomTier = ""
+	} else {
+		log.Info("Tiers has been listed")
+		if len(npc.Spec.DefaultTier) > 0 {
+			DefaultTier = npc.Spec.DefaultTier
+		}
+		if len(npc.Spec.CustomTier) > 0 {
+			CustomTier = npc.Spec.CustomTier
+		}
+		log.Info(fmt.Sprintf("The DefaultTier is '%s'; The CustomTier is '%s'", DefaultTier, CustomTier))
+		// Checking the default and custom Tiers
+		for _, tierItem := range trList.Items {
+			if tierItem.GetName() == DefaultTier {
+				DefaultTierOrder = *tierItem.Spec.Order
+			}
+			if tierItem.GetName() == CustomTier {
+				CustomTierOrder = *tierItem.Spec.Order
+			}
+		}
+		if DefaultTierOrder == 0 {
+			err = fmt.Errorf("Default Tier doesn't exist")
+			log.Error(err, "Tiers check Failed")
+			return ctrl.Result{}, err
+		}
+		if CustomTierOrder == 0 {
+			err = fmt.Errorf("Custom Tier doesn't exist")
+			log.Error(err, "Tiers check Failed")
+			return ctrl.Result{}, err
+		}
+		if DefaultTierOrder >= CustomTierOrder {
+			err = fmt.Errorf("Custom Tier Order must be higher than Default Tier Order")
+			log.Error(err, "Tiers check Failed")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Getting slices from string
 	for _, item := range strings.Split(ControlPlane, ",") {
 		if len(item) > 0 {
@@ -207,7 +252,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 		} else {
-			err = r.processDeletion(&nsItem)			
+			err = r.processDeletion(&nsItem, false)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -414,6 +459,11 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			return item == "DefaultLog"
 		})
 	}
+	// Checking the annotated NetworkPolicies in the Namespace
+	// That mesasure prevents creating duplication NetworkPolicies after DefaultTier change
+	if len(DefaultTier) != 0 {
+		r.processDeletion(ns, true)
+	}
 	// Appling Kubernetes Default NetworkPolicies
 	for _, templateName := range defaultPolicies {
 		labels := make(map[string]string)
@@ -423,7 +473,13 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			continue
 		}
 		policy, err = r.decodeNetworkPolicy([]byte(npc.Spec.Policies[templateName]))
+		// Setting Namespace
 		policy.SetNamespace(ns.GetName())
+		// Processing Tiers and changing name
+		if len(DefaultTier) != 0 {
+			policy.Spec.Tier = DefaultTier
+			policy.SetName(fmt.Sprintf("%s.%s", DefaultTier, policy.GetName()))
+		}
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to decode '%s' NetworkPolicy template", templateName))
 			return err
@@ -541,11 +597,11 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 	getLabels := make(map[string]string)
 	labels := make(map[string]string)
 
-	log.Info(fmt.Sprintf("NetworkPolicy: %v", *policy))
+	log.Info(fmt.Sprintf("Process Custom NetworkPolicy: %v", *policy))
 	// Setting NetworkPolicy owner
 	err := ctrl.SetControllerReference(npc, policy, r.Scheme)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetName()))
+		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
 		return err
 	}
 	// Getting NetworkPolicy labels
@@ -559,13 +615,25 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 	labels[NetworkPolicyLabel] = "true"
 	maps.Copy(labels, getLabels)
 	accessor.SetLabels(labels)
+	// Processing Tiers and changing name
+	if len(CustomTier) != 0 {
+		ns := &corev1.Namespace{}
+		err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetNamespace(), Namespace: "",}, ns)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace", policy.GetNamespace()))
+			return err
+		}
+		r.processDeletion(ns, true)
+		policy.Spec.Tier = CustomTier
+		policy.SetName(fmt.Sprintf("%s.%s", CustomTier, policy.GetName()))
+	}
 	// Checking if NetworkPolicy must be created or updated
 	err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetName(), Namespace: policy.GetNamespace()}, getPolicy)
 	if err != nil {
 		// Creating NetworkPolicy
 		err = r.Create(context.TODO(), policy)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
 			return err
 		}
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been created", policy.GetName(), policy.GetNamespace()))
@@ -584,7 +652,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 }
 
 // processDeletion deletes NetworkPolicies in particular Namespace
-func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace) error {
+func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, tierCheck bool) error {
 
 	log := log.FromContext(context.TODO())
 
@@ -592,7 +660,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace) er
 	// Getting labeled NetworkPolicies in Namespace
 	policyList := &calicov3.NetworkPolicyList{}
 	opts := []client.ListOption{
-		client.InNamespace(ns.GetNamespace()),
+		client.InNamespace(ns.GetName()),
 		client.MatchingLabels{"network-policy.qubership.org/generated": "true"},
 	}
 	err := r.List(context.TODO(), policyList, opts...)
@@ -602,6 +670,10 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace) er
 	}
 	// Deleting NetworkPolicies in Namespace
 	for _, policyItem := range policyList.Items {
+		// Do not delete the NetworkPolicy with the current DefaultTier or CustomTier if the Tier must be checked
+		if tierCheck && (DefaultTier == policyItem.Spec.Tier || CustomTier == policyItem.Spec.Tier) {
+			break
+		}
 		err = r.Delete(context.TODO(), &policyItem)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", policyItem.GetName(), policyItem.GetNamespace()))

@@ -35,10 +35,6 @@ resources:
   kind: RemoteClusterConfig
   path: github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1
   version: v1alpha1
-- controller: true
-  domain: qubership.org
-  kind: Pod
-  version: v1
 - api:
     crdVersion: v1
   controller: true
@@ -46,8 +42,4 @@ resources:
   kind: NetworkPolicyConfig
   path: github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1
   version: v1alpha1
-- controller: true
-  domain: qubership.org
-  kind: Service
-  version: v1
 version: "3"

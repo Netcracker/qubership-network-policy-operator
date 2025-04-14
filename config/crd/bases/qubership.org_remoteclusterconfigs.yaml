@@ -12,6 +12,8 @@ spec:
     listKind: RemoteClusterConfigList
     plural: remoteclusterconfigs
     singular: remoteclusterconfig
+    shortNames:
+      - rclc
   scope: Namespaced
   versions:
   - name: v1alpha1

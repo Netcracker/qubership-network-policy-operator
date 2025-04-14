@@ -177,4 +177,26 @@ rules:
   - get
   - patch
   - update
+{{- if .Capabilities.APIVersions.Has "projectcalico.org/v3/Tier" }}
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - tiers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - tier.networkpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}
 {{- end }}

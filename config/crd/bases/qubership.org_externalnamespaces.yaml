@@ -12,6 +12,8 @@ spec:
     listKind: ExternalNamespaceList
     plural: externalnamespaces
     singular: externalnamespace
+    shortNames:
+      - extns
   scope: Namespaced
   versions:
   - name: v1alpha1
