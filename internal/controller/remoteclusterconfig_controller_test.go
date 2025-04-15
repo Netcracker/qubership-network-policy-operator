@@ -102,7 +102,7 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 		owns := []metav1.OwnerReference{}
 		csr := &crtv1.CertificateSigningRequest{}
 		sc := &corev1.Secret{}
-		req := `-----BEGIN CERTIFICATE REQUEST-----
+		req := []byte(`-----BEGIN CERTIFICATE REQUEST-----
 MIICZjCCAU4CAQAwITEOMAwGA1UEAwwFdXNlcjExDzANBgNVBAoMBmdyb3VwMTCC
 ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMmcQmlufnKxtsEfWwMcqmHI
 X8h6NAozC/XyrD/F49aX3dzkxMYz4EpxXnxfOYyBb6Z8bEdDG1tCCBR4ohdzAjQA
@@ -116,7 +116,7 @@ f7PYv2ZmSemb5dEKvGokmVATNyGpGgwW1FyKoA31EjYM2MGrJmWMUaDbStC3dibR
 aSDK11I2oil/y5B68hvquUr09lLPs5TpT9Pkch6AQl8t0wNnhIOUnXOMyY1luv41
 PKignC4tNqN4VvGjry3GDBOOqWzRsVTz3/YORT6Y2HYbUhtOTwsSToKVK2etJcoU
 SdkWhTI7Js+NZDPy4UjB+sQw1wkuGMNFSHhhkUa8HEg/yK1FHuvjeXON
------END CERTIFICATE REQUEST-----`
+-----END CERTIFICATE REQUEST-----`)
 		usage := []crtv1.KeyUsage{crtv1.UsageDigitalSignature,
 					crtv1.UsageKeyEncipherment,
 					crtv1.UsageClientAuth}
@@ -347,7 +347,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 						SignerName: "kubernetes.io/kube-apiserver-client",
 						Username:   "user1",
 						Usages:	    usage,
-						Request:    []byte(req),
+						Request:    req,
 					},
 				}
 				err = k8sClient.Create(ctx, csr)
