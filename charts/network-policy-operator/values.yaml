@@ -185,6 +185,8 @@ networkPolicies:
 # RemoteClusterConfig section
 dr:
   install: false
+  # There are two options: 'token' and 'cert'
+  authentication: token
   localCluster: {}
 #  localCluster:
 #    api: cluster-1.domain.com:6443

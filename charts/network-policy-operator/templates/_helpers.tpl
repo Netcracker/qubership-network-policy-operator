@@ -83,3 +83,7 @@ Auth Proxy image.
 {{- define "authProxy.image" -}}
     {{ printf "%s:%s" .Values.authProxy.image.repository .Values.authProxy.image.tag }}
 {{- end -}}
+
+{{- define "network-policy-operator.remoteRole" -}}
+{{- printf "%s-%s" .Chart.Name "role" | trunc 63 | trimSuffix "-" }}
+{{- end }}
