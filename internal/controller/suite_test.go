@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	clientset "k8s.io/client-go/kubernetes"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
@@ -42,6 +43,7 @@ import (
 
 var cfg *rest.Config
 var k8sClient client.Client
+var k8sClientSet *clientset.Clientset
 var testEnv *envtest.Environment
 
 func TestControllers(t *testing.T) {
@@ -86,6 +88,10 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	k8sClientSet = clientset.NewForConfigOrDie(cfg)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClientSet).NotTo(BeNil())
 
 })
 
