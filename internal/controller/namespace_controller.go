@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -190,15 +189,10 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	}
 
 	// Create configuration for client to connect to remote cluster
-	remoteConfig = &rest.Config{
-		Host:        rcl.Spec.RemoteCluster.API,
-		APIPath:     "/apis",
-		BearerToken: string(secret.Data["token"]),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure:   true,
-			ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
-			//CAData:     []byte(secret.Data["ca.crt"]),
-		},
+	remoteConfig, err = rc.getRemoteConfig(rcl, secret)
+	if err != nil {
+		cErr <- err
+		return
 	}
 	dynamicClient, err = dynamic.NewForConfig(remoteConfig)
 	if err != nil {
