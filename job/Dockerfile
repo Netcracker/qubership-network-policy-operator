@@ -9,7 +9,7 @@ RUN set -x \
 	&& chmod 0755 /usr/local/bin/kubectl \
 	&& apt-get clean
 
-COPY	--chmod=755 script.sh /
+COPY	--chmod=755 job/script.sh /
 
 RUN useradd -ms /bin/bash -u 1001 job
 
