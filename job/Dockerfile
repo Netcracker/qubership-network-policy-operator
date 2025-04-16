@@ -1,4 +1,4 @@
-FROM artifactorycn.netcracker.com:17151/debian:12.7-slim
+FROM debian:12.7-slim
 
 LABEL maintainer=""
 
