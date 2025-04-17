@@ -535,9 +535,8 @@ func (r *RemoteClusterConfigReconciler) getRemoteConfig(rcl *npcv1.RemoteCluster
 			APIPath:     "/apis",
 			BearerToken: string(secret.Data["token"]),
 			TLSClientConfig: rest.TLSClientConfig{
-				Insecure:   false,
+				Insecure:   true,
 				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
-				CAData:     secret.Data["ca.crt"],
 			},
 		}
 	// Authenticating by Certificate
