@@ -1,5 +1,6 @@
 {{- $outer := . -}}
 {{- if .Values.dr.install }}
+{{- if eq .Values.dr.authentication "token" }}
 {{- range $key, $value := .Values.dr.remoteClusters }}
 {{- with $outer -}}
 ---
@@ -19,5 +20,6 @@ subjects:
   name: {{ $value.name }}
   namespace: {{ include "network-policy-operator.namespace" . }}
 {{- end }}
+{{ end }}
 {{ end }}
 {{ end }}

@@ -39,7 +39,7 @@ spec:
     - digital signature
     - key encipherment
     - client auth" > ./csr.yaml
-	cat ./csr.yaml | envsubst | kubectl apply -f - \
+	cat ./csr.yaml | envsubst | kubectl apply -f - > /dev/null 2>&1 \
 		&& echo "$(date +%FT%H:%M:%S%:z) The CertificateSigningRequest has been applied"
 
 	kubectl certificate approve ${SECRET}-csr > /dev/null 2>&1 \
