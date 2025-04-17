@@ -87,7 +87,7 @@ Auth Proxy image.
 Remote operator connection Role
 */}}
 {{- define "network-policy-operator.remoteRole" -}}
-{{- printf "%s-%s" .Chart.Name "role" | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Values.manager.rbac.role "dr" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
