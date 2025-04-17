@@ -83,6 +83,13 @@ spec:
 | dr.install                          | bool   | false                                                                                                                                      | If true RemoteClusterConfig will be created                                                        |
 | dr.localCluster                     | object | {}                                                                                                                                         | Local cluster configuration                                                                        |
 | dr.remoteClusters                   | array  | []                                                                                                                                         | List of remote cluster configuration                                                               |
+| dr.authentication                   | string | token                                                                                                                                      | Type of authentication in DR scheme                                                                |
+| dr.tls                              | string | auto                                                                                                                                       | Automation or manual TLS certificate creation                                                      |
+| dr.tlsJob.image                     | object | {"repository": "ghcr.io/netcracker/qubership-network-policy-job","pullPolicy": "IfNotPresent"}                                             | TLS cetrtificate creation Job specification                                                        |
+| dr.tlsJob.resources                 | object | {"requests": {"cpu": "100m","memory": "128Mi"}}                                                                                            | TLS cetrtificate creation Job specification                                                        |
+| dr.tlsJob.nodeSelector              | object | {"kubernetes.io/os": "linux"}                                                                                                              | TLS cetrtificate creation Job specification                                                        |
+| dr.tlsJob.tolerations               | array  | []                                                                                                                                         | TLS cetrtificate creation Job specification                                                        |
+| dr.tlsJob.securityContext           | object | {"runAsNonRoot": true}                                                                                                                     | TLS cetrtificate creation Job specification                                                        |
 
 ### Basic Installation
 
@@ -149,7 +156,7 @@ helm install npc-operator . -n netpolconf-system
 
 The DR preparation includes to steps. The first one must be performed before installation and the second one after the installation.
 
-**Pre-installation**
+#### Pre-installation
 
 The `dr` section includes options to configure interation between clusters in DR scheme
 
@@ -162,8 +169,11 @@ Cluster settings:
 * `name` option is a cluster name, it must be uniq in clusters list
 * `api` option is a particular Kubernetes API endopint, FQDN and port 
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
+* `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
-**Post-installation**
+#### Post-installation
+
+**Token authentication**
 
 Change token inside `Secret` to connect to remote cluster in the following maner:
 
@@ -180,6 +190,22 @@ kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED T
 ```
 
 Do the same procedure with other clusters in DR scheme.
+
+**TLS authentication**
+
+Save the TLS certificate `Secret` into file:
+
+```sh
+kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
+```
+
+Apply it on the clusters in DR scheme:
+
+```sh
+kubectl apply -f secret.yaml
+```
+
+Repeat the procedure for all of the clusters in DR scheme
 
 ### Check installation
 

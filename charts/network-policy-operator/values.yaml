@@ -209,7 +209,7 @@ dr:
       pullPolicy: IfNotPresent
     resources:
       requests:
-        cpu: 250m
+        cpu: 100m
         memory: 128Mi
     nodeSelector:
       kubernetes.io/os: linux
