@@ -38,6 +38,7 @@ import (
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controller"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -51,6 +52,7 @@ func init() {
 
 	utilruntime.Must(npcv1.AddToScheme(scheme))
 	utilruntime.Must(calicov3.AddToScheme(scheme))
+	monitoring.RegisterMetrics()
 	//+kubebuilder:scaffold:scheme
 }
 
