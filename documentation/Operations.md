@@ -110,7 +110,13 @@ Dec 20 08:06:03 k8s-1-master-1 kernel: calico-packet: IN=tunl0 OUT=cali5da413c9a
 
 ## Upgrade with Helm Chart
 
-Check the [Prerequisites](https://github.com/Netcracker/qubership-network-policy-operator/tree/main/documentation/Installation.md#prerequisites) from installation guide. Navigate to `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. Run upgrade procedure:
+Check the [Prerequisites](https://github.com/Netcracker/qubership-network-policy-operator/tree/main/documentation/Installation.md#prerequisites) from installation guide. Navigate to `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. Upgrade CRDs:
+
+```sh
+kubectl apply -f crds/
+```
+
+Run upgrade procedure:
 
 ```sh
 helm upgrade npc-operator . -f values.yaml -n netpolconf-system
