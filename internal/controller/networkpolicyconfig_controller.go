@@ -221,6 +221,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, "Faled to list Namespaces")
 		return ctrl.Result{}, err
 	}
+	monitoring.NamespacesTotal.Set(float64(len(nsList.Items)))
 	if len(nsList.Items) == 0 {
 		log.Info(fmt.Sprintf("There are no Namespaces for the '%s' NetworkPolicyConfig", npc.GetName()))
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
@@ -509,6 +510,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 						log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
 						return err
 					}
+					monitoring.NetworkPoliciesTotal.Dec()
 					log.Info(fmt.Sprintf("'%s' NetworkPolicy has been deleted from '%s' Namespace", policy.GetName(), ns.GetName()))
 				}
 				continue
@@ -582,6 +584,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 				log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
 				return err
 			}
+			monitoring.NetworkPoliciesTotal.Inc()
 			log.Info(fmt.Sprintf("'%s' NetworkPolicy has been created in '%s' Namespace", policy.GetName(), ns.GetName()))
 		} else {
 			policy.SetResourceVersion(getPolicy.GetResourceVersion())
@@ -647,6 +650,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
 			return err
 		}
+		monitoring.NetworkPoliciesTotal.Inc()
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been created", policy.GetName(), policy.GetNamespace()))
 	} else {
 		// Updating NetworkPolicy
@@ -690,6 +694,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 			log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", policyItem.GetName(), policyItem.GetNamespace()))
 			return err
 		}
+		monitoring.NetworkPoliciesTotal.Dec()
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been deleted", policyItem.GetName(), policyItem.GetNamespace()))
 
 	}

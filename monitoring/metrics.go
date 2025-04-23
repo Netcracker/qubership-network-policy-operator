@@ -34,10 +34,59 @@ var (
 			Help: "Connections audit log status, could be 'disabled'=-1; 'enabled for all connections'=0; 'enabled for denied connections only'=1",
 		},
 	)
+
+	RemoteClustersConfigTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "remote_cluster_config_total", 
+			Help: "Total number of RemoteClustersConfigs",
+		},
+	)
+
+	RemoteClustersConfigLoose = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "remote_cluster_config_loose", 
+			Help: "Number of loose RemoteClustersConfigs",
+		},
+	)
+
+	RemoteClustersConfigCoupled = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "remote_cluster_config_coupled", 
+			Help: "Number of coupled RemoteClustersConfigs",
+		},
+	)
+
+	RemoteClustersConfigSynchronized = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "remote_cluster_config_synchronized", 
+			Help: "Number of synchronized RemoteClustersConfigs",
+		},
+	)
+
+	NamespacesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "namespaces_total", 
+			Help: "Total number of processed Namespaces",
+		},
+	)
+
+	ExternalNamespacesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "external_namespaces_total", 
+			Help: "Total number of ExternalNamespaces",
+		},
+	)
+
+	NetworkPoliciesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "network_policies_total", 
+			Help: "Total number of created NetworkPolicies",
+		},
+	)
 )
 
 // RegisterMetrics registers metrics with the global prometheus registry
 func RegisterMetrics() {
 	metrics.Registry.MustRegister(NetworkPolicyConfigStatus)
 	metrics.Registry.MustRegister(ConnectionsLogStatus)
+	metrics.Registry.MustRegister(RemoteClustersConfigTotal)
+	metrics.Registry.MustRegister(RemoteClustersConfigLoose)
+	metrics.Registry.MustRegister(RemoteClustersConfigCoupled)
+	metrics.Registry.MustRegister(RemoteClustersConfigSynchronized)
+	metrics.Registry.MustRegister(NamespacesTotal)
+	metrics.Registry.MustRegister(ExternalNamespacesTotal)
+	metrics.Registry.MustRegister(NetworkPoliciesTotal) 
 }
