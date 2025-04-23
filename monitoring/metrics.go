@@ -23,15 +23,15 @@ import (
 
 var (
 	// 
-	NetworkPolicyConfigStatus = NewGauge(prometheus.GaugeOpts{
+	NetworkPolicyConfigStatus = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "network_policy_config_status", 
-			Help: "NetworkPolicyConfig status, could be 'disabled'=0; 'enabled for all namespaces'=1; 'enabled for some scope of namespaces'=2; 'failed'=-1" 
+			Help: "NetworkPolicyConfig status, could be 'disabled'=0; 'enabled for all namespaces'=1; 'enabled for some scope of namespaces'=2; 'failed'=-1",
 		},
 	)
 
-	ConnectionsLogStatus = NewGauge(prometheus.GaugeOpts{
+	ConnectionsLogStatus = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "connections_log_status", 
-			Help: "Connections audit log status, could be 'disabled'=-1; 'enabled for all connections'=0; 'enabled for denied connections only'=1"
+			Help: "Connections audit log status, could be 'disabled'=-1; 'enabled for all connections'=0; 'enabled for denied connections only'=1",
 		},
 	)
 )
@@ -39,4 +39,5 @@ var (
 // RegisterMetrics registers metrics with the global prometheus registry
 func RegisterMetrics() {
 	metrics.Registry.MustRegister(NetworkPolicyConfigStatus)
+	metrics.Registry.MustRegister(ConnectionsLogStatus)
 }

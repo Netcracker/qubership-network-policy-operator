@@ -39,7 +39,7 @@ import (
 
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
-	npcv1 "github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 )
 
 const (
@@ -75,7 +75,6 @@ type NetworkPolicyConfigReconciler struct {
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
-//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch;create;update;delete
 
 func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
