@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 )
 
 // NamespaceReconciler reconciles a Namespace object
@@ -94,6 +95,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	log.Info(fmt.Sprintf("RemoteClusterConfigs list is: %v", rclList))
+	monitoring.RemoteClustersConfigTotal.Set(float64(len(rclList.Items)))
 
 	podList := &corev1.PodList{}
 	svcList := &corev1.ServiceList{}
