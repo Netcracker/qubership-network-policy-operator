@@ -39,6 +39,7 @@ import (
 
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	npcv1 "github.com/Netcracker/qubership-network-policy-operator/monitoring"
 )
 
 const (
@@ -74,6 +75,7 @@ type NetworkPolicyConfigReconciler struct {
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch;create;update;delete
 
 func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -99,6 +101,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	_ = r.List(ctx, npcList, &client.ListOptions{})
 	if len(npcList.Items) > 1 {
 		log.Info("The NetworkPolicyConfig must be only one in the cluster")
+		monitoring.NetworkPolicyConfigStatus.Set(float64(-1))
 		return ctrl.Result{}, nil
 	}
 	// Default setings
@@ -126,6 +129,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	// Checking logs settings
 	if !npc.Spec.Logs.Enabled {
+		monitoring.ConnectionsLogStatus.Set(float64(-1))
 		LogsEnabled = false
 		log.Info(fmt.Sprintf("Audit logs are disabled in the '%s' NetworkPolicyConfig", npc.GetName()))
 	} else {
@@ -138,8 +142,10 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 		if !npc.Spec.Logs.CollectingAll {
 			CollectAllLogs = false
+			monitoring.ConnectionsLogStatus.Set(float64(1))
 		} else {
 			CollectAllLogs = true
+			monitoring.ConnectionsLogStatus.Set(float64(0))
 		}
 	}
 	// Checking the Tiers availability
@@ -229,6 +235,11 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	for _, nsItem := range nsList.Items {
 		if npc.Spec.Enabled {
+			if len(npc.Spec.Scope) > 0 {
+				monitoring.NetworkPolicyConfigStatus.Set(float64(2))
+			} else {
+				monitoring.NetworkPolicyConfigStatus.Set(float64(1))
+			}
 			if slices.Contains(cpNSList, nsItem.GetName()) {
 				log.Info(fmt.Sprintf("'%s' Namespace is skipped, since it's a part of the control plane, checking log rules", nsItem.GetName()))
 				// Processing only request namespace if it's applicable
@@ -252,6 +263,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 		} else {
+			monitoring.NetworkPolicyConfigStatus.Set(float64(0))
 			err = r.processDeletion(&nsItem, false)
 			if err != nil {
 				return ctrl.Result{}, err
