@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package npc
 
 import (
 	"context"
@@ -445,8 +445,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					return k8sClient.Delete(ctx, tr3)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
-
-			time.Sleep(30*time.Second)
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")
