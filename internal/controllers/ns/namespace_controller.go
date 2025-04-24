@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package ns
 
 import (
 	"context"
@@ -40,7 +40,16 @@ import (
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
 )
+
+const (
+	TypeCoupled         = rclc.TypeCoupled
+	TypeSynchronized    = rclc.TypeSynchronized
+	ExcludingAnnotation = rclc.ExcludingAnnotation
+)
+
+var oprNamespace string
 
 // NamespaceReconciler reconciles a Namespace object
 type NamespaceReconciler struct {
@@ -61,8 +70,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	nsAnn := make(map[string]string)
 
-	rc := &RemoteClusterConfigReconciler{}
-	oprNamespace = rc.getOperatorNamespace()
+	rc := &rclc.RemoteClusterConfigReconciler{}
+	oprNamespace = rc.GetOperatorNamespace()
 
 	ns := &corev1.Namespace{}
 	err := r.Get(ctx, req.NamespacedName, ns)
@@ -112,7 +121,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, fmt.Sprintf("Failed to list Services in '%s' Namespace", ns.GetName()))
 		return ctrl.Result{}, err
 	}
-	tunnelIPs, err := rc.nodeToTunnelIPs(r.Client)
+	tunnelIPs, err := rc.NodeToTunnelIPs(r.Client)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get tunnel interface IPs for reconciliation in '%s' Namespace", ns.GetName()))
 		return ctrl.Result{}, err
@@ -165,7 +174,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
 		Version: "v1alpha1", Resource: "externalnamespaces"}
 
-	rc := &RemoteClusterConfigReconciler{}
+	rc := &rclc.RemoteClusterConfigReconciler{}
 	log := log.FromContext(context.TODO())
 	remoteConfig := &rest.Config{}
 	dynamicClient := &dynamic.DynamicClient{}
@@ -191,7 +200,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	}
 
 	// Create configuration for client to connect to remote cluster
-	remoteConfig, err = rc.getRemoteConfig(rcl, secret)
+	remoteConfig, err = rc.GetRemoteConfig(rcl, secret)
 	if err != nil {
 		cErr <- err
 		return
@@ -204,7 +213,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	}
 
 	// Checking if the RemoteClusterConfig has the correct couple on remote cluster
-	rclCouple, err := rc.getCouple(rcl, dynamicClient)
+	rclCouple, err := rc.GetCouple(rcl, dynamicClient)
 	if err != nil {
 		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
 		cErr <- err
@@ -217,13 +226,6 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 			ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", ns.GetName()))
-		cErr <- err
-		return
-	}
-	// Setting ExternalNamespace owner
-	err = ctrl.SetControllerReference(rclCouple, ens, r.Scheme)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' ExternalNamespace", ens.GetName()))
 		cErr <- err
 		return
 	}

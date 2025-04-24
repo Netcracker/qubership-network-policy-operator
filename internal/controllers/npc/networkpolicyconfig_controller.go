@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package npc
 
 import (
 	"fmt"
@@ -40,12 +40,14 @@ import (
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
 )
 
 const (
 	NetworkPolicyLabel	= "network-policy.qubership.org/generated"
 	EgressServiceLabel	= "network-policy.qubership.org/egress-svc"
-	TunnelAddressAnnotation = "projectcalico.org/IPv4IPIPTunnelAddr"
+	TunnelAddressAnnotation	= rclc.TunnelAddressAnnotation	
+	TypeCoupled		= rclc.TypeCoupled
 )
 
 var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"} 
