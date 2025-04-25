@@ -158,6 +158,10 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
 			return ctrl.Result{}, err
 		}
+		err = r.UpdateMetrics()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		log.Info("RemoteClusterConfig Reconciler loop has been finished")
 		return ctrl.Result{}, fmt.Errorf("identification error")
 	}
@@ -260,31 +264,10 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
-	// Count number of Loose, Coupled, and Synchronized RemoteClusterConfigs
-	rclList := &npcv1.RemoteClusterConfigList{}
-	opt := &client.ListOptions{Namespace: oprNamespace,}
-	err = r.List(ctx, rclList, opt)
+	err = r.UpdateMetrics()
 	if err != nil {
-		log.Error(err, "Failed to list RemoteClusterConfigs")
 		return ctrl.Result{}, err
 	}
-	rclsLoose := 0
-	rclsCoupled := 0
-	rclsSynch := 0
-	for _, rclItem := range rclList.Items {
-		if meta.IsStatusConditionFalse(rclItem.Status.Conditions, TypeLoose) {
-			rclsLoose++
-		}
-		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeCoupled) {
-			rclsCoupled++
-		}
-		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeSynchronized) {
-			rclsSynch++
-		}
-	}
-	monitoring.RemoteClustersConfigLoose.Set(float64(rclsLoose))
-	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
-	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
 
 	log.Info("RemoteClusterConfig Reconciler loop has been finished")
 	return ctrl.Result{}, nil
@@ -591,4 +574,36 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 		return nil, err
 	}
 	return remoteConfig, nil
+}
+
+// Count number of Loose, Coupled, and Synchronized RemoteClusterConfigs
+func (r *RemoteClusterConfigReconciler) UpdateMetrics() error {
+
+	log := log.FromContext(context.TODO())
+	rclList := &npcv1.RemoteClusterConfigList{}
+	opt := &client.ListOptions{Namespace: oprNamespace,}
+	err := r.List(context.TODO(), rclList, opt)
+	if err != nil {
+		log.Error(err, "Failed to list RemoteClusterConfigs")
+		return err
+	}
+	rclsLoose := 0
+	rclsCoupled := 0
+	rclsSynch := 0
+	for _, rclItem := range rclList.Items {
+		if meta.IsStatusConditionFalse(rclItem.Status.Conditions, TypeLoose) {
+			rclsLoose++
+		}
+		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeCoupled) {
+			rclsCoupled++
+		}
+		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeSynchronized) {
+			rclsSynch++
+		}
+	}
+	monitoring.RemoteClustersConfigLoose.Set(float64(rclsLoose))
+	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
+	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
+
+	return nil
 }
