@@ -252,7 +252,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		unstructured.SetNestedField(unstr.Object,
 			"ExternalNamespace", "kind")
 		log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
-		// Create ExternalNamespace
+		// Creating ExternalNamespace
 		log.Info(fmt.Sprintf("'%s' ExternalNamespace creation", ens.GetName()))
 		_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
 			Create(ctx, unstr, metav1.CreateOptions{})
