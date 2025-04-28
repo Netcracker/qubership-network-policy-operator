@@ -344,12 +344,10 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			err := k8sClient.Get(ctx, typeNamespacedName1, npc)
 			Expect(err).NotTo(HaveOccurred())
 
-			/*
 			By("Cleanup the NetworkPolicyConfig")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, npc)
 			}, 3*time.Minute, time.Second).Should(Succeed())
-			*/
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
 			Expect(err).NotTo(HaveOccurred())
