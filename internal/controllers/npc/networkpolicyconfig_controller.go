@@ -101,6 +101,17 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
+	// Removing all previous conditions
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeStarted)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
+	}
+	// Setting condition
 	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
@@ -113,6 +124,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if len(npcList.Items) > 1 {
 		log.Info("The NetworkPolicyConfig must be only one in the cluster")
 		monitoring.NetworkPolicyConfigStatus.Set(float64(-1))
+		// Setting condition
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDuplicated, Status: metav1.ConditionFalse, Reason: "Reconciliation", Message: "NetworkPoliciesConfig duplication"})
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
@@ -289,6 +301,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
+	// Setting condition
 	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
@@ -307,6 +320,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 		}
+		// Setting condition
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeCustomApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Custom NetworkPolicies have been applied"})
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
