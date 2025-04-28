@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,17 +65,12 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Name:      npcName,
 			Namespace: "test3",
 		}
-		typeNamespacedNameR := types.NamespacedName{
-			Name:      rclName,
-			Namespace: rclNS,
-		}
 		typeNamespacedNameN := types.NamespacedName{
 			Name:      nsName,
 			Namespace: nsName,
 		}
 		npc := &npcv1.NetworkPolicyConfig{}
 		npc2 := &npcv1.NetworkPolicyConfig{}
-		rcl := &npcv1.RemoteClusterConfig{}
 		npList := &calicov3.NetworkPolicyList{}
 		opts := &client.ListOptions{}
 		ns := &corev1.Namespace{}
@@ -260,48 +254,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
 			}
-			By("Creating the RemoteClusterConfig")
-			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
-			if err != nil && errors.IsNotFound(err) {
-				rcl = &npcv1.RemoteClusterConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      rclName,
-						Namespace: rclNS,
-					},
-					Spec: npcv1.RemoteClusterConfigSpec{
-						RemoteCluster: npcv1.RemoteCluster{
-							Name:   "cluster-2",
-							API:    "all.new.local:6443",
-							Secret: "remote-cluster2",
-						},
-						LocalCluster: npcv1.LocalCluster{
-							Name: "cluster-1",
-							API:  "all.new.local:6443",
-						},
-					},
-				}
-				Eventually(func() error {
-					return k8sClient.Create(ctx, rcl)
-				}, time.Minute, time.Second).Should(Succeed())
-				meta.SetStatusCondition(&rcl.Status.Conditions,
-							metav1.Condition{
-								Type: TypeCoupled,
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
-								Message: "Couple is identified",
-							})
-				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.KubeAPIService = "172.30.0.1"
-				rcl.Status.CoreDNSService = "172.30.0.10"
-				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
-				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-				Eventually(func() error {
-					return k8sClient.Status().Update(ctx, rcl)
-				}, time.Minute, time.Second).Should(Succeed())
-			} else if err != nil {
-				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
-			}
 
 			// Creating separate Namespace for Custom NetworkPolicies
 			By("Creating the Namespace")
@@ -403,13 +355,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			By("Cleanup the second NetworkPolicyConfig")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, npc2)
-			}, time.Minute, time.Second).Should(Succeed())
-
-			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
-
-			By("Cleanup the RemoteClusterConfig")
-			Eventually(func() error {
-				return k8sClient.Delete(ctx, rcl)
 			}, time.Minute, time.Second).Should(Succeed())
 
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
