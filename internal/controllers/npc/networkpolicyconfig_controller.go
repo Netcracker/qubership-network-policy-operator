@@ -190,7 +190,6 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				CustomTierOrder = *tierItem.Spec.Order
 			}
 		}
-		// TODO: Status update
 		if DefaultTierOrder == 0 {
 			err = fmt.Errorf("Default Tier doesn't exist")
 			log.Error(err, "Tiers check Failed")
