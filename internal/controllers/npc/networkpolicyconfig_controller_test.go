@@ -507,6 +507,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Changing NetworkPolicyConfig to collect only denied connections")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Logs.CollectingAll = false
 			Eventually(func() error {
 				return k8sClient.Update(ctx, npc)
@@ -545,6 +547,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Disabling logs in NetworkPolicyConfig")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Logs.Enabled = false
 			Eventually(func() error {
 				return k8sClient.Update(ctx, npc)
@@ -583,6 +587,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 			if isTier {
 				By("Reconciling non-existent Default Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = "nonexistent"
 				Eventually(func() error {
 					return k8sClient.Update(ctx, npc)
@@ -593,6 +599,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Default Tier doesn't exist"))
 
 				By("Reconciling non-existent Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfTier
 				npc.Spec.CustomTier = "nonexistent"
 				Eventually(func() error {
@@ -604,6 +612,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Custom Tier doesn't exist"))
 
 				By("Reconciling wrong order of Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfTier
 				npc.Spec.CustomTier = dfTier
 				Eventually(func() error {
@@ -615,6 +625,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Custom Tier Order must be higher than Default Tier Order"))
 
 				By("Reconciling change of Default Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfNewTier
 				npc.Spec.CustomTier = "default"
 				Eventually(func() error {
@@ -635,6 +647,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Reconciling change of Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.CustomTier = cmTier
 				Eventually(func() error {
 					return k8sClient.Update(ctx, npc)
@@ -655,6 +669,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			}
 
 			By("Disabling default policies in NetworkPolicyConfig")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Enabled = false
 			if isTier {
 				npc.Spec.CustomTier = "default"
