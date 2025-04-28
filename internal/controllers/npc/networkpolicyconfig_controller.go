@@ -48,6 +48,10 @@ const (
 	EgressServiceLabel	= "network-policy.qubership.org/egress-svc"
 	TunnelAddressAnnotation	= rclc.TunnelAddressAnnotation	
 	TypeCoupled		= rclc.TypeCoupled
+	TypeDefaultApplied	= "DefaultApplied"
+	TypeCustomApplied	= "CustomApplied"
+	TypeDuplicated		= "Duplicated"
+	TypeStarted		= "Started"
 )
 
 var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"} 
@@ -97,12 +101,24 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
+	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
+	}
 	// Checking if there is only one NetworkPolicyConfig in cluster
 	npcList := &npcv1.NetworkPolicyConfigList{}
 	_ = r.List(ctx, npcList, &client.ListOptions{})
 	if len(npcList.Items) > 1 {
 		log.Info("The NetworkPolicyConfig must be only one in the cluster")
 		monitoring.NetworkPolicyConfigStatus.Set(float64(-1))
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDuplicated, Status: metav1.ConditionFalse, Reason: "Reconciliation", Message: "NetworkPoliciesConfig duplication"})
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 	// Default setings
@@ -174,6 +190,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				CustomTierOrder = *tierItem.Spec.Order
 			}
 		}
+		// TODO: Status update
 		if DefaultTierOrder == 0 {
 			err = fmt.Errorf("Default Tier doesn't exist")
 			log.Error(err, "Tiers check Failed")
@@ -273,6 +290,13 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
+	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
+	}
+
 	// Custom NetworkPolicies
 	templateName = "CustomPolicies"
 	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 {
@@ -283,6 +307,12 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			if err != nil {
 				return ctrl.Result{}, err
 			}
+		}
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeCustomApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Custom NetworkPolicies have been applied"})
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
 		}
 	}
 
