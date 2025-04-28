@@ -336,7 +336,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *NetworkPolicyConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&npcv1.NetworkPolicyConfig{}).
+		For(&npcv1.NetworkPolicyConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&calicov3.NetworkPolicy{}).
 		Watches(&corev1.Namespace{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequestByNamespace),
