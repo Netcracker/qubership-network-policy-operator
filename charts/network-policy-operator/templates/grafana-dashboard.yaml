@@ -1,0 +1,247 @@
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: {{ include "network-policy-operator.fullname" . }}
+  namespace: {{ include "network-policy-operator.namespace" . }}
+  labels:
+    app.kubernetes.io/component: monitoring
+spec:
+  json: >
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": 132,
+      "links": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC3E95692D54ABCC0"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.13",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "network_policies_total",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Total Number of Network Policies",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Network Policies",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC3E95692D54ABCC0"
+          },
+          "description": "Remote Cluster Config status",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.13",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_total",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Total Number of Remote Cluster Configs",
+              "range": true,
+              "refId": "Total",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_coupled",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Number of Coupled Remote Cluster Configs",
+              "range": true,
+              "refId": "Coupled",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_loose",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Number of Loose Remote Cluster Configs",
+              "range": true,
+              "refId": "Loose",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_synchronized",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Number of Synchronized Coupled Remote Cluster Configs",
+              "range": true,
+              "refId": "Synchronized",
+              "useBackend": false
+            }
+          ],
+          "title": "Remote Cluster Configs",
+          "type": "stat"
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": [],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Network Policy Operator",
+      "uid": "cekede4xr7qbkf",
+      "version": 3,
+      "weekStart": ""
+    }
