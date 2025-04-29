@@ -40,17 +40,34 @@ spec:
               "color": {
                 "mode": "thresholds"
               },
-              "mappings": [],
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "orange",
+                      "index": 1,
+                      "text": "all"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 2,
+                      "text": "denied"
+                    },
+                    "-1": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "down"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               }
@@ -58,12 +75,12 @@ spec:
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
-            "w": 12,
+            "h": 6,
+            "w": 6,
             "x": 0,
             "y": 0
           },
-          "id": 5,
+          "id": 4,
           "options": {
             "colorMode": "value",
             "graphMode": "area",
@@ -89,7 +106,7 @@ spec:
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "external_namespaces_total",
+              "expr": "connections_log_status",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "instant": false,
@@ -99,132 +116,7 @@ spec:
               "useBackend": false
             }
           ],
-          "title": "Total Number of External Namespaces",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC3E95692D54ABCC0"
-          },
-          "description": "Remote Cluster Config status",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
-          "id": 1,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "10.4.13",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "remote_cluster_config_total",
-              "fullMetaSearch": false,
-              "hide": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "Total Number of Remote Cluster Configs",
-              "range": true,
-              "refId": "Total",
-              "useBackend": false
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "remote_cluster_config_coupled",
-              "fullMetaSearch": false,
-              "hide": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "Number of Coupled Remote Cluster Configs",
-              "range": true,
-              "refId": "Coupled",
-              "useBackend": false
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "remote_cluster_config_loose",
-              "fullMetaSearch": false,
-              "hide": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "Number of Loose Remote Cluster Configs",
-              "range": true,
-              "refId": "Loose",
-              "useBackend": false
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "remote_cluster_config_synchronized",
-              "fullMetaSearch": false,
-              "hide": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "Number of Synchronized Coupled Remote Cluster Configs",
-              "range": true,
-              "refId": "Synchronized",
-              "useBackend": false
-            }
-          ],
-          "title": "Remote Cluster Configs",
+          "title": "Connections Audit Log Status",
           "type": "stat"
         },
         {
@@ -278,10 +170,10 @@ spec:
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
+            "h": 6,
+            "w": 6,
+            "x": 6,
+            "y": 0
           },
           "id": 3,
           "options": {
@@ -327,6 +219,7 @@ spec:
             "type": "prometheus",
             "uid": "PC3E95692D54ABCC0"
           },
+          "description": "Remote Cluster Config status",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -350,10 +243,277 @@ spec:
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
+            "h": 6,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "text": {
+              "titleSize": 12
+            },
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.13",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_total",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Total Number",
+              "range": true,
+              "refId": "Total",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_coupled",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Coupled",
+              "range": true,
+              "refId": "Coupled",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_loose",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Loose",
+              "range": true,
+              "refId": "Loose",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "remote_cluster_config_synchronized",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "Synchronized",
+              "range": true,
+              "refId": "Synchronized",
+              "useBackend": false
+            }
+          ],
+          "title": "Remote Cluster Configs",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC3E95692D54ABCC0"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 6
+          },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.13",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "external_namespaces_total",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Number of External Namespaces",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC3E95692D54ABCC0"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 6
+          },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.13",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PC3E95692D54ABCC0"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "namespaces_total",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Number of Processed Namespaces",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC3E95692D54ABCC0"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 6
           },
           "id": 2,
           "options": {
@@ -392,164 +552,7 @@ spec:
               "useBackend": false
             }
           ],
-          "title": "Total Number of Created Network Policies",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC3E95692D54ABCC0"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "orange",
-                      "index": 1,
-                      "text": "all"
-                    },
-                    "1": {
-                      "color": "green",
-                      "index": 2,
-                      "text": "denied"
-                    },
-                    "-1": {
-                      "color": "red",
-                      "index": 0,
-                      "text": "down"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 16
-          },
-          "id": 4,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "10.4.13",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "connections_log_status",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "Connections Audit Log Status",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC3E95692D54ABCC0"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 16
-          },
-          "id": 6,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "10.4.13",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC3E95692D54ABCC0"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "namespaces_total",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "Total Number of Processed Namespaces",
+          "title": "Number of Created Network Policies",
           "type": "stat"
         }
       ],
