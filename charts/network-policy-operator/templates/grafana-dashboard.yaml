@@ -238,17 +238,39 @@ spec:
               "color": {
                 "mode": "thresholds"
               },
-              "mappings": [],
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "yellow",
+                      "index": 0,
+                      "text": "down"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "up for all"
+                    },
+                    "2": {
+                      "color": "blue",
+                      "index": 2,
+                      "text": "up for scope"
+                    },
+                    "-1": {
+                      "color": "red",
+                      "index": 3,
+                      "text": "failed"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               }
@@ -383,17 +405,34 @@ spec:
               "color": {
                 "mode": "thresholds"
               },
-              "mappings": [],
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "orange",
+                      "index": 1,
+                      "text": "all"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 2,
+                      "text": "denied"
+                    },
+                    "-1": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "down"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               }
@@ -462,10 +501,6 @@ spec:
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               }
