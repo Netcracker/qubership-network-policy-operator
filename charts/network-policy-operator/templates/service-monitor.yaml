@@ -1,0 +1,26 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "network-policy-operator.fullname" . }}
+  labels:
+    app.kubernetes.io/component: monitoring
+    k8s-app: {{ include "network-policy-operator.fullname" . }}
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: 30s
+    port: https-metrics
+    scheme: https
+    bearerTokenSecret:
+      name: {{ .Values.authProxy.rbac.metrics }}-token
+      key: token
+    tlsConfig:
+      insecureSkipVerify: true
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - {{ include "network-policy-operator.namespace" . }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}

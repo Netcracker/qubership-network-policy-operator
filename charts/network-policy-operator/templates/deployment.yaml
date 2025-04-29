@@ -69,7 +69,7 @@ spec:
           ports:
           - containerPort: 8443
             protocol: TCP
-            name: https
+            name: https-metrics
           resources:
             {{- toYaml .Values.authProxy.resources | nindent 12 }}
       {{- with .Values.volumes }}
