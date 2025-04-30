@@ -157,6 +157,9 @@ tolerations: []
 #            - worker
 affinity: {}
 
+monitoring:
+  enable: false
+
 # NetworkPolicyConfig section
 networkPolicies:
   name: "default"
