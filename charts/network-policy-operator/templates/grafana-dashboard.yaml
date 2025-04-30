@@ -1,3 +1,4 @@
+{{- if .Values.monitoring.enabled }}
 apiVersion: integreatly.org/v1alpha1
 kind: GrafanaDashboard
 metadata:
@@ -776,7 +777,7 @@ spec:
               "expr": "sum by(pod) (rate(container_memory_working_set_bytes{namespace='$namespace', cluster=~'$instance', pod='$namespace_pods', image!=''}[60s]))",
               "instant": false,
               "interval": "$inter",
-              "legendFormat": "Memory: {{pod}}",
+              "legendFormat": "Memory: {{`{{pod}}`}}",
               "range": true,
               "refId": "A"
             }
@@ -980,3 +981,4 @@ spec:
       "version": 7,
       "weekStart": ""
     }
+{{- end }}
