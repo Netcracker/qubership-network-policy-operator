@@ -68,6 +68,7 @@ spec:
 | nodeSelector                        | object | {}                                                                                                                                         | Node labels for pod assignment                                                                     |
 | tolerations                         | array  | []                                                                                                                                         | Node tolerations for pod assignment                                                                |
 | affinity                            | object | {}                                                                                                                                         | Node affinity for pod assignment                                                                   |
+| monitoring.enable                   | bool   | false                                                                                                                                      | GrafanaDashboard and ServiceMonitor creation                                                       |
 | networkPolicies.name                | string | "default"                                                                                                                                  | NetworkPolicyConfig name                                                                           |
 | networkPolicies.enabled             | bool   | true                                                                                                                                       | If true NetworkPolicies will be created                                                            |
 | networkPolicies.scope               | object | {}                                                                                                                                         | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
@@ -98,7 +99,7 @@ The installation procedure must be performed on each of the clusters in case of 
 **Namespace Creation**
 
 ```sh
-kubectl create ns netpolconf-system
+kubectl create ns network-policy-operator
 ```
 
 **values.yaml Configuration**
@@ -144,12 +145,14 @@ networkPolicies:
 
 The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind the `customTier` order must be biger than `defaultTier` order which is `10000`. More information in official [documentation](https://docs.tigera.io/calico/latest/reference/resources/tier)
 
+The moni
+
 In case of DR scheme check the [DR preparation](#dr-preparation) article below
 
 **Installation**
 
 ```sh
-helm install npc-operator . -n netpolconf-system
+helm install npc-operator . -n network-policy-operator
 ```
 
 ### DR preparation
@@ -180,13 +183,13 @@ Change token inside `Secret` to connect to remote cluster in the following maner
 Run on cluster that is `localCluster` for one of the `values.yaml` files
 
 ```sh
-kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
+kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
 ```
 
 Take the output of previous command and run the command on the other clusters (do not forget to change kubeconfig) 
 
 ```sh
-kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
+kubectl -n network-policy-operator patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
 Do the same procedure with other clusters in DR scheme.
@@ -196,7 +199,7 @@ Do the same procedure with other clusters in DR scheme.
 Save the TLS certificate `Secret` into file:
 
 ```sh
-kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
+kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
 ```
 
 Apply it on the clusters in DR scheme:
@@ -212,7 +215,7 @@ Repeat the procedure for all of the clusters in DR scheme
 The the successfull instalation could be checked by `NetworkPolicyConfig` custom resource:
 
 ```sh
-kubectl get networkpolicyconfig
+kubectl get npc
 ```
 
 The ouput must include only one resource with name from `values.yaml`
@@ -253,7 +256,7 @@ default              2024-12-06T10:47:15Z
 The the successfull instalation in DR scheme could be checked by `RemoteClusterConfig` custom resource:
 
 ```sh
-kubectl -n netpolconf-system get remoteclusterconfig
+kubectl -n network-policy-operator get rclc
 ```
 
 In case of correct DR settings, the `RemoteClusterConfig` must have at least the following message in status:
