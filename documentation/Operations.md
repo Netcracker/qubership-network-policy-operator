@@ -59,7 +59,7 @@ All of the NetworkPolicies that has been created by operator have `network-polic
 In DR clusters `Externalnamespaces` will be created after the clusters are coupled.
 
 ```sh
-$ kubectl -n netpolconf-system get externalnamespaces
+$ kubectl -n network-policy-operator get extns
 NAME                                                                            AGE
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   43h
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-125cd336-dd11-4d38-8a12-6765e2509da6   43h
@@ -74,7 +74,7 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-5dd0c278-6f59-455b-a764-dcfa2846df0f   
 Due to long names it's easier to get the particular `Externalnamespace` by label that describes the original name of namespace:
 
 ```sh
-$ kubectl -n netpolconf-system get externalnamespaces -l kubernetes.io/metadata.name=postgres-test
+$ kubectl -n network-policy-operator get extns -l kubernetes.io/metadata.name=postgres-test
 NAME                                                                            AGE
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   43h
 ```
@@ -119,6 +119,6 @@ kubectl apply -f crds/
 Run upgrade procedure:
 
 ```sh
-helm upgrade npc-operator . -f values.yaml -n netpolconf-system
+helm upgrade npc-operator . -f values.yaml -n network-policy-operator
 ```
 
