@@ -103,3 +103,14 @@ TLS Job image.
 {{- define "job.image" -}}
     {{ printf "%s:%s" .Values.dr.tlsJob.image.repository (.Values.dr.tlsJob.image.tag | default .Chart.AppVersion) }}
 {{- end -}}
+
+{{/*
+Restricted environment.
+*/}}
+{{- define "network-policy-operator.restrictedEnvironment" -}}
+    {{- if ne (.Values.INFRA_RESTRICTED_ENVIRONMENT | toString) "<nil>" -}}
+        {{- .Values.INFRA_RESTRICTED_ENVIRONMENT }}
+    {{- else -}}
+        "false"
+    {{- end -}}
+{{- end -}}
