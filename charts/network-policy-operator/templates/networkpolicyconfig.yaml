@@ -1,3 +1,4 @@
+{{- if (ne (include "network-policy-operator.restrictedEnvironment" .) "true") }}
 apiVersion: qubership.org/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
@@ -101,3 +102,4 @@ spec:
         types:
         - Egress
     CustomPolicies: {{- toYaml .Values.networkPolicies.customPolicies | nindent 6 }}
+{{- end }}

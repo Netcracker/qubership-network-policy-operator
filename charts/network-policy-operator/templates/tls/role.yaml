@@ -1,3 +1,4 @@
+{{- if (ne (include "network-policy-operator.restrictedEnvironment" .) "true") }}
 {{- if .Values.dr.install }}
 {{- if and (eq .Values.dr.authentication "tls") (eq .Values.dr.tls "auto") }}
 apiVersion: rbac.authorization.k8s.io/v1
@@ -68,5 +69,6 @@ rules:
   - signers
   verbs:
   - approve
+{{- end }}
 {{- end }}
 {{- end }}

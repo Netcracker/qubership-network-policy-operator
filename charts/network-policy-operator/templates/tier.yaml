@@ -1,3 +1,4 @@
+{{- if (ne (include "network-policy-operator.restrictedEnvironment" .) "true") }}
 {{- if .Capabilities.APIVersions.Has "projectcalico.org/v3/Tier" }}
 apiVersion: projectcalico.org/v3
 kind: Tier
@@ -6,4 +7,5 @@ metadata:
 spec:
   defaultAction: Pass
   order: 10000
+{{- end }}
 {{- end }}
