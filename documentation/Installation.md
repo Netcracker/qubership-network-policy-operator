@@ -3,7 +3,7 @@
 - Calico CNI with API server version v3.28.1+
 - Kubernetes v1.27+ or OCP4.14+ cluster
 - Cluster admin access to the cluster
-- In case of DR, the following scheme must be configured: [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation/DRScheme.md)
+- In case of DR, make sure you have configured DR clusters correctly with cross-cluster Calico CNI pod-to-pod/pod-to-service connectivity and cross-cluster CoreDNS service names resolving 
 
 Allow IPIP traffic between nodes on IaaS layer. Set `ipipMode: Always` in pod network `IPPool` e.g.:
 
