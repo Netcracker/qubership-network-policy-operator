@@ -119,16 +119,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, fmt.Sprintf("Failed to get Secret to connect to remote cluster for '%s' RemoteClusterConfig", rcl.GetName()))
 		return ctrl.Result{}, err
 	}
-	// Create configuration for client to connect to remote cluster
-	remoteConfig := &rest.Config{
-		Host:        rcl.Spec.RemoteCluster.API,
-		APIPath:     "/apis",
-		BearerToken: string(secret.Data["token"]),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure:   true,
-			ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
-			//CAData:     []byte(secret.Data["ca.crt"]),
-		},
+	// Creating client configuration to connect to remote cluster
+	remoteConfig, err := r.getRemoteConfig(rcl, secret)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to make config to connect to remote cluster"))
+		return ctrl.Result{}, err
 	}
 	dynamicClient, err := dynamic.NewForConfig(remoteConfig)
 	if err != nil {
@@ -523,4 +518,49 @@ func (r *RemoteClusterConfigReconciler) getServiceSubnet() (ServiceConfig, error
 		}
 	}
 	return svcCFG, err
+}
+
+// getRemoteConfig makes configuration to connect to remote cluster
+func (r *RemoteClusterConfigReconciler) getRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
+
+	log := log.FromContext(context.TODO())
+	// Checking the type of Secret
+	remoteConfig := &rest.Config{}
+	switch sType := secret.Type; sType {
+	// Authenticating by Token
+	case "kubernetes.io/service-account-token":
+		log.Info(fmt.Sprint("The Sercret has 'kubernetes.io/service-account-token' type. Let's authenticate on remote cluster by token"))
+		remoteConfig = &rest.Config{
+			Host:        rcl.Spec.RemoteCluster.API,
+			APIPath:     "/apis",
+			BearerToken: string(secret.Data["token"]),
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure:   true,
+				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+			},
+		}
+	// Authenticating by Certificate
+	case "Opaque":
+		log.Info(fmt.Sprint("The Sercret has 'Opaque' type. Let's authenticate on remote cluster by certificate"))
+		if len(secret.Data["tls.crt"]) == 0 || len(secret.Data["tls.key"]) == 0 || len(secret.Data["ca.crt"]) == 0 {
+			err := fmt.Errorf("The Secret is incorrect")
+			return nil, err
+		}
+		remoteConfig = &rest.Config{
+			Host:        rcl.Spec.RemoteCluster.API,
+			APIPath:     "/apis",
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure:   false,
+				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+				CertData:   secret.Data["tls.crt"],
+				KeyData:    secret.Data["tls.key"],
+				CAData:     secret.Data["ca.crt"],
+			},
+		}
+	// Unsupported Secret type
+	default:
+		err := fmt.Errorf("Unsupported Secret type: '%s'", sType)
+		return nil, err
+	}
+	return remoteConfig, nil
 }

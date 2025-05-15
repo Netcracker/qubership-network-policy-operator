@@ -198,3 +198,22 @@ dr:
 #    - name: cluster-3
 #      api: cluster-3.domain.com:6443
 #      secret: cluster-3-secret
+  # There are two options: `token` and `tls`
+  authentication: token
+  # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
+  tls: auto
+  tlsJob:
+    image:
+      repository: ghcr.io/netcracker/qubership-network-policy-job
+      #tag: "0.4.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations: []
+    securityContext:
+      runAsNonRoot: true
+

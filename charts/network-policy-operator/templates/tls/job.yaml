@@ -1,0 +1,62 @@
+{{- if .Values.dr.install }}
+{{- if and (eq .Values.dr.authentication "tls") (eq .Values.dr.tls "auto") }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "network-policy-operator.tls.name" . }}
+  namespace: {{ include "network-policy-operator.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tls
+spec:
+{{- if .Capabilities.APIVersions.Has "batch/v1alpha1" }}
+  # Alpha feature since k8s 1.12
+  ttlSecondsAfterFinished: 0
+{{- end }}
+  template:
+    metadata:
+      name: {{ include "network-policy-operator.tls.name" . }}
+      labels:
+        {{- include "network-policy-operator.labels" . | nindent 8 }}
+        app.kubernetes.io/component: tls
+    spec:
+      containers:
+        - name: create
+          image: {{ template "job.image" . }}
+          imagePullPolicy: {{ .Values.dr.tlsJob.image.pullPolicy }}
+          args:
+            - /script.sh
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SECRET
+              value: {{ .Values.dr.localCluster.secret }}
+          {{- if .Values.dr.tlsJob.resources }}
+          resources: {{ toYaml .Values.dr.tlsJob.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/cm
+              name: kubeconfig
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "network-policy-operator.tls.name" . }}
+      volumes:
+        - name: kubeconfig
+          configMap:
+            name: {{ include "network-policy-operator.tls.name" . }}
+    {{- if .Values.dr.tlsJob.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.dr.tlsJob.nodeSelector | nindent 8 }}
+    {{- end }}
+    {{- if .Values.dr.tlsJob.tolerations }}
+      tolerations: {{ toYaml .Values.dr.tlsJob.tolerations | nindent 8 }}
+    {{- end }}
+    {{- if .Values.dr.securityContext }}
+      securityContext: {{ toYaml .Values.dr.tlsJob.securityContext | nindent 8 }}
+    {{- end }}
+{{- end }}
+{{- end }}

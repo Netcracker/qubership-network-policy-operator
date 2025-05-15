@@ -10,7 +10,7 @@ Describe solution. List all changes that you made during implementation.
 
 
 ### How to apply
-Provide steps how to apply on top previous Kubemarine version to execute on existing clusters
+Provide steps how to apply on top of previous operator version to execute on existing clusters
 *
 
 ### Test Cases

@@ -79,7 +79,27 @@ Network Policy Operator image.
 {{/*
 Auth Proxy image.
 */}}
-
 {{- define "authProxy.image" -}}
     {{ printf "%s:%s" .Values.authProxy.image.repository .Values.authProxy.image.tag }}
+{{- end -}}
+
+{{/*
+Remote operator connection Role
+*/}}
+{{- define "network-policy-operator.remoteRole" -}}
+{{- printf "%s-%s" .Values.manager.rbac.role "dr" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+TLS Job name.
+*/}}
+{{- define "network-policy-operator.tls.name" -}}
+{{- printf "%s-%s" (include "network-policy-operator.name" .) "tls" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+TLS Job image.
+*/}}
+{{- define "job.image" -}}
+    {{ printf "%s:%s" .Values.dr.tlsJob.image.repository (.Values.dr.tlsJob.image.tag | default .Chart.AppVersion) }}
 {{- end -}}

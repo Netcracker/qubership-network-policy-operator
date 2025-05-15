@@ -1,0 +1,72 @@
+{{- if .Values.dr.install }}
+{{- if and (eq .Values.dr.authentication "tls") (eq .Values.dr.tls "auto") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "network-policy-operator.tls.name" . }}
+  namespace: {{ include "network-policy-operator.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade,post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tls
+rules:
+- apiGroups:
+    - ""
+  resources:
+    - secrets
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - configmaps
+  verbs:
+    - get
+    - list
+    - watch
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "network-policy-operator.tls.name" . }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade,post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tls
+rules:
+- apiGroups:
+    - certificates.k8s.io
+  resources:
+    - certificatesigningrequests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  verbs:
+  - update
+- apiGroups:
+  - certificates.k8s.io
+  resourceNames:
+  - kubernetes.io/kube-apiserver-client 
+  resources:
+  - signers
+  verbs:
+  - approve
+{{- end }}
+{{- end }}
