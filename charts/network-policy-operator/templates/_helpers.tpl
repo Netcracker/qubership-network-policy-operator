@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "network-policy-operator.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default .Chart.Name .Values.nameOverride | trunc 58 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -12,13 +12,13 @@ If release name contains chart name it will be used as a full name.
 */}}
 {{- define "network-policy-operator.fullname" -}}
 {{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- .Values.fullnameOverride | trunc 58 | trimSuffix "-" }}
 {{- else }}
 {{- $name := default .Chart.Name .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- .Release.Name | trunc 58 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Release.Name $name | trunc 58 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -51,6 +51,22 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Local Operator Selector labels
+*/}}
+{{- define "network-policy-operator-local.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "network-policy-operator.name" . }}-local
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+DR Operator Selector labels
+*/}}
+{{- define "network-policy-operator-dr.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "network-policy-operator.name" . }}-dr
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "network-policy-operator.serviceAccountName" -}}
@@ -70,10 +86,17 @@ Allows overriding it for multi-namespace deployments in combined charts.
 {{- end -}}
 
 {{/*
-Network Policy Operator image.
+Network Policy Local Operator image.
 */}}
-{{- define "operator.image" -}}
-    {{ printf "%s:%s" .Values.manager.image.repository (.Values.manager.image.tag | default .Chart.AppVersion) }}
+{{- define "operator-local.image" -}}
+    {{ printf "%s:%s" .Values.manager.image.local.repository (.Values.manager.image.local.tag | default .Chart.AppVersion) }}
+{{- end -}}
+
+{{/*
+Network Policy DR Operator image.
+*/}}
+{{- define "operator-dr.image" -}}
+    {{ printf "%s:%s" .Values.manager.image.dr.repository (.Values.manager.image.dr.tag | default .Chart.AppVersion) }}
 {{- end -}}
 
 {{/*

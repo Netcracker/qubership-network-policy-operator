@@ -40,11 +40,18 @@ leaderElection:
 manager:
   # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
   image:
-    repository: ghcr.io/netcracker/qubership-network-policy-operator
-    # This sets the pull policy for images.
-    pullPolicy: IfNotPresent
-    # Overrides the image tag whose default is the chart appVersion.
-    #tag: "0.4.0"
+    local:
+      repository: ghcr.io/netcracker/qubership-network-policy-operator-local
+      # This sets the pull policy for images.
+      pullPolicy: IfNotPresent
+      # Overrides the image tag whose default is the chart appVersion.
+      #tag: "0.4.0"
+    dr:
+      repository: ghcr.io/netcracker/qubership-network-policy-operator-dr
+      # This sets the pull policy for images.
+      pullPolicy: IfNotPresent
+      # Overrides the image tag whose default is the chart appVersion.
+      #tag: "0.4.0"
 
   # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []

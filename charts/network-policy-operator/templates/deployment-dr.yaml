@@ -1,14 +1,15 @@
+{{- if .Values.dr.install }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "network-policy-operator.fullname" . }}
+  name: {{ include "network-policy-operator.fullname" . }}-dr
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "network-policy-operator.selectorLabels" . | nindent 6 }}
+      {{- include "network-policy-operator-dr.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -39,7 +40,7 @@ spec:
           name: manager
           securityContext:
             {{- toYaml .Values.manager.securityContext | nindent 12 }}
-          image: {{ template "operator.image" . }}
+          image: {{ template "operator-dr.image" . }}
           imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
           livenessProbe:
             {{- toYaml .Values.manager.livenessProbe | nindent 12 }}
@@ -88,3 +89,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}
