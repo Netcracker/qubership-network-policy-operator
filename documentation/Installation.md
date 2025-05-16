@@ -184,7 +184,7 @@ Cluster settings:
 
 The post-installation process is described below.
 
-**Token authentication**
+**Token Authentication**
 
 Change token inside the `Secret` to connect to remote cluster in the following maner:
 
@@ -202,7 +202,7 @@ kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED T
 
 Do the same procedure with other clusters in DR scheme.
 
-**TLS authentication**
+**TLS Authentication**
 
 Save the TLS certificate `Secret` into file:
 
@@ -218,7 +218,7 @@ kubectl apply -f secret.yaml
 
 Repeat the procedure for all of the clusters in DR scheme.
 
-### Check installation
+### Check Installation
 
 The the successfull instalation could be checked by `NetworkPolicyConfig` custom resource:
 
