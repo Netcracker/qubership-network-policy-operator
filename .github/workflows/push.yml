@@ -26,11 +26,14 @@ jobs:
       fail-fast: false
       matrix:
         component:
-          - name: qubership-network-policy-operator
-            file: Dockerfile
+          - name: qubership-network-policy-operator-local
+            file: Dockerfile/local/Dockerfile
+            context: .
+          - name: qubership-network-policy-operator-dr
+            file: Dockerfile/dr/Dockerfile 
             context: .
           - name: qubership-network-policy-job
-            file: job/Dockerfile
+            file: Dockerfile/job/Dockerfile
             context: ""
           - name: qubership-network-policy-operator-transfer
             file: docker-transfer/Dockerfile
