@@ -38,7 +38,6 @@ import (
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/cnp"
-	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/ns"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
 	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
@@ -149,13 +148,6 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RemoteClusterConfig")
-		os.Exit(1)
-	}
-	if err = (&npc.NetworkPolicyConfigReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NetworkPolicyConfig")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

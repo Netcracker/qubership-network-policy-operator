@@ -43,6 +43,30 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Local Operator labels
+*/}}
+{{- define "network-policy-operator-local.labels" -}}
+helm.sh/chart: {{ include "network-policy-operator.chart" . }}
+{{ include "network-policy-operator-local.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+DR Operator labels
+*/}}
+{{- define "network-policy-operator-dr.labels" -}}
+helm.sh/chart: {{ include "network-policy-operator.chart" . }}
+{{ include "network-policy-operator-dr.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
 Selector labels
 */}}
 {{- define "network-policy-operator.selectorLabels" -}}
