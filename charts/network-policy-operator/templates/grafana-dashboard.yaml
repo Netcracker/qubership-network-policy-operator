@@ -1,4 +1,4 @@
-{{- if .Values.monitoring.enabled }}
+{{- if .Values.monitoring.enable }}
 apiVersion: integreatly.org/v1alpha1
 kind: GrafanaDashboard
 metadata:
