@@ -145,7 +145,14 @@ networkPolicies:
 
 The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind the `customTier` order must be biger than `defaultTier` order which is `10000`. More information in official [documentation](https://docs.tigera.io/calico/latest/reference/resources/tier)
 
-The moni
+The monitoring section enables GrafanaDashboard and ServiceMonitor resources creation. The following metrics are available:
+* NetworkPolicyConfig status
+* Connections audit log status
+* Number of RemoteClustersConfigs with particular types (loose, coupled, synchronized)
+* Number of processed Namespaces
+* Number of ExternalNamespaces
+* Number of created NetworkPolicies
+* Operator pods CPU and Memory consumptions
 
 In case of DR scheme check the [DR preparation](#dr-preparation) article below
 
