@@ -171,6 +171,36 @@ Cluster settings:
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
+To avoid any discrepancy it's easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the fist cluster `values.yaml` dr section:
+
+```yaml
+dr:
+  install: true
+  localCluster:
+    api: cluster-1.openshift.sdntest.netcracker.com:6443
+    name: cluster-1
+    secret: cluster-1-secret
+  remoteClusters:
+    - name: cluster-2
+      api: cluster-2.openshift.sdntest.netcracker.com:6443
+      secret: cluster-2-secret
+```
+
+The second cluster `values.yaml`:
+
+```yaml
+dr:
+  install: true
+  localCluster:
+    api: cluster-2.openshift.sdntest.netcracker.com:6443
+    name: cluster-2
+    secret: cluster-2-secret
+  remoteClusters:
+    - name: cluster-1
+      api: cluster-1.openshift.sdntest.netcracker.com:6443
+      secret: cluster-1-secret
+```
+
 #### Post-installation
 
 **Token authentication**
