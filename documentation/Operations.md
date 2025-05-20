@@ -1,21 +1,30 @@
+This section provides information on the operations performed for the Network Policy Operator.
+
+It consists of the following:
+* Global Changes
+* New Application Configuration
+* Operator Check
+* Audit Logs
+* Upgrade with Helm Chart
+
 ## Global Changes
 
-The OOB NetworkPolicies could be switched off/on globaly by changes in NetworkPolicyConfig resource. Set `spec.enabled` option to `true` to switch on OOB NetworkPolicies or set it to `false` to switch off OOB NetworkPolicies. The `spec.scope` option defines the label that could be set to namespace to reduce the scope of namespaces that are processed by network-policy-operator
+You can enable or disable the OOB NetworkPolicies globally by making changes in the NetworkPolicyConfig resource. Set the `spec.enabled` option to `true` to switch on OOB NetworkPolicies or set it to `false` to switch off OOB NetworkPolicies. The `spec.scope` option defines the label that could be set to namespace to reduce the scope of namespaces that are processed by network-policy-operator.
 
-## New Application configuration
+## New Application Configuration
 
 Before the new application installation the following steps must be performed to get the working application:
 
 * If the new application id a part of control-pale, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
-Then create namespace for application and set the list of allowed namespaces into `network-policy.qubership.org/allowed-from` annotation
+Then create namespace for the application and set the list of allowed namespaces into `network-policy.qubership.org/allowed-from` annotation.
 
-After that check the list of NetworkPolicies in application namespace and install application if it's acceptable for particular case.
+After that, check the list of NetworkPolicies in application namespace and install application if it is acceptable for a particular case.
 
-## Operator check
+## Operator Check
 
-After successful installation/upgrade the operator manipulates the NetworkPlolicies in each namespace. There is a simple way to check if the operator is working correctly. Run the following command and check the output:
+After successful installation/upgrade, the operator manipulates the NetworkPlolicies in each namespace. There is a simple way to check if the operator is working correctly. Run the following command and check the output:
 
 ```sh
 kubectl -n <NAMESPACE> get cnp
@@ -54,7 +63,7 @@ The outgoing traffic policy:
 
 * restrict-service restricts egress connections to the neighbor cluster services subnet
 
-All of the NetworkPolicies that has been created by operator have `network-policy.qubership.org/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.qubership.org/target-policy: "true"` label in addition
+All of the NetworkPolicies that has been created by operator have `network-policy.qubership.org/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.qubership.org/target-policy: "true"` label in addition.
 
 In DR clusters `Externalnamespaces` will be created after the clusters are coupled.
 
@@ -79,7 +88,7 @@ NAME                                                                            
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   43h
 ```
 
-## Audit logs
+## Audit Logs
 
 The `NetworkPolicyConfig` allows to manage the connections logs collecting. The following NetworkPolicyConfig options allows to configure logs.
 
@@ -94,12 +103,12 @@ spec:
 
 * `logs.enable` enables and disables the collecting connection logs
 * `logs.collectingAll` allowes to change collecting logs for all of the connections or only denied connections
-* `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace
+* `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace.
 
-Connections logs for particular pod are collected on the node where the pod has been started. If the logs collecting has been enabled it's possible to revise them on the following maner.
+Connections logs for particular pod are collected on the node, where the pod has been started. If the logs collecting has been enabled it is possible to revise them on the following manner:
 
-* Connect to the particular node by SSH or by usage the `kubectl debug` option
-* Run the `journalctl` command e.g.:
+1. Connect to the particular node by SSH or by usage the `kubectl debug` option.
+2. Run the `journalctl` command, for example:
 
 ```sh
 # journalctl --all --since "2024-12-20 0:0:00" | grep 'calico-packet'
@@ -110,7 +119,7 @@ Dec 20 08:06:03 k8s-1-master-1 kernel: calico-packet: IN=tunl0 OUT=cali5da413c9a
 
 ## Upgrade with Helm Chart
 
-Check the [Prerequisites](https://github.com/Netcracker/qubership-network-policy-operator/tree/main/documentation/Installation.md#prerequisites) from installation guide. Navigate to `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. Upgrade CRDs:
+Check the [Prerequisites](https://github.com/Netcracker/qubership-network-policy-operator/tree/main/documentation/Installation.md#prerequisites) from the _Network Policy Operator Installation Procedure_. Navigate to the `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. Upgrade CRDs:
 
 ```sh
 kubectl apply -f crds/
