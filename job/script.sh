@@ -44,7 +44,12 @@ spec:
 
 	kubectl certificate approve ${SECRET}-csr > /dev/null 2>&1 \
 		&& echo "$(date +%FT%H:%M:%S%:z) The Certificate has been approved"
-	kubectl get csr ${SECRET}-csr -o jsonpath='{.status.certificate}' | base64 -d > ./tls.crt
+	while [ ! -s tls.crt ]
+	do
+		sleep 3
+		echo "$(date +%FT%H:%M:%S%:z) Retrying to get the Certificate"
+		kubectl get csr ${SECRET}-csr -o jsonpath='{.status.certificate}' | base64 -d > ./tls.crt
+	done
 	kubectl delete csr ${SECRET}-csr > /dev/null 2>&1
 
 	kubectl -n ${POD_NAMESPACE} get cm kube-root-ca.crt -o jsonpath='{.data.ca\.crt}' > ./ca.crt \
