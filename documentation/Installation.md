@@ -171,7 +171,7 @@ Cluster settings:
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
-To avoid any discrepancy it's easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the fist cluster `values.yaml` dr section:
+To avoid any discrepancy, it is easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the fist cluster `values.yaml` dr section:
 
 ```yaml
 dr:
