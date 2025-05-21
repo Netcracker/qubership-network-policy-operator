@@ -6,7 +6,7 @@ metadata:
   name: metrics-service
 spec:
   ports:
-  - name: https
+  - name: https-metrics
     port: 8443
     protocol: TCP
     targetPort: 8443

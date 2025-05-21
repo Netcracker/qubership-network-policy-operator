@@ -944,8 +944,8 @@ spec:
           {
             "current": {
               "selected": true,
-              "text": "network-policy-operator-77d4645949-jhgjg",
-              "value": "network-policy-operator-77d4645949-jhgjg"
+              "text": "",
+              "value": ""
             },
             "datasource": {
               "type": "prometheus",
