@@ -366,11 +366,13 @@ func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig
 	dynamicClient *dynamic.DynamicClient) (*npcv1.RemoteClusterConfig, error) {
 	rclGet := npcv1.RemoteClusterConfig{} 
 	rclCouple := npcv1.RemoteClusterConfig{}
+	log := log.FromContext(context.TODO())
 	// Getting list of RemoteClusterConfig from remote cluster
 	resp, err := dynamicClient.Resource(remoteCluster).Namespace(oprNamespace).
 		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get list of RemoteClusterConfigs")
+		log.Error(err, "Failed to get list of RemoteClusterConfigs")
+		return nil, err
 	}
 	num := 0
 	for _, unstrItem := range resp.Items {
@@ -378,7 +380,8 @@ func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig
 		err = runtime.DefaultUnstructuredConverter.
 			FromUnstructured(unstrItem.UnstructuredContent(), &rclGet)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to convert Unstructured to RemoteClusterConfigs")
+			log.Error(err, "Failed to convert Unstructured to RemoteClusterConfigs")
+			return nil, err
 		}
 		// Matching name of remote cluster and name of local cluster
 		if rclGet.Spec.RemoteCluster.Name == rcl.Spec.LocalCluster.Name &&
@@ -537,6 +540,7 @@ func (r *RemoteClusterConfigReconciler) getServiceSubnet() (ServiceConfig, error
 func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
 
 	log := log.FromContext(context.TODO())
+	apiWoPrefix, _ := strings.CutPrefix(rcl.Spec.RemoteCluster.API, "https://")
 	// Checking the type of Secret
 	remoteConfig := &rest.Config{}
 	switch sType := secret.Type; sType {
@@ -549,7 +553,7 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 			BearerToken: string(secret.Data["token"]),
 			TLSClientConfig: rest.TLSClientConfig{
 				Insecure:   true,
-				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+				ServerName: strings.Split(apiWoPrefix, ":")[0],
 			},
 		}
 	// Authenticating by Certificate
@@ -564,7 +568,7 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 			APIPath:     "/apis",
 			TLSClientConfig: rest.TLSClientConfig{
 				Insecure:   false,
-				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+				ServerName: strings.Split(apiWoPrefix, ":")[0],
 				CertData:   secret.Data["tls.crt"],
 				KeyData:    secret.Data["tls.key"],
 				CAData:     secret.Data["ca.crt"],
