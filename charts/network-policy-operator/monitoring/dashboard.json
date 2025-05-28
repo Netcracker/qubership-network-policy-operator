@@ -58,9 +58,9 @@
                   "text": "denied"
                 },
                 "-1": {
-                  "color": "red",
+                  "color": "yellow",
                   "index": 0,
-                  "text": "down"
+                  "text": "off"
                 }
               },
               "type": "value"
@@ -140,17 +140,17 @@
                 "0": {
                   "color": "yellow",
                   "index": 0,
-                  "text": "down"
+                  "text": "off"
                 },
                 "1": {
                   "color": "green",
                   "index": 1,
-                  "text": "up for all"
+                  "text": "on for all"
                 },
                 "2": {
                   "color": "blue",
                   "index": 2,
-                  "text": "up for scope"
+                  "text": "on for scope"
                 },
                 "-1": {
                   "color": "red",
@@ -236,10 +236,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -363,10 +359,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -503,10 +495,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
