@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -118,6 +119,20 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
 		return ctrl.Result{}, err
 	}
+
+	// Couning NetworkPolicies
+	labelSet := labels.Set{NetworkPolicyLabel: "true"}
+	policyList := &calicov3.NetworkPolicyList{}
+	npOpts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labelSet),
+	}
+	err = r.List(ctx, policyList, npOpts)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicies"))
+		return ctrl.Result{}, err
+	}
+	monitoring.NetworkPoliciesTotal.Set(float64(len(policyList.Items)))
+
 	// Checking if there is only one NetworkPolicyConfig in cluster
 	npcList := &npcv1.NetworkPolicyConfigList{}
 	_ = r.List(ctx, npcList, &client.ListOptions{})
