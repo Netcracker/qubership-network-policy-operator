@@ -755,7 +755,7 @@
           "expr": "sum by(pod) (rate(container_memory_working_set_bytes{namespace='$namespace', cluster=~'$instance', pod='$namespace_pods', image!=''}[60s]))",
           "instant": false,
           "interval": "$inter",
-          "legendFormat": "Memory: {{`{{pod}}`}}",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
