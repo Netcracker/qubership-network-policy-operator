@@ -137,6 +137,10 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if ok && err != nil {
 			return ctrl.Result{}, err
 		}
+		err = rc.UpdateMetrics(r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	log.Info("Namespace Reconciler loop has been finished")

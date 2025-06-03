@@ -160,7 +160,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
 			return ctrl.Result{}, err
 		}
-		err = r.UpdateMetrics()
+		err = r.UpdateMetrics(r.Client)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -266,7 +266,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
-	err = r.UpdateMetrics()
+	err = r.UpdateMetrics(r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -579,12 +579,13 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 }
 
 // Count number of Loose, Coupled, and Synchronized RemoteClusterConfigs
-func (r *RemoteClusterConfigReconciler) UpdateMetrics() error {
+func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 
+	var conditionType string
 	log := log.FromContext(context.TODO())
 	rclList := &npcv1.RemoteClusterConfigList{}
 	opt := &client.ListOptions{Namespace: oprNamespace,}
-	err := r.List(context.TODO(), rclList, opt)
+	err := c.List(context.TODO(), rclList, opt)
 	if err != nil {
 		log.Error(err, "Failed to list RemoteClusterConfigs")
 		return err
@@ -592,14 +593,25 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics() error {
 	rclsLoose := 0
 	rclsCoupled := 0
 	rclsSynch := 0
+	latestTime := metav1.Unix(0,0)
 	for _, rclItem := range rclList.Items {
-		if meta.IsStatusConditionFalse(rclItem.Status.Conditions, TypeLoose) {
+		// Checking the latest condition
+		for _, conditionItem := range rclItem.Status.Conditions{
+			if latestTime.Before(&conditionItem.LastTransitionTime) {
+				latestTime = conditionItem.LastTransitionTime
+			}
+		}
+		for _, conditionItem := range rclItem.Status.Conditions{
+			if latestTime == conditionItem.LastTransitionTime {
+				conditionType = conditionItem.Type
+			}
+		}
+		switch conditionType {
+		case TypeLoose:
 			rclsLoose++
-		}
-		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeCoupled) {
+		case TypeCoupled:
 			rclsCoupled++
-		}
-		if meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeSynchronized) {
+		case TypeSynchronized:
 			rclsSynch++
 		}
 	}
