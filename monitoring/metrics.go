@@ -22,7 +22,6 @@ import (
 )
 
 var (
-	// 
 	NetworkPolicyConfigStatus = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "network_policy_config_status", 
 			Help: "NetworkPolicyConfig status, could be 'disabled'=0; 'enabled for all namespaces'=1; 'enabled for some scope of namespaces'=2; 'failed'=-1",

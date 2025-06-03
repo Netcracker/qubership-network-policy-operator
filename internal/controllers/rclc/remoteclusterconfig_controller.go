@@ -349,7 +349,7 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 	return ens, nil
 }
 
-//
+// GetOperatorNamespace returns a Namespace where the operator is running
 func (r *RemoteClusterConfigReconciler) GetOperatorNamespace() string {
 	log := log.FromContext(context.TODO())
 	var ns string
