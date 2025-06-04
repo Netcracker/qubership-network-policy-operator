@@ -229,7 +229,7 @@ The post-installation process is described below.
 **Token Authentication**
 
 
-Change the token inside the `Secret` to connect to remote cluster in the following manner.
+Change the token inside the `Secret` to connect to remote clusters in the following manner.
 
 Run this command on local cluster for one of the `values.yaml` files.
 
@@ -237,7 +237,7 @@ Run this command on local cluster for one of the `values.yaml` files.
 kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
 ```
 
-Take the output of previous command and run the command on the remote cluster (do not forget to change kubeconfig):
+Take the output of previous command and run the command on the remote clusters (do not forget to change kubeconfig):
 
 ```sh
 kubectl -n network-policy-operator patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
@@ -253,7 +253,7 @@ Save the TLS certificate from `Secret` into file on the local cluster:
 kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
 ```
 
-Apply it on the remote cluster in DR scheme:
+Apply it on the remote clusters in DR scheme:
 
 ```sh
 kubectl apply -f secret.yaml
@@ -263,13 +263,13 @@ Repeat the procedure for all of the clusters in DR scheme.
 
 ### Check Installation
 
-The successfull instalation could be checked by `NetworkPolicyConfig` custom resource:
+The successful installation could be checked by `NetworkPolicyConfig` custom resource:
 
 ```sh
 kubectl get npc
 ```
 
-The ouput must include only one resource with name from `values.yaml`.
+The output must include only one resource with name from `values.yaml`.
 
 Also, you can create `NetworkPolicies` on the cluster (it depends on configuration). You can check it using the command:
 
@@ -304,7 +304,7 @@ automated            2025-04-08T13:07:32Z
 default              2024-12-06T10:47:15Z
 ```
 
-You can check the successfull instalation in DR scheme by `RemoteClusterConfig` custom resource:
+You can check the successful installation in DR scheme by `RemoteClusterConfig` custom resource:
 
 ```sh
 kubectl -n network-policy-operator get rclc
