@@ -114,7 +114,7 @@ kubectl create ns network-policy-operator
 
 **values.yaml Configuration**
 
-Navigate to the `chart/network-policy-operator/` directory and edit `values.yaml` according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always be unique within the set of cluters. There are several options that must be changed in `values.yaml` to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
+Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always be unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
 * `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction.
@@ -154,7 +154,7 @@ networkPolicies:
 * `defaultTier` sets the `Tier` that is used for all OOB NetworkPolicies
 * `customTier` sets the custom NetworkPolicies `Tier`
 
-The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind the `customTier` order must be biger than `defaultTier` order, which is `10000`. More information, refer to the _Official Documentation_ at [https://docs.tigera.io/calico/latest/reference/resources/tier](https://docs.tigera.io/calico/latest/reference/resources/tier).
+The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind that the `customTier` order must be biger than `defaultTier` order, which is `10000`. For more information, refer to the _Official Documentation_ at [https://docs.tigera.io/calico/latest/reference/resources/tier](https://docs.tigera.io/calico/latest/reference/resources/tier).
 
 The monitoring section enables GrafanaDashboard and ServiceMonitor resources creation. The following metrics are available:
 * NetworkPolicyConfig status
@@ -192,7 +192,7 @@ Cluster settings:
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
-To avoid any discrepancy, it is easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the fist cluster `values.yaml` dr section:
+To avoid any discrepancy, it is easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the first cluster `values.yaml` dr section:
 
 ```yaml
 dr:
