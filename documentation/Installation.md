@@ -229,15 +229,15 @@ The post-installation process is described below.
 **Token Authentication**
 
 
-Change token inside the `Secret` to connect to remote cluster in the following maner:
+Change the token inside the `Secret` to connect to remote cluster in the following manner.
 
-Run `localCluster` on the cluster for one of the `values.yaml` files.
+Run this command on local cluster for one of the `values.yaml` files.
 
 ```sh
 kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
 ```
 
-Take the output of previous command and run the command on the other clusters (do not forget to change kubeconfig):
+Take the output of previous command and run the command on the remote cluster (do not forget to change kubeconfig):
 
 ```sh
 kubectl -n network-policy-operator patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
@@ -247,13 +247,13 @@ Do the same procedure with other clusters in DR scheme.
 
 **TLS Authentication**
 
-Save the TLS certificate `Secret` into file:
+Save the TLS certificate from `Secret` into file on the local cluster:
 
 ```sh
 kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
 ```
 
-Apply it on the clusters in DR scheme:
+Apply it on the remote cluster in DR scheme:
 
 ```sh
 kubectl apply -f secret.yaml
