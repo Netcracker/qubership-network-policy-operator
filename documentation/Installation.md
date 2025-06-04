@@ -196,7 +196,7 @@ Do the same procedure with other clusters in DR scheme.
 Save the TLS certificate `Secret` into file:
 
 ```sh
-kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
+kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml plus `-tls`> -o yaml > secret.yaml
 ```
 
 Apply it on the clusters in DR scheme:

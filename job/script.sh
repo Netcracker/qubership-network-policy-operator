@@ -1,8 +1,6 @@
 #!/bin/bash
 
 create_secret() {
-	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret hasn't been found, let's create it"
-
         openssl genrsa -out ./tls.key 4096 \
 		&& echo "$(date +%FT%H:%M:%S%:z) The private key has been created"
 
@@ -78,6 +76,13 @@ export KUBECONFIG=./kubeconfig
 
 echo "$(date +%FT%H:%M:%S%:z) Checking the TLS Secret"
 
-kubectl -n ${POD_NAMESPACE} get secret ${SECRET} 2> /dev/null || create_secret
+if !(kubectl -n ${POD_NAMESPACE} get secret ${SECRET} -o jsonpath='{.data.tls\.crt}' 2> /dev/null | base64 -d | openssl x509 -noout -checkend 1209600 > /dev/null 2>&1)
+then
+	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret should be created or renewed"
+	kubectl -n ${POD_NAMESPACE} delete secret ${SECRET} > /dev/null 2>&1
+	create_secret
+else
+	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret is acceptable"
+fi
 
 exit 0

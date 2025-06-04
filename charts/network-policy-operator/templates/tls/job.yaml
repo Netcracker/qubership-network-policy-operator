@@ -36,13 +36,16 @@ spec:
                   apiVersion: v1
                   fieldPath: metadata.namespace
             - name: SECRET
-              value: {{ .Values.dr.localCluster.secret }}
+              value: {{ .Values.dr.localCluster.secret }}-tls
           {{- if .Values.dr.tlsJob.resources }}
           resources: {{ toYaml .Values.dr.tlsJob.resources | nindent 12 }}
           {{- end }}
           volumeMounts:
             - mountPath: /tmp/cm
               name: kubeconfig
+          {{- if .Values.dr.tlsJob.securityContext }}
+          securityContext: {{ toYaml .Values.dr.tlsJob.securityContext | nindent 12 }}
+          {{- end }}
       restartPolicy: OnFailure
       serviceAccountName: {{ include "network-policy-operator.tls.name" . }}
       volumes:
@@ -54,9 +57,6 @@ spec:
     {{- end }}
     {{- if .Values.dr.tlsJob.tolerations }}
       tolerations: {{ toYaml .Values.dr.tlsJob.tolerations | nindent 8 }}
-    {{- end }}
-    {{- if .Values.dr.securityContext }}
-      securityContext: {{ toYaml .Values.dr.tlsJob.securityContext | nindent 8 }}
     {{- end }}
 {{- end }}
 {{- end }}
