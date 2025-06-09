@@ -41,7 +41,7 @@ var (
 	)
 
 	RemoteClustersConfigInitialized = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "remote_cluster_config_initialized", 
+			Name: "remote_cluster_config_initialized",
 			Help: "Number of initialized RemoteClustersConfigs",
 		},
 	)

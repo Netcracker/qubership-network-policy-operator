@@ -178,7 +178,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Checking if the RemoteClusterConfig has the correct couple on remote cluster
 	rclCouple, err := r.GetCouple(rcl, dynamicClient)
-	if err != nil { 
+	if err != nil {
 		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
 		// Updating RemoteClusterConfig status
 		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified")
