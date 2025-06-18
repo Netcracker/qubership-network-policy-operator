@@ -89,7 +89,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	isEnabled := false
 	for _, rclItem := range rclList.Items {
 		// Checking if RemoteClusterConfig has valid status
-		if !meta.IsStatusConditionTrue(rclItem.Status.Conditions, TypeCoupled) {
+		if !meta.IsStatusConditionTrue(rclItem.Status.Conditions, string(TypeCoupled)) {
 			log.Info(fmt.Sprintf("'%s' RemoteClusterConfig is not coupled, so it's skipped", rclItem.GetName()))
 		} else {
 			isEnabled = true

@@ -189,7 +189,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 
 	// Checking if RemoteClusterConfig has valid status
 	log.Info(fmt.Sprintln("RemoteClusterConfigStatus:", rcl.Status))
-	if !meta.IsStatusConditionTrue(rcl.Status.Conditions, TypeCoupled) {
+	if !meta.IsStatusConditionTrue(rcl.Status.Conditions, string(TypeCoupled)) {
 		log.Info(fmt.Sprintf("'%s' RemoteClusterConfig is not coupled, so it's skipped", rcl.GetName()))
 		cErr <- nil
 		return
@@ -302,8 +302,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 		}
 	}
 	// Updating RemoteClusterConfig status
-	meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: TypeSynchronized, Status: metav1.ConditionTrue, Reason: "Synchronization", Message: "ExternalNamespaces have been updated"})
-	err = r.Status().Update(context.TODO(), rcl)
+	err = rc.UpdateStatus(rcl, TypeSynchronized, metav1.ConditionTrue, "Synchronization", "ExternalNamespaces have been updated", r.Client)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
 		cErr <- err

@@ -136,7 +136,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the local Service Subnet, '%s' as the Kubernetes API Service, '%s' as the CoreDNS Service", rcl.GetName(), rcl.Status.ServiceSubnet, rcl.Status.KubeAPIService, rcl.Status.CoreDNSService))
 	}
 	// Updating RemoteClusterConfig status
-	err = r.UpdateStatus(rcl, TypeInitialized, metav1.ConditionUnknown, "Initializing", "Services subnet has been identified")
+	err = r.UpdateStatus(rcl, TypeInitialized, metav1.ConditionUnknown, "Initializing", "Services subnet has been identified", r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -148,7 +148,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get Secret to connect to remote cluster for '%s' RemoteClusterConfig", rcl.GetName()))
 		// Updating RemoteClusterConfig status
-		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified")
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
@@ -159,7 +159,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to make config to connect to remote cluster"))
 		// Updating RemoteClusterConfig status
-		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified")
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
@@ -169,7 +169,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to create remote client for '%s' RemoteClusterConfig", rcl.GetName()))
 		// Updating RemoteClusterConfig status
-		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified")
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
@@ -181,7 +181,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
 		// Updating RemoteClusterConfig status
-		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified")
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
@@ -199,7 +199,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	rcl.Status.CoupleKubeAPIService = rclCouple.Status.KubeAPIService
 	rcl.Status.CoupleCoreDNSService = rclCouple.Status.CoreDNSService
 	log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the remote Service Subnet", rcl.GetName(), rcl.Status.CoupleServiceSubnet))
-	err = r.UpdateStatus(rcl, TypeCoupled, metav1.ConditionTrue, "Initializing", "Couple is identified")
+	err = r.UpdateStatus(rcl, TypeCoupled, metav1.ConditionTrue, "Initializing", "Couple is identified", r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -651,10 +651,13 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	return nil
 }
 
-func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterConfig, rclType RemoteClusterConfigType, status metav1.ConditionStatus, reason string, message string) error {
+func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterConfig, rclType RemoteClusterConfigType, status metav1.ConditionStatus, reason string, message string, c client.Client) error {
 	log := log.FromContext(context.TODO())
+	// Deleting previous Condition with the same Type
+	meta.RemoveStatusCondition(&rcl.Status.Conditions, string(rclType))
+	// Setting the new Condition
 	meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: string(rclType), Status: status, Reason: reason, Message: message})
-	err := r.Status().Update(context.TODO(), rcl)
+	err := c.Status().Update(context.TODO(), rcl)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
 		return err
