@@ -185,7 +185,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
-		errSt = r.UpdateMetrics()
+		errSt = r.UpdateMetrics(r.Client)
 		if errSt != nil {
 			return ctrl.Result{}, errSt
 		}
@@ -635,11 +635,13 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 			}
 		}
 		switch conditionType {
-		case TypeLoose:
+		case string(TypeInitialized):
+			rclsInit++
+		case string(TypeLoose):
 			rclsLoose++
-		case TypeCoupled:
+		case string(TypeCoupled):
 			rclsCoupled++
-		case TypeSynchronized:
+		case string(TypeSynchronized):
 			rclsSynch++
 		}
 	}
