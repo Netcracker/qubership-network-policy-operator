@@ -159,7 +159,7 @@ The `defaultTier` is being created during the installation whereas the `customTi
 The monitoring section enables GrafanaDashboard and ServiceMonitor resources creation. The following metrics are available:
 * NetworkPolicyConfig status
 * Connections audit log status
-* Number of RemoteClustersConfigs with particular types (loose, coupled, synchronized)
+* Number of RemoteClustersConfigs with particular types (initialized, loose, coupled, synchronized)
 * Number of processed Namespaces
 * Number of ExternalNamespaces
 * Number of created NetworkPolicies
