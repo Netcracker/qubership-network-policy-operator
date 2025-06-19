@@ -88,6 +88,7 @@ func RegisterMetrics() {
 	metrics.Registry.MustRegister(NetworkPolicyConfigStatus)
 	metrics.Registry.MustRegister(ConnectionsLogStatus)
 	metrics.Registry.MustRegister(RemoteClustersConfigTotal)
+	metrics.Registry.MustRegister(RemoteClustersConfigInitialized)
 	metrics.Registry.MustRegister(RemoteClustersConfigLoose)
 	metrics.Registry.MustRegister(RemoteClustersConfigCoupled)
 	metrics.Registry.MustRegister(RemoteClustersConfigSynchronized)
