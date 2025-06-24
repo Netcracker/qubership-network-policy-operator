@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package npc
 
 import (
 	"fmt"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,12 +40,19 @@ import (
 
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
 )
 
 const (
 	NetworkPolicyLabel	= "network-policy.qubership.org/generated"
 	EgressServiceLabel	= "network-policy.qubership.org/egress-svc"
-	TunnelAddressAnnotation = "projectcalico.org/IPv4IPIPTunnelAddr"
+	TunnelAddressAnnotation	= rclc.TunnelAddressAnnotation	
+	TypeCoupled		= rclc.TypeCoupled
+	TypeDefaultApplied	= "DefaultApplied"
+	TypeCustomApplied	= "CustomApplied"
+	TypeDuplicated		= "Duplicated"
+	TypeStarted		= "Started"
 )
 
 var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"} 
@@ -94,11 +102,50 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
+	// Removing all previous conditions
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeStarted)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
+	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
+	}
+	// Setting condition
+	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
+	}
+
+	// Couning NetworkPolicies
+	labelSet := labels.Set{NetworkPolicyLabel: "true"}
+	policyList := &calicov3.NetworkPolicyList{}
+	npOpts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labelSet),
+	}
+	err = r.List(ctx, policyList, npOpts)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicies"))
+		return ctrl.Result{}, err
+	}
+	monitoring.NetworkPoliciesTotal.Set(float64(len(policyList.Items)))
+
 	// Checking if there is only one NetworkPolicyConfig in cluster
 	npcList := &npcv1.NetworkPolicyConfigList{}
 	_ = r.List(ctx, npcList, &client.ListOptions{})
 	if len(npcList.Items) > 1 {
 		log.Info("The NetworkPolicyConfig must be only one in the cluster")
+		monitoring.NetworkPolicyConfigStatus.Set(float64(-1))
+		// Setting condition
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDuplicated, Status: metav1.ConditionFalse, Reason: "Reconciliation", Message: "NetworkPoliciesConfig duplication"})
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 	// Default setings
@@ -126,6 +173,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	// Checking logs settings
 	if !npc.Spec.Logs.Enabled {
+		monitoring.ConnectionsLogStatus.Set(float64(-1))
 		LogsEnabled = false
 		log.Info(fmt.Sprintf("Audit logs are disabled in the '%s' NetworkPolicyConfig", npc.GetName()))
 	} else {
@@ -138,8 +186,10 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 		if !npc.Spec.Logs.CollectingAll {
 			CollectAllLogs = false
+			monitoring.ConnectionsLogStatus.Set(float64(1))
 		} else {
 			CollectAllLogs = true
+			monitoring.ConnectionsLogStatus.Set(float64(0))
 		}
 	}
 	// Checking the Tiers availability
@@ -216,6 +266,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, "Faled to list Namespaces")
 		return ctrl.Result{}, err
 	}
+	monitoring.NamespacesTotal.Set(float64(len(nsList.Items)))
 	if len(nsList.Items) == 0 {
 		log.Info(fmt.Sprintf("There are no Namespaces for the '%s' NetworkPolicyConfig", npc.GetName()))
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
@@ -229,6 +280,11 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	for _, nsItem := range nsList.Items {
 		if npc.Spec.Enabled {
+			if len(npc.Spec.Scope) > 0 {
+				monitoring.NetworkPolicyConfigStatus.Set(float64(2))
+			} else {
+				monitoring.NetworkPolicyConfigStatus.Set(float64(1))
+			}
 			if slices.Contains(cpNSList, nsItem.GetName()) {
 				log.Info(fmt.Sprintf("'%s' Namespace is skipped, since it's a part of the control plane, checking log rules", nsItem.GetName()))
 				// Processing only request namespace if it's applicable
@@ -252,11 +308,20 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 		} else {
+			monitoring.NetworkPolicyConfigStatus.Set(float64(0))
 			err = r.processDeletion(&nsItem, false)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
+	}
+
+	// Setting condition
+	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
+	err = r.Status().Update(ctx, npc)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		return ctrl.Result{}, err
 	}
 
 	// Custom NetworkPolicies
@@ -270,6 +335,13 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 		}
+		// Setting condition
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeCustomApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Custom NetworkPolicies have been applied"})
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
+		}
 	}
 
 	log.Info("NetworkPolicyConfig Reconciler loop has been finished")
@@ -279,7 +351,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *NetworkPolicyConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&npcv1.NetworkPolicyConfig{}).
+		For(&npcv1.NetworkPolicyConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&calicov3.NetworkPolicy{}).
 		Watches(&corev1.Namespace{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequestByNamespace),
@@ -498,6 +570,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 						log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
 						return err
 					}
+					monitoring.NetworkPoliciesTotal.Dec()
 					log.Info(fmt.Sprintf("'%s' NetworkPolicy has been deleted from '%s' Namespace", policy.GetName(), ns.GetName()))
 				}
 				continue
@@ -571,6 +644,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 				log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
 				return err
 			}
+			monitoring.NetworkPoliciesTotal.Inc()
 			log.Info(fmt.Sprintf("'%s' NetworkPolicy has been created in '%s' Namespace", policy.GetName(), ns.GetName()))
 		} else {
 			policy.SetResourceVersion(getPolicy.GetResourceVersion())
@@ -636,6 +710,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
 			return err
 		}
+		monitoring.NetworkPoliciesTotal.Inc()
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been created", policy.GetName(), policy.GetNamespace()))
 	} else {
 		// Updating NetworkPolicy
@@ -679,6 +754,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 			log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", policyItem.GetName(), policyItem.GetNamespace()))
 			return err
 		}
+		monitoring.NetworkPoliciesTotal.Dec()
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been deleted", policyItem.GetName(), policyItem.GetNamespace()))
 
 	}

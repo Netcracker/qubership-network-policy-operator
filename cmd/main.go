@@ -37,7 +37,11 @@ import (
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
-	"github.com/Netcracker/qubership-network-policy-operator/internal/controller"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/cnp"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/ns"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -51,6 +55,7 @@ func init() {
 
 	utilruntime.Must(npcv1.AddToScheme(scheme))
 	utilruntime.Must(calicov3.AddToScheme(scheme))
+	monitoring.RegisterMetrics()
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -125,28 +130,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.NetworkPolicyReconciler{
+	if err = (&cnp.NetworkPolicyReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkPolicy")
 		os.Exit(1)
 	}
-	if err = (&controller.NamespaceReconciler{
+	if err = (&ns.NamespaceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)
 	}
-	if err = (&controller.RemoteClusterConfigReconciler{
+	if err = (&rclc.RemoteClusterConfigReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RemoteClusterConfig")
 		os.Exit(1)
 	}
-	if err = (&controller.NetworkPolicyConfigReconciler{
+	if err = (&npc.NetworkPolicyConfigReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

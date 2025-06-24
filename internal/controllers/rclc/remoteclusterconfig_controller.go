@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package rclc
 
 import (
 	"context"
@@ -37,8 +37,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 )
 
 const (
@@ -48,6 +51,7 @@ const (
 	TypeLoose		   = "Loose"
 	TypeSynchronized	   = "Synchronized"
 	NodeAddressAnnotation	   = "projectcalico.org/IPv4Address"
+	TunnelAddressAnnotation    = "projectcalico.org/IPv4IPIPTunnelAddr"
 	OCPConfigMap		   = "cluster-config-v1"
 	KubernetesConfigMap	   = "kubeadm-config"
 	ConfigMapNamespace	   = "kube-system"
@@ -97,7 +101,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
 
-	oprNamespace = r.getOperatorNamespace()
+	oprNamespace = r.GetOperatorNamespace()
 	// Checking the RemoteClusterConfig has been created in a valid namespace
 	if req.NamespacedName.Namespace != oprNamespace {
 		log.Info(fmt.Sprintf("ExternalNamespce operator watches RemoteClusterConfigs resources only in '%s' Namespace", oprNamespace))
@@ -120,7 +124,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	// Creating client configuration to connect to remote cluster
-	remoteConfig, err := r.getRemoteConfig(rcl, secret)
+	remoteConfig, err := r.GetRemoteConfig(rcl, secret)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to make config to connect to remote cluster"))
 		return ctrl.Result{}, err
@@ -146,7 +150,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Checking if the RemoteClusterConfig has the correct couple on remote cluster
-	rclCouple, err := r.getCouple(rcl, dynamicClient)
+	rclCouple, err := r.GetCouple(rcl, dynamicClient)
 	if err != nil {
 		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
 		// Updating RemoteClusterConfig status
@@ -154,6 +158,10 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		err = r.Status().Update(ctx, rcl)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
+			return ctrl.Result{}, err
+		}
+		err = r.UpdateMetrics(r.Client)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 		log.Info("RemoteClusterConfig Reconciler loop has been finished")
@@ -181,7 +189,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, fmt.Sprintf("Failed to get Namespaces for the '%s' RemoteClusterConfig", rcl.GetName()))
 		return ctrl.Result{}, err
 	}
-	tunnelIPs, err := r.nodeToTunnelIPs(r.Client)
+	tunnelIPs, err := r.NodeToTunnelIPs(r.Client)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get tunnel interface IPs for '%s' RemoteClusterConfig", rcl.GetName()))
 		return ctrl.Result{}, err
@@ -246,7 +254,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		unstructured.SetNestedField(unstr.Object,
 			"ExternalNamespace", "kind")
 		log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
-		// Create ExternalNamespace
+		// Creating ExternalNamespace
 		log.Info(fmt.Sprintf("'%s' ExternalNamespace creation", ens.GetName()))
 		_, err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
 			Create(ctx, unstr, metav1.CreateOptions{})
@@ -258,6 +266,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
+	err = r.UpdateMetrics(r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	log.Info("RemoteClusterConfig Reconciler loop has been finished")
 	return ctrl.Result{}, nil
 }
@@ -265,7 +278,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&npcv1.RemoteClusterConfig{}).
+		For(&npcv1.RemoteClusterConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -323,7 +336,7 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 	ens := &npcv1.ExternalNamespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:		 ensName,
-			Namespace:	 oprNamespace,
+			Namespace:	 rclCouple.GetNamespace(),
 			Labels:		 labels,
 			Annotations:	 ann,
 		},
@@ -336,8 +349,8 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 	return ens, nil
 }
 
-//
-func (r *RemoteClusterConfigReconciler) getOperatorNamespace() string {
+// GetOperatorNamespace returns a Namespace where the operator is running
+func (r *RemoteClusterConfigReconciler) GetOperatorNamespace() string {
 	log := log.FromContext(context.TODO())
 	var ns string
 	ns, found := os.LookupEnv(operatorNamespaceEnvVar)
@@ -348,8 +361,8 @@ func (r *RemoteClusterConfigReconciler) getOperatorNamespace() string {
 	return ns
 }
 
-// getCouple returns a RemoteClusterConfig couple from remote cluster
-func (r *RemoteClusterConfigReconciler) getCouple(rcl *npcv1.RemoteClusterConfig, 
+// GetCouple returns a RemoteClusterConfig couple from remote cluster
+func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig, 
 	dynamicClient *dynamic.DynamicClient) (*npcv1.RemoteClusterConfig, error) {
 	rclGet := npcv1.RemoteClusterConfig{} 
 	rclCouple := npcv1.RemoteClusterConfig{}
@@ -385,7 +398,7 @@ func (r *RemoteClusterConfigReconciler) getCouple(rcl *npcv1.RemoteClusterConfig
 }
 
 // Getting tunnel interface IPs matched by Nodes IPs
-func (r *RemoteClusterConfigReconciler) nodeToTunnelIPs(c client.Client) (map[string]string, error) {
+func (r *RemoteClusterConfigReconciler) NodeToTunnelIPs(c client.Client) (map[string]string, error) {
 	log := log.FromContext(context.TODO())
 	var accessor metav1.Object
 	var nodeIP string
@@ -520,8 +533,8 @@ func (r *RemoteClusterConfigReconciler) getServiceSubnet() (ServiceConfig, error
 	return svcCFG, err
 }
 
-// getRemoteConfig makes configuration to connect to remote cluster
-func (r *RemoteClusterConfigReconciler) getRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
+// GetRemoteConfig makes configuration to connect to remote cluster
+func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
 
 	log := log.FromContext(context.TODO())
 	// Checking the type of Secret
@@ -563,4 +576,48 @@ func (r *RemoteClusterConfigReconciler) getRemoteConfig(rcl *npcv1.RemoteCluster
 		return nil, err
 	}
 	return remoteConfig, nil
+}
+
+// Count number of Loose, Coupled, and Synchronized RemoteClusterConfigs
+func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
+
+	var conditionType string
+	log := log.FromContext(context.TODO())
+	rclList := &npcv1.RemoteClusterConfigList{}
+	opt := &client.ListOptions{Namespace: oprNamespace,}
+	err := c.List(context.TODO(), rclList, opt)
+	if err != nil {
+		log.Error(err, "Failed to list RemoteClusterConfigs")
+		return err
+	}
+	rclsLoose := 0
+	rclsCoupled := 0
+	rclsSynch := 0
+	latestTime := metav1.Unix(0,0)
+	for _, rclItem := range rclList.Items {
+		// Checking the latest condition
+		for _, conditionItem := range rclItem.Status.Conditions{
+			if latestTime.Before(&conditionItem.LastTransitionTime) {
+				latestTime = conditionItem.LastTransitionTime
+			}
+		}
+		for _, conditionItem := range rclItem.Status.Conditions{
+			if latestTime == conditionItem.LastTransitionTime {
+				conditionType = conditionItem.Type
+			}
+		}
+		switch conditionType {
+		case TypeLoose:
+			rclsLoose++
+		case TypeCoupled:
+			rclsCoupled++
+		case TypeSynchronized:
+			rclsSynch++
+		}
+	}
+	monitoring.RemoteClustersConfigLoose.Set(float64(rclsLoose))
+	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
+	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
+
+	return nil
 }

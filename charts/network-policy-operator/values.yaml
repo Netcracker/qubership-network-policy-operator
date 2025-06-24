@@ -157,6 +157,9 @@ tolerations: []
 #            - worker
 affinity: {}
 
+monitoring:
+  enable: false
+
 # NetworkPolicyConfig section
 networkPolicies:
   name: "default"
@@ -216,4 +219,3 @@ dr:
     tolerations: []
     securityContext:
       runAsNonRoot: true
-

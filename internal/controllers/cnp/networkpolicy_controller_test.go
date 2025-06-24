@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package cnp
 
 import (
 	"context"
@@ -35,6 +35,7 @@ import (
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
+	npcc "github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
 )
 
 var _ = Describe("NetworkPolicy Controller", func() {
@@ -503,15 +504,13 @@ spec:
 					return k8sClient.Delete(ctx, tr1)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
-
-			time.Sleep(30*time.Second)
 		})
 
 		It("should successfully reconcile the resource", func() {
 			// Comment the NetworkPolicyConfig reconciliation to run the comprehensive NetworkPolicy processing test
 			// Start comment
 			By("Reconciling the NetworkPolicyConfig")
-			controllerReconcilerNPC := &NetworkPolicyConfigReconciler{
+			controllerReconcilerNPC := &npcc.NetworkPolicyConfigReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
