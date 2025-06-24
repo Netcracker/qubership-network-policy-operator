@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package npc
 
 import (
 	"context"
@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,17 +65,12 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Name:      npcName,
 			Namespace: "test3",
 		}
-		typeNamespacedNameR := types.NamespacedName{
-			Name:      rclName,
-			Namespace: rclNS,
-		}
 		typeNamespacedNameN := types.NamespacedName{
 			Name:      nsName,
 			Namespace: nsName,
 		}
 		npc := &npcv1.NetworkPolicyConfig{}
 		npc2 := &npcv1.NetworkPolicyConfig{}
-		rcl := &npcv1.RemoteClusterConfig{}
 		npList := &calicov3.NetworkPolicyList{}
 		opts := &client.ListOptions{}
 		ns := &corev1.Namespace{}
@@ -260,48 +254,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
 			}
-			By("Creating the RemoteClusterConfig")
-			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
-			if err != nil && errors.IsNotFound(err) {
-				rcl = &npcv1.RemoteClusterConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      rclName,
-						Namespace: rclNS,
-					},
-					Spec: npcv1.RemoteClusterConfigSpec{
-						RemoteCluster: npcv1.RemoteCluster{
-							Name:   "cluster-2",
-							API:    "all.new.local:6443",
-							Secret: "remote-cluster2",
-						},
-						LocalCluster: npcv1.LocalCluster{
-							Name: "cluster-1",
-							API:  "all.new.local:6443",
-						},
-					},
-				}
-				Eventually(func() error {
-					return k8sClient.Create(ctx, rcl)
-				}, time.Minute, time.Second).Should(Succeed())
-				meta.SetStatusCondition(&rcl.Status.Conditions,
-							metav1.Condition{
-								Type: TypeCoupled,
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
-								Message: "Couple is identified",
-							})
-				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.KubeAPIService = "172.30.0.1"
-				rcl.Status.CoreDNSService = "172.30.0.10"
-				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
-				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
-				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
-				Eventually(func() error {
-					return k8sClient.Status().Update(ctx, rcl)
-				}, time.Minute, time.Second).Should(Succeed())
-			} else if err != nil {
-				Fail(fmt.Sprint("Failed to get the RemoteClusterConfig:", err))
-			}
 
 			// Creating separate Namespace for Custom NetworkPolicies
 			By("Creating the Namespace")
@@ -405,13 +357,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				return k8sClient.Delete(ctx, npc2)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			err = k8sClient.Get(ctx, typeNamespacedNameR, rcl)
-
-			By("Cleanup the RemoteClusterConfig")
-			Eventually(func() error {
-				return k8sClient.Delete(ctx, rcl)
-			}, time.Minute, time.Second).Should(Succeed())
-
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -445,8 +390,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					return k8sClient.Delete(ctx, tr3)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
-
-			time.Sleep(30*time.Second)
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")
@@ -509,6 +452,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Changing NetworkPolicyConfig to collect only denied connections")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Logs.CollectingAll = false
 			Eventually(func() error {
 				return k8sClient.Update(ctx, npc)
@@ -547,6 +492,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Disabling logs in NetworkPolicyConfig")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Logs.Enabled = false
 			Eventually(func() error {
 				return k8sClient.Update(ctx, npc)
@@ -585,6 +532,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 			if isTier {
 				By("Reconciling non-existent Default Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = "nonexistent"
 				Eventually(func() error {
 					return k8sClient.Update(ctx, npc)
@@ -595,6 +544,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Default Tier doesn't exist"))
 
 				By("Reconciling non-existent Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfTier
 				npc.Spec.CustomTier = "nonexistent"
 				Eventually(func() error {
@@ -606,6 +557,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Custom Tier doesn't exist"))
 
 				By("Reconciling wrong order of Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfTier
 				npc.Spec.CustomTier = dfTier
 				Eventually(func() error {
@@ -617,6 +570,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).To(MatchError("Custom Tier Order must be higher than Default Tier Order"))
 
 				By("Reconciling change of Default Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.DefaultTier = dfNewTier
 				npc.Spec.CustomTier = "default"
 				Eventually(func() error {
@@ -637,6 +592,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Reconciling change of Custom Tier")
+				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
 				npc.Spec.CustomTier = cmTier
 				Eventually(func() error {
 					return k8sClient.Update(ctx, npc)
@@ -657,6 +614,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			}
 
 			By("Disabling default policies in NetworkPolicyConfig")
+			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Enabled = false
 			if isTier {
 				npc.Spec.CustomTier = "default"

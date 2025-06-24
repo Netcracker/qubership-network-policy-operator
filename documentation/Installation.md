@@ -1,11 +1,16 @@
+This manual provides information on installation procedure of Network Policy Operator.
+
 ## Prerequisites
+
+The prerequisites for the installation are as follwos:
+
 - kubectl version v1.11.3+
 - Calico CNI with API server version v3.28.1+
 - Kubernetes v1.27+ or OCP4.14+ cluster
 - Cluster admin access to the cluster
-- In case of DR, the following scheme must be configured: [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation/DRScheme.md)
+- In case of DR, make sure that you have configured DR clusters correctly with cross-cluster Calico CNI pod-to-pod/pod-to-service connectivity and cross-cluster CoreDNS service names resolving 
 
-Allow IPIP traffic between nodes on IaaS layer. Set `ipipMode: Always` in pod network `IPPool` e.g.:
+Allow IPIP traffic between nodes on IaaS layer. Set `ipipMode: Always` in pod network `IPPool`, for example:
 
 ```yaml
 apiVersion: projectcalico.org/v3
@@ -25,8 +30,13 @@ spec:
 ```
 
 ## Deployment with Helm Chart
+The deployment with Helm chart is specified below.
+
+The deployment with Helm Chart is described below.
 
 ### Parameters
+
+The parameters are specified in the below table.
 
 | Parameter                           |	Type   |	Default value                                                                                                                           |	Description                                                                                      |
 |-------------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
@@ -68,6 +78,7 @@ spec:
 | nodeSelector                        | object | {}                                                                                                                                         | Node labels for pod assignment                                                                     |
 | tolerations                         | array  | []                                                                                                                                         | Node tolerations for pod assignment                                                                |
 | affinity                            | object | {}                                                                                                                                         | Node affinity for pod assignment                                                                   |
+| monitoring.enable                   | bool   | false                                                                                                                                      | GrafanaDashboard and ServiceMonitor creation                                                       |
 | networkPolicies.name                | string | "default"                                                                                                                                  | NetworkPolicyConfig name                                                                           |
 | networkPolicies.enabled             | bool   | true                                                                                                                                       | If true NetworkPolicies will be created                                                            |
 | networkPolicies.scope               | object | {}                                                                                                                                         | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
@@ -93,22 +104,22 @@ spec:
 
 ### Basic Installation
 
-The installation procedure must be performed on each of the clusters in case of DR scheme
+The installation procedure must be performed on each of the clusters in case of DR scheme.
 
 **Namespace Creation**
 
 ```sh
-kubectl create ns netpolconf-system
+kubectl create ns network-policy-operator
 ```
 
 **values.yaml Configuration**
 
-Navigate to `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. In case of DR scheme it's better to use unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always uniq within the set of cluters. There are several options that must be changed in `values.yaml` to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
+Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always be unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
-* `controlPlane` sets the namespaces prefixes for namespaces that must not be restricted by NetworkPolicies. That means any incoming connections to the pods in that namespaces are allowed
-* `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction
-* All of the namespaces that need unconditional access to any other namespace (e.g. monitoring, ingress controller) must be added to `implicitNamespaces`
-* The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. part of `values.yaml` example:
+* `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
+* `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction.
+* All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`.
+* The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
 
 ```
 ...
@@ -119,14 +130,15 @@ networkPolicies:
     my-label: oob-network-policy
 ...
 ```
-* `customPolicies` option includes custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is
+
+* `customPolicies` option includes custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
 * `enabled` option switches on and off NetworkPolicies globaly
 
 The `logs` section manages the connections logs. There are several options to configure it:
 
-* if `collectingAll` is `true` the all of the connections are logged, if it `false` only denied connections arelogged
-* `namespaceScope` defines the label that must be set in `false` or `none` to exclude the labeled namespace connections from logs
-* `enabled` option enables and disables the connections logs globally within the cluster
+* If `collectingAll` is `true`, the all of the connections are logged. If it is `false`, only denied connections are logged.
+* `namespaceScope` defines the label that must be set in `false` or `none` to exclude the labeled namespace connections from logs.
+* `enabled` option enables and disables the connections logs globally within the cluster.
 
 Calico v3.29 and higher needs to set the NetwokPolicies `Tiers`. The default values are the following:
 
@@ -142,23 +154,32 @@ networkPolicies:
 * `defaultTier` sets the `Tier` that is used for all OOB NetworkPolicies
 * `customTier` sets the custom NetworkPolicies `Tier`
 
-The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind the `customTier` order must be biger than `defaultTier` order which is `10000`. More information in official [documentation](https://docs.tigera.io/calico/latest/reference/resources/tier)
+The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind that the `customTier` order must be biger than `defaultTier` order, which is `10000`. For more information, refer to the _Official Documentation_ at [https://docs.tigera.io/calico/latest/reference/resources/tier](https://docs.tigera.io/calico/latest/reference/resources/tier).
 
-In case of DR scheme check the [DR preparation](#dr-preparation) article below
+The monitoring section enables GrafanaDashboard and ServiceMonitor resources creation. The following metrics are available:
+* NetworkPolicyConfig status
+* Connections audit log status
+* Number of RemoteClustersConfigs with particular types (loose, coupled, synchronized)
+* Number of processed Namespaces
+* Number of ExternalNamespaces
+* Number of created NetworkPolicies
+* Operator pods CPU and Memory consumptions
+
+In case of DR scheme, check the [DR Preparation](#dr-preparation) section below.
 
 **Installation**
 
 ```sh
-helm install npc-operator . -n netpolconf-system
+helm install npc-operator . -n network-policy-operator
 ```
 
-### DR preparation
+### DR Preparation
 
-The DR preparation includes to steps. The first one must be performed before installation and the second one after the installation.
+The DR preparation includes two steps. The first one must be performed before installation and the second one after the installation.
 
 #### Pre-installation
 
-The `dr` section includes options to configure interation between clusters in DR scheme
+The `dr` section includes options to configure the interation between clusters in DR scheme.
 
 * `install` option enables/disables `RemoteClusterConfig` creation
 * `localCluster` describes local cluster settings
@@ -171,53 +192,86 @@ Cluster settings:
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
-#### Post-installation
+To avoid any discrepancy, it is easier to use transparent unique names of the secrets for all of the cluster in the DR scheme. For instance, the first cluster `values.yaml` dr section:
 
-**Token authentication**
-
-Change token inside `Secret` to connect to remote cluster in the following maner:
-
-Run on cluster that is `localCluster` for one of the `values.yaml` files
-
-```sh
-kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
+```yaml
+dr:
+  install: true
+  localCluster:
+    api: cluster-1.openshift.sdntest.netcracker.com:6443
+    name: cluster-1
+    secret: cluster-1-secret
+  remoteClusters:
+    - name: cluster-2
+      api: cluster-2.openshift.sdntest.netcracker.com:6443
+      secret: cluster-2-secret
 ```
 
-Take the output of previous command and run the command on the other clusters (do not forget to change kubeconfig) 
+The second cluster `values.yaml`:
+
+```yaml
+dr:
+  install: true
+  localCluster:
+    api: cluster-2.openshift.sdntest.netcracker.com:6443
+    name: cluster-2
+    secret: cluster-2-secret
+  remoteClusters:
+    - name: cluster-1
+      api: cluster-1.openshift.sdntest.netcracker.com:6443
+      secret: cluster-1-secret
+```
+
+#### Post-installation
+
+The post-installation process is described below.
+
+**Token Authentication**
+
+
+Change the token inside the `Secret` to connect to remote clusters in the following manner.
+
+Run this command on local cluster for one of the `values.yaml` files.
 
 ```sh
-kubectl -n netpolconf-system patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
+kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o=jsonpath='{.data.token}'
+```
+
+Take the output of previous command and run the command on the remote clusters (do not forget to change kubeconfig):
+
+```sh
+kubectl -n network-policy-operator patch secret <THE NAME OF THE SECRET THAT IS USED TO CONNECT FROM CURRENT CLUSTER TO THE CLUSTER ABOVE>  --type json -p '[{"op": "replace", "path": "/data/token", "value": "<PREVIOUS COMMAND OUTPUT>"}]'
 ```
 
 Do the same procedure with other clusters in DR scheme.
 
-**TLS authentication**
+**TLS Authentication**
 
-Save the TLS certificate `Secret` into file:
+Save the TLS certificate from `Secret` into file on the local cluster:
 
 ```sh
-kubectl -n netpolconf-system get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml plus `-tls`> -o yaml > secret.yaml
+kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml  plus `-tls`> -o yaml > secret.yaml
 ```
 
-Apply it on the clusters in DR scheme:
+Apply it on the remote clusters in DR scheme:
 
 ```sh
 kubectl apply -f secret.yaml
 ```
 
-Repeat the procedure for all of the clusters in DR scheme
+Repeat the procedure for all of the clusters in DR scheme.
 
-### Check installation
+### Check Installation
 
-The the successfull instalation could be checked by `NetworkPolicyConfig` custom resource:
+The successful installation could be checked by `NetworkPolicyConfig` custom resource:
 
 ```sh
-kubectl get networkpolicyconfig
+kubectl get npc
 ```
 
-The ouput must include only one resource with name from `values.yaml`
+The output must include only one resource with name from `values.yaml`.
 
-Also, the `NetworkPolicies` could be created on cluster (it depends on configuration). It could be check by the command:
+Also, you can create `NetworkPolicies` on the cluster (it depends on configuration). You can check it using the command:
 
 ```sh
 kubectl get cnp -A
@@ -250,10 +304,10 @@ automated            2025-04-08T13:07:32Z
 default              2024-12-06T10:47:15Z
 ```
 
-The the successfull instalation in DR scheme could be checked by `RemoteClusterConfig` custom resource:
+You can check the successful installation in DR scheme by `RemoteClusterConfig` custom resource:
 
 ```sh
-kubectl -n netpolconf-system get remoteclusterconfig
+kubectl -n network-policy-operator get rclc
 ```
 
 In case of correct DR settings, the `RemoteClusterConfig` must have at least the following message in status:

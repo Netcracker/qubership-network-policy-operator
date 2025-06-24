@@ -1,0 +1,13 @@
+{{- if .Values.monitoring.enable }}
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: {{ include "network-policy-operator.fullname" . }}
+  namespace: {{ include "network-policy-operator.namespace" . }}
+  labels:
+    app.kubernetes.io/component: monitoring
+spec:
+  name: dashboard.json
+  json: >
+{{ .Files.Get "monitoring/dashboard.json" | indent 4 }}
+{{- end }}

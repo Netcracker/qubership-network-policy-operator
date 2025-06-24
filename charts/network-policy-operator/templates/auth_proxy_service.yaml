@@ -3,12 +3,12 @@ kind: Service
 metadata:
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
-  name: controller-manager-metrics-service
+  name: metrics-service
 spec:
   ports:
-  - name: https
+  - name: https-metrics
     port: 8443
     protocol: TCP
-    targetPort: https
+    targetPort: 8443
   selector:
-    control-plane: controller-manager
+    app.kubernetes.io/instance: network-policy-operator

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package cnp
 
 import (
 	"context"
@@ -39,12 +39,21 @@ import (
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/libcalico-go/lib/selector"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
 )
 
 const (
 	NetworkPolicyOriginAnnotation = "network-policy.qubership.org/origin-policy"
 	NetworkPolicyTargetLabel      = "network-policy.qubership.org/target-policy"
+	TypeCoupled		      = rclc.TypeCoupled
+	NetworkPolicyLabel	      = npc.NetworkPolicyLabel
+	EgressServiceLabel	      = npc.EgressServiceLabel
 )
+
+var AllowAnnotation string = npc.AllowAnnotation
+var oprNamespace    string
 
 // NetworkPolicyReconciler reconciles a NetworkPolicy object
 type NetworkPolicyReconciler struct {
@@ -62,11 +71,11 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := log.FromContext(ctx)
 
 	var accessor metav1.Object
-	var svcCFG  ServiceConfig
-	var serviceConfigs []ServiceConfig
+	var svcCFG  rclc.ServiceConfig
+	var serviceConfigs []rclc.ServiceConfig
 
-	rc := &RemoteClusterConfigReconciler{}
-	oprNamespace = rc.getOperatorNamespace()
+	rc := &rclc.RemoteClusterConfigReconciler{}
+	oprNamespace := rc.GetOperatorNamespace()
 
 	// Listing the RemoteClusterConfigs
 	rclList := &npcv1.RemoteClusterConfigList{}
@@ -303,6 +312,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 		log.Error(err, fmt.Sprintf("Failed to get ExternalNamespace for '%s' NetworkPolicy", policy.GetName()))
 		return ingress, egress
 	}
+	monitoring.ExternalNamespacesTotal.Set(float64(len(ensList.Items)))
 
 	// Ingress rules
 	ingressRules := policy.Spec.Ingress
@@ -457,7 +467,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 
 // processServiceRules returns Calico Egress Rules with Services IPs
 func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPolicy, 
-	servicesConfigs []ServiceConfig) ([]calicov3.Rule, error) {
+	servicesConfigs []rclc.ServiceConfig) ([]calicov3.Rule, error) {
 
 	log := log.FromContext(context.TODO())
 
