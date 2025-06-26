@@ -250,7 +250,7 @@ Do the same procedure with other clusters in DR scheme.
 Save the TLS certificate from `Secret` into file on the local cluster:
 
 ```sh
-kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml> -o yaml > secret.yaml
+kubectl -n network-policy-operator get secret <NAME OF THE SECRET FROM `dr.localCluster.secret` OPTION IN values.yaml  plus `-tls`> -o yaml > secret.yaml
 ```
 
 Apply it on the remote clusters in DR scheme:

@@ -16,7 +16,11 @@ spec:
   remoteCluster:
     api: {{ $value.api }}
     name: {{ $value.name }}
+    {{- if eq $.Values.dr.authentication "token" }}
     remoteSecret: {{ $value.secret }}
+    {{- else if eq $.Values.dr.authentication "tls" }}
+    remoteSecret: {{ $value.secret }}-tls
+    {{- end }}
 {{- end }}
 {{ end }}
 {{ end }}
