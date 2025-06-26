@@ -1,8 +1,6 @@
 #!/bin/bash
 
 create_secret() {
-	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret hasn't been found, let's create it"
-
         openssl genrsa -out ./tls.key 4096 \
 		&& echo "$(date +%FT%H:%M:%S%:z) The private key has been created"
 
@@ -44,7 +42,12 @@ spec:
 
 	kubectl certificate approve ${SECRET}-csr > /dev/null 2>&1 \
 		&& echo "$(date +%FT%H:%M:%S%:z) The Certificate has been approved"
-	kubectl get csr ${SECRET}-csr -o jsonpath='{.status.certificate}' | base64 -d > ./tls.crt
+	while [ ! -s tls.crt ]
+	do
+		sleep 3
+		echo "$(date +%FT%H:%M:%S%:z) Retrying to get the Certificate"
+		kubectl get csr ${SECRET}-csr -o jsonpath='{.status.certificate}' | base64 -d > ./tls.crt
+	done
 	kubectl delete csr ${SECRET}-csr > /dev/null 2>&1
 
 	kubectl -n ${POD_NAMESPACE} get cm kube-root-ca.crt -o jsonpath='{.data.ca\.crt}' > ./ca.crt \
@@ -73,6 +76,13 @@ export KUBECONFIG=./kubeconfig
 
 echo "$(date +%FT%H:%M:%S%:z) Checking the TLS Secret"
 
-kubectl -n ${POD_NAMESPACE} get secret ${SECRET} 2> /dev/null || create_secret
+if !(kubectl -n ${POD_NAMESPACE} get secret ${SECRET} -o jsonpath='{.data.tls\.crt}' 2> /dev/null | base64 -d | openssl x509 -noout -checkend 1209600 > /dev/null 2>&1)
+then
+	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret should be created or renewed"
+	kubectl -n ${POD_NAMESPACE} delete secret ${SECRET} > /dev/null 2>&1
+	create_secret
+else
+	echo "$(date +%FT%H:%M:%S%:z) The TLS Secret is acceptable"
+fi
 
 exit 0
