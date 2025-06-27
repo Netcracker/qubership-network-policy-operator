@@ -533,18 +533,87 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "max(network_policies_total{namespace='$namespace', cluster=~'$instance'}) by(cluster, namespace)",
+          "expr": "max(local_network_policies_total{namespace='$namespace', cluster=~'$instance'}) by(cluster, namespace)",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "Total Number of Network Policies",
+          "legendFormat": "Total Number of Local Network Policies",
           "range": true,
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Number of Created Network Policies",
+      "title": "Number of Created Local Network Policies",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 7
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.13",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "max(remote_network_policies_total{namespace='$namespace', cluster=~'$instance'}) by(cluster, namespace)",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Total Number of Remote Network Policies",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Number of Created Remote Network Policies",
       "type": "stat"
     },
     {

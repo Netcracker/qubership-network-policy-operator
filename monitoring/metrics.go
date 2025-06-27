@@ -23,57 +23,63 @@ import (
 
 var (
 	NetworkPolicyConfigStatus = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "network_policy_config_status", 
-			Help: "NetworkPolicyConfig status, could be 'disabled'=0; 'enabled for all namespaces'=1; 'enabled for some scope of namespaces'=2; 'failed'=-1",
-		},
+		Name: "network_policy_config_status",
+		Help: "NetworkPolicyConfig status, could be 'disabled'=0; 'enabled for all namespaces'=1; 'enabled for some scope of namespaces'=2; 'failed'=-1",
+	},
 	)
 
 	ConnectionsLogStatus = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "connections_log_status", 
-			Help: "Connections audit log status, could be 'disabled'=-1; 'enabled for all connections'=0; 'enabled for denied connections only'=1",
-		},
+		Name: "connections_log_status",
+		Help: "Connections audit log status, could be 'disabled'=-1; 'enabled for all connections'=0; 'enabled for denied connections only'=1",
+	},
 	)
 
 	RemoteClustersConfigTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "remote_cluster_config_total", 
-			Help: "Total number of RemoteClustersConfigs",
-		},
+		Name: "remote_cluster_config_total",
+		Help: "Total number of RemoteClustersConfigs",
+	},
 	)
 
 	RemoteClustersConfigLoose = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "remote_cluster_config_loose", 
-			Help: "Number of loose RemoteClustersConfigs",
-		},
+		Name: "remote_cluster_config_loose",
+		Help: "Number of loose RemoteClustersConfigs",
+	},
 	)
 
 	RemoteClustersConfigCoupled = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "remote_cluster_config_coupled", 
-			Help: "Number of coupled RemoteClustersConfigs",
-		},
+		Name: "remote_cluster_config_coupled",
+		Help: "Number of coupled RemoteClustersConfigs",
+	},
 	)
 
 	RemoteClustersConfigSynchronized = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "remote_cluster_config_synchronized", 
-			Help: "Number of synchronized RemoteClustersConfigs",
-		},
+		Name: "remote_cluster_config_synchronized",
+		Help: "Number of synchronized RemoteClustersConfigs",
+	},
 	)
 
 	NamespacesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "namespaces_total", 
-			Help: "Total number of processed Namespaces",
-		},
+		Name: "namespaces_total",
+		Help: "Total number of processed Namespaces",
+	},
 	)
 
 	ExternalNamespacesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "external_namespaces_total", 
-			Help: "Total number of ExternalNamespaces",
-		},
+		Name: "external_namespaces_total",
+		Help: "Total number of ExternalNamespaces",
+	},
 	)
 
-	NetworkPoliciesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "network_policies_total", 
-			Help: "Total number of created NetworkPolicies",
-		},
+	LocalNetworkPoliciesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "local_network_policies_total",
+		Help: "Total number of created local NetworkPolicies",
+	},
+	)
+
+	RemoteNetworkPoliciesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "remote_network_policies_total",
+		Help: "Total number of created remote NetworkPolicies",
+	},
 	)
 )
 
@@ -87,5 +93,6 @@ func RegisterMetrics() {
 	metrics.Registry.MustRegister(RemoteClustersConfigSynchronized)
 	metrics.Registry.MustRegister(NamespacesTotal)
 	metrics.Registry.MustRegister(ExternalNamespacesTotal)
-	metrics.Registry.MustRegister(NetworkPoliciesTotal) 
+	metrics.Registry.MustRegister(LocalNetworkPoliciesTotal)
+	metrics.Registry.MustRegister(RemoteNetworkPoliciesTotal)
 }

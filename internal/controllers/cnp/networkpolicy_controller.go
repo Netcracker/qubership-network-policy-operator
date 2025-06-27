@@ -25,9 +25,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/labels"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,23 +37,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
+	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/libcalico-go/lib/selector"
-	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
-	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
-	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
 )
 
 const (
 	NetworkPolicyOriginAnnotation = "network-policy.qubership.org/origin-policy"
 	NetworkPolicyTargetLabel      = "network-policy.qubership.org/target-policy"
-	TypeCoupled		      = rclc.TypeCoupled
-	NetworkPolicyLabel	      = npc.NetworkPolicyLabel
-	EgressServiceLabel	      = npc.EgressServiceLabel
+	TypeCoupled                   = rclc.TypeCoupled
+	NetworkPolicyLabel            = npc.NetworkPolicyLabel
+	EgressServiceLabel            = npc.EgressServiceLabel
 )
 
 var AllowAnnotation string = npc.AllowAnnotation
-var oprNamespace    string
+var oprNamespace string
 
 // NetworkPolicyReconciler reconciles a NetworkPolicy object
 type NetworkPolicyReconciler struct {
@@ -71,16 +71,29 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := log.FromContext(ctx)
 
 	var accessor metav1.Object
-	var svcCFG  rclc.ServiceConfig
+	var svcCFG rclc.ServiceConfig
 	var serviceConfigs []rclc.ServiceConfig
 
 	rc := &rclc.RemoteClusterConfigReconciler{}
 	oprNamespace := rc.GetOperatorNamespace()
 
+	// Couning NetworkPolicies
+	tgPolicyList := &calicov3.NetworkPolicyList{}
+	labelSet := labels.Set{NetworkPolicyTargetLabel: "true"}
+	tgOpts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labelSet),
+	}
+	err := r.List(ctx, tgPolicyList, tgOpts)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicies"))
+		return ctrl.Result{}, err
+	}
+	monitoring.RemoteNetworkPoliciesTotal.Set(float64(len(tgPolicyList.Items)))
+
 	// Listing the RemoteClusterConfigs
 	rclList := &npcv1.RemoteClusterConfigList{}
-	opts := &client.ListOptions{Namespace: oprNamespace,}
-	err := r.List(ctx, rclList, opts)
+	opts := &client.ListOptions{Namespace: oprNamespace}
+	err = r.List(ctx, rclList, opts)
 	if err != nil {
 		log.Error(err, "Failed to list RemoteClusterConfigs")
 		return ctrl.Result{}, err
@@ -93,9 +106,9 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Info(fmt.Sprintf("'%s' RemoteClusterConfig is not coupled, so it's skipped", rclItem.GetName()))
 		} else {
 			isEnabled = true
-			svcCFG.Subnet   = rclItem.Status.CoupleServiceSubnet
-			svcCFG.KubeAPI  = rclItem.Status.CoupleKubeAPIService
-			svcCFG.CoreDNS  = rclItem.Status.CoupleCoreDNSService
+			svcCFG.Subnet = rclItem.Status.CoupleServiceSubnet
+			svcCFG.KubeAPI = rclItem.Status.CoupleKubeAPIService
+			svcCFG.CoreDNS = rclItem.Status.CoupleCoreDNSService
 			serviceConfigs = append(serviceConfigs, svcCFG)
 		}
 	}
@@ -145,11 +158,10 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	targetPolicy := &calicov3.NetworkPolicy{}
 	policyAnn := make(map[string]string)
-	labelSet := labels.Set{NetworkPolicyTargetLabel: "true"}
 	policyList := &calicov3.NetworkPolicyList{}
 	opts = &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labelSet),
-		Namespace: req.NamespacedName.Namespace,
+		Namespace:     req.NamespacedName.Namespace,
 	}
 	err = r.List(ctx, policyList, opts)
 	if err != nil {
@@ -175,7 +187,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				// Setting target NetworkPolicy spec
 				targetPolicy.Spec = policy.Spec
 			}
-		}		
+		}
 	}
 
 	if creation {
@@ -226,6 +238,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy", targetPolicy.GetName()))
 			return ctrl.Result{}, err
 		}
+		monitoring.LocalNetworkPoliciesTotal.Dec()
 	}
 	if creation && ((ingChange > 0) || (egChange > 0)) {
 		// Creating target NetworkPolicy
@@ -241,6 +254,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Error(err, fmt.Sprintf("Failed to create '%s' target NetworkPolicy", extName))
 			return ctrl.Result{}, err
 		}
+		monitoring.LocalNetworkPoliciesTotal.Inc()
 	}
 	if !creation && ((ingChange > 0) || (egChange > 0)) {
 		// Update target NetworkPolicy
@@ -306,7 +320,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 	egress := []calicov3.Rule{}
 	nsLabels := make(map[string]string)
 	ensList := &npcv1.ExternalNamespaceList{}
-	opts := &client.ListOptions{Namespace: oprNamespace,}
+	opts := &client.ListOptions{Namespace: oprNamespace}
 	err := r.List(context.TODO(), ensList, opts)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get ExternalNamespace for '%s' NetworkPolicy", policy.GetName()))
@@ -335,7 +349,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 			accessor, err = meta.Accessor(&ensItem)
 			if err != nil {
 				log.Error(err, fmt.Sprintf("Failed to get '%s' ExternalNamespace labels",
-						ensItem.GetName()))
+					ensItem.GetName()))
 				continue
 			}
 			nsLabels = accessor.GetLabels()
@@ -421,7 +435,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 			accessor, err = meta.Accessor(&ensItem)
 			if err != nil {
 				log.Error(err, fmt.Sprintf("Failed to get '%s' ExternalNamespace labels",
-						ensItem.GetName()))
+					ensItem.GetName()))
 				continue
 			}
 			nsLabels = accessor.GetLabels()
@@ -453,8 +467,8 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 		log.Info(fmt.Sprintf("Rule %v total IPs list: %v", i, egNet))
 		if len(egNet) > 0 {
 			pDestination = calicov3.EntityRule{
-				Nets:	  egNet,
-				Ports:	  egressRules[i].Destination.Ports,
+				Nets:     egNet,
+				Ports:    egressRules[i].Destination.Ports,
 				NotPorts: egressRules[i].Destination.NotPorts,
 			}
 			egressRules[i].Destination = pDestination
@@ -466,7 +480,7 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 }
 
 // processServiceRules returns Calico Egress Rules with Services IPs
-func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPolicy, 
+func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPolicy,
 	servicesConfigs []rclc.ServiceConfig) ([]calicov3.Rule, error) {
 
 	log := log.FromContext(context.TODO())
@@ -500,7 +514,7 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 	}
 
 	ensList := &npcv1.ExternalNamespaceList{}
-	opts = &client.ListOptions{Namespace: oprNamespace,}
+	opts = &client.ListOptions{Namespace: oprNamespace}
 	err = r.List(context.TODO(), ensList, opts)
 	if err != nil {
 		return nil, err
