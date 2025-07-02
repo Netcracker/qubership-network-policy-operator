@@ -47,9 +47,6 @@ import (
 const (
 	ExcludingAnnotation	   = "network-policy.qubership.org/exclude-from-external-namespace"
 	operatorNamespaceEnvVar    = "NAMESPACE"
-	TypeCoupled		   = "Coupled"
-	TypeLoose		   = "Loose"
-	TypeSynchronized	   = "Synchronized"
 	NodeAddressAnnotation	   = "projectcalico.org/IPv4Address"
 	TunnelAddressAnnotation    = "projectcalico.org/IPv4IPIPTunnelAddr"
 	OCPConfigMap		   = "cluster-config-v1"
@@ -61,6 +58,15 @@ const (
 	KubernetesCoreDNSNamespace = "kube-system"
 	KubeAPIService		   = "kubernetes"
 	KubeAPIServiceNamespace	   = "default"
+)
+
+type RemoteClusterConfigType string
+
+const (
+	TypeInitialized  RemoteClusterConfigType = "Initialized"
+	TypeCoupled	 RemoteClusterConfigType = "Coupled"
+	TypeLoose	 RemoteClusterConfigType = "Loose"
+	TypeSynchronized RemoteClusterConfigType = "Synchronized"
 )
 
 var oprNamespace string
@@ -97,6 +103,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		Version: "v1alpha1", Resource: "externalnamespaces"}
 	var accessor metav1.Object
 	var svcCFG ServiceConfig
+	var errSt error
 
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
@@ -115,26 +122,6 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// Getting credentials to connect to remote cluster
-	secret := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: rcl.Spec.RemoteCluster.Secret,
-		Namespace: oprNamespace}, secret)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get Secret to connect to remote cluster for '%s' RemoteClusterConfig", rcl.GetName()))
-		return ctrl.Result{}, err
-	}
-	// Creating client configuration to connect to remote cluster
-	remoteConfig, err := r.GetRemoteConfig(rcl, secret)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to make config to connect to remote cluster"))
-		return ctrl.Result{}, err
-	}
-	dynamicClient, err := dynamic.NewForConfig(remoteConfig)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to create remote client for '%s' RemoteClusterConfig", rcl.GetName()))
-		return ctrl.Result{}, err
-	}
-
 	// Setting ServiceSubnet
 	svcCFG, err = r.getServiceSubnet()
 	if err != nil {
@@ -148,36 +135,72 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		rcl.Status.CoreDNSService = svcCFG.CoreDNS
 		log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the local Service Subnet, '%s' as the Kubernetes API Service, '%s' as the CoreDNS Service", rcl.GetName(), rcl.Status.ServiceSubnet, rcl.Status.KubeAPIService, rcl.Status.CoreDNSService))
 	}
+	// Updating RemoteClusterConfig status
+	err = r.UpdateStatus(rcl, TypeInitialized, metav1.ConditionUnknown, "Initializing", "Services subnet has been identified", r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Getting credentials to connect to remote cluster
+	secret := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: rcl.Spec.RemoteCluster.Secret,
+		Namespace: oprNamespace}, secret)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get Secret to connect to remote cluster for '%s' RemoteClusterConfig", rcl.GetName()))
+		// Updating RemoteClusterConfig status
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
+		if errSt != nil {
+			return ctrl.Result{}, errSt
+		}
+		return ctrl.Result{}, err
+	}
+	// Creating client configuration to connect to remote cluster
+	remoteConfig, err := r.GetRemoteConfig(rcl, secret)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to make config to connect to remote cluster"))
+		// Updating RemoteClusterConfig status
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
+		if errSt != nil {
+			return ctrl.Result{}, errSt
+		}
+		return ctrl.Result{}, err
+	}
+	dynamicClient, err := dynamic.NewForConfig(remoteConfig)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to create remote client for '%s' RemoteClusterConfig", rcl.GetName()))
+		// Updating RemoteClusterConfig status
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
+		if errSt != nil {
+			return ctrl.Result{}, errSt
+		}
+		return ctrl.Result{}, err
+	}
 
 	// Checking if the RemoteClusterConfig has the correct couple on remote cluster
 	rclCouple, err := r.GetCouple(rcl, dynamicClient)
 	if err != nil {
 		log.Info(fmt.Sprintf("Failed to get couple for '%s' RemoteClusterConfig: %s", rcl.GetName(), err))
 		// Updating RemoteClusterConfig status
-		meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: TypeLoose, Status: metav1.ConditionFalse, Reason: "Initializing", Message: "Couple hasn't been identified"})
-		err = r.Status().Update(ctx, rcl)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
-			return ctrl.Result{}, err
+		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
+		if errSt != nil {
+			return ctrl.Result{}, errSt
 		}
-		err = r.UpdateMetrics(r.Client)
-		if err != nil {
-			return ctrl.Result{}, err
+		errSt = r.UpdateMetrics(r.Client)
+		if errSt != nil {
+			return ctrl.Result{}, errSt
 		}
 		log.Info("RemoteClusterConfig Reconciler loop has been finished")
 		return ctrl.Result{}, fmt.Errorf("identification error")
 	}
 	log.Info(fmt.Sprintf("The couple for '%s' RemoteClusterConfig is '%s'", rcl.GetName(), rclCouple.GetName()))
 	// Updating RemoteClusterConfig status
-	meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: TypeCoupled, Status: metav1.ConditionTrue, Reason: "Initializing", Message: "Couple is identified"})
 	// Setting couple Services configuration
 	rcl.Status.CoupleServiceSubnet  = rclCouple.Status.ServiceSubnet
 	rcl.Status.CoupleKubeAPIService = rclCouple.Status.KubeAPIService
 	rcl.Status.CoupleCoreDNSService = rclCouple.Status.CoreDNSService
 	log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the remote Service Subnet", rcl.GetName(), rcl.Status.CoupleServiceSubnet))
-	err = r.Status().Update(ctx, rcl)
+	err = r.UpdateStatus(rcl, TypeCoupled, metav1.ConditionTrue, "Initializing", "Couple is identified", r.Client)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
 		return ctrl.Result{}, err
 	}
 
@@ -366,11 +389,13 @@ func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig
 	dynamicClient *dynamic.DynamicClient) (*npcv1.RemoteClusterConfig, error) {
 	rclGet := npcv1.RemoteClusterConfig{} 
 	rclCouple := npcv1.RemoteClusterConfig{}
+	log := log.FromContext(context.TODO())
 	// Getting list of RemoteClusterConfig from remote cluster
 	resp, err := dynamicClient.Resource(remoteCluster).Namespace(oprNamespace).
 		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get list of RemoteClusterConfigs")
+		log.Error(err, "Failed to get list of RemoteClusterConfigs")
+		return nil, err
 	}
 	num := 0
 	for _, unstrItem := range resp.Items {
@@ -378,7 +403,8 @@ func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig
 		err = runtime.DefaultUnstructuredConverter.
 			FromUnstructured(unstrItem.UnstructuredContent(), &rclGet)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to convert Unstructured to RemoteClusterConfigs")
+			log.Error(err, "Failed to convert Unstructured to RemoteClusterConfigs")
+			return nil, err
 		}
 		// Matching name of remote cluster and name of local cluster
 		if rclGet.Spec.RemoteCluster.Name == rcl.Spec.LocalCluster.Name &&
@@ -537,6 +563,7 @@ func (r *RemoteClusterConfigReconciler) getServiceSubnet() (ServiceConfig, error
 func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
 
 	log := log.FromContext(context.TODO())
+	apiWoPrefix, _ := strings.CutPrefix(rcl.Spec.RemoteCluster.API, "https://")
 	// Checking the type of Secret
 	remoteConfig := &rest.Config{}
 	switch sType := secret.Type; sType {
@@ -549,7 +576,7 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 			BearerToken: string(secret.Data["token"]),
 			TLSClientConfig: rest.TLSClientConfig{
 				Insecure:   true,
-				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+				ServerName: strings.Split(apiWoPrefix, ":")[0],
 			},
 		}
 	// Authenticating by Certificate
@@ -564,7 +591,7 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 			APIPath:     "/apis",
 			TLSClientConfig: rest.TLSClientConfig{
 				Insecure:   false,
-				ServerName: strings.Split(rcl.Spec.RemoteCluster.API, ":")[0],
+				ServerName: strings.Split(apiWoPrefix, ":")[0],
 				CertData:   secret.Data["tls.crt"],
 				KeyData:    secret.Data["tls.key"],
 				CAData:     secret.Data["ca.crt"],
@@ -590,6 +617,7 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 		log.Error(err, "Failed to list RemoteClusterConfigs")
 		return err
 	}
+	rclsInit := 0
 	rclsLoose := 0
 	rclsCoupled := 0
 	rclsSynch := 0
@@ -607,17 +635,35 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 			}
 		}
 		switch conditionType {
-		case TypeLoose:
+		case string(TypeInitialized):
+			rclsInit++
+		case string(TypeLoose):
 			rclsLoose++
-		case TypeCoupled:
+		case string(TypeCoupled):
 			rclsCoupled++
-		case TypeSynchronized:
+		case string(TypeSynchronized):
 			rclsSynch++
 		}
 	}
+	monitoring.RemoteClustersConfigInitialized.Set(float64(rclsInit))
 	monitoring.RemoteClustersConfigLoose.Set(float64(rclsLoose))
 	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
 	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
+
+	return nil
+}
+
+func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterConfig, rclType RemoteClusterConfigType, status metav1.ConditionStatus, reason string, message string, c client.Client) error {
+	log := log.FromContext(context.TODO())
+	// Deleting previous Condition with the same Type
+	meta.RemoveStatusCondition(&rcl.Status.Conditions, string(rclType))
+	// Setting the new Condition
+	meta.SetStatusCondition(&rcl.Status.Conditions, metav1.Condition{Type: string(rclType), Status: status, Reason: reason, Message: message})
+	err := c.Status().Update(context.TODO(), rcl)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
+		return err
+	}
 
 	return nil
 }

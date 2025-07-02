@@ -40,6 +40,12 @@ var (
 		},
 	)
 
+	RemoteClustersConfigInitialized = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "remote_cluster_config_initialized",
+			Help: "Number of initialized RemoteClustersConfigs",
+		},
+	)
+
 	RemoteClustersConfigLoose = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "remote_cluster_config_loose", 
 			Help: "Number of loose RemoteClustersConfigs",
@@ -82,6 +88,7 @@ func RegisterMetrics() {
 	metrics.Registry.MustRegister(NetworkPolicyConfigStatus)
 	metrics.Registry.MustRegister(ConnectionsLogStatus)
 	metrics.Registry.MustRegister(RemoteClustersConfigTotal)
+	metrics.Registry.MustRegister(RemoteClustersConfigInitialized)
 	metrics.Registry.MustRegister(RemoteClustersConfigLoose)
 	metrics.Registry.MustRegister(RemoteClustersConfigCoupled)
 	metrics.Registry.MustRegister(RemoteClustersConfigSynchronized)

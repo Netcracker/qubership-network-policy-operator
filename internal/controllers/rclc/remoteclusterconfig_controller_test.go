@@ -204,7 +204,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 				}, time.Minute, time.Second).Should(Succeed())
 				meta.SetStatusCondition(&rclCouple.Status.Conditions,
 							metav1.Condition{
-								Type: TypeCoupled,
+								Type:   string(TypeCoupled),
 								Status: metav1.ConditionTrue,
 								Reason: "Initializing",
 								Message: "Couple is identified",
@@ -419,7 +419,6 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, rclCouple)
 			}, time.Minute, time.Second).Should(Succeed())
-
 
 			err = k8sClient.Get(ctx, typeNamespacedNameRB, rb)
 			Expect(err).NotTo(HaveOccurred())

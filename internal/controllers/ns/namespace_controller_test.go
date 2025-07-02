@@ -145,7 +145,7 @@ var _ = Describe("Namespace Controller", func() {
 
 				meta.SetStatusCondition(&rcl.Status.Conditions,
 							metav1.Condition{
-								Type: TypeCoupled,
+								Type: string(TypeCoupled),
 								Status: metav1.ConditionTrue,
 								Reason: "Initializing",
 								Message: "Couple is identified",
