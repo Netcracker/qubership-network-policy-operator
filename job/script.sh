@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 create_secret() {
         openssl genrsa -out ./tls.key 4096 \
