@@ -1,6 +1,8 @@
 apiVersion: qubership.org/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
   name: {{ .Values.networkPolicies.name }}
