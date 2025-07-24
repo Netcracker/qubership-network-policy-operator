@@ -14,5 +14,5 @@ subjects:
   name: {{ .Values.dr.localCluster.name }}
   namespace: {{ include "network-policy-operator.namespace" . }}
 - kind: User 
-  name: {{ .Values.dr.localCluster.secret }}
+  name: {{ .Values.dr.localCluster.secret }}-tls
 {{- end }}
