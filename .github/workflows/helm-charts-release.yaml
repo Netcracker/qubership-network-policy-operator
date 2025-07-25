@@ -2,22 +2,12 @@
 
 name: "Helm Charts Release"
 on:
-  push:
-    branches:
-      - 'main'
   workflow_dispatch:
     inputs:
       release:
         description: "Release version"
         required: true
         type: string
-permissions:
-  contents: write
-  packages: write
-run-name: ${{ github.repository }} Release ${{ github.event.inputs.release }}
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   check-tag:
     runs-on: ubuntu-latest
