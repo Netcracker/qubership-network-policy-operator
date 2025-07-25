@@ -2,6 +2,9 @@
 
 name: "Helm Charts Release"
 on:
+  pull_request:
+    branches:
+      - '**'
   workflow_dispatch:
     inputs:
       release:
