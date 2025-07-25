@@ -1,9 +1,9 @@
 ---
 
 charts:
-  - name: qubership-opensearch
-    chart_file: charts/helm/opensearch-service/Chart.yaml
-    values_file: charts/helm/opensearch-service/values.yaml
+  - name: qubership-network-policy-operator
+    chart_file: charts/network-policy-operator/Chart.yaml
+    values_file: charts/network-policy-operator/values.yaml
     image:
       - ghcr.io/netcracker/qubership-network-policy-operator-transfer:${release}
       - ghcr.io/netcracker/qubership-network-policy-operator:${release}
