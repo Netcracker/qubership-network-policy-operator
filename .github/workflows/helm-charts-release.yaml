@@ -1,105 +1,64 @@
 ---
 
-name: "Charts Release"
-description: "Update helm charts versions in values.yaml file and create a release draft"
+name: "Helm Charts Release"
 on:
   workflow_dispatch:
     inputs:
-      release-version:
+      release:
         description: "Release version"
         required: true
         type: string
-      chart-version:
-        description: "Chart version. If not provided, the chart version will be set to the release version."
-        required: false
-        type: string
-      config-file:
-        description: "Path to the configuration file for updating versions in values.yaml"
-        required: true
-        type: string
-      create-release-branch:
-        description: "Create a release branch"
-        required: false
-        default: "true"
-        type: string
-      version-replace-method:
-        description: "Method to replace version in values.yaml. Can be 'replace' or 'parse'."
-        # 'replace' will replace the image version with the release version as is.
-        # 'parse' will parse the version string from config file, make variables substitution, prefix/suffix addition."
-        required: false
-        default: "parse"
-        type: string
-      working-directory:
-        description: "Working directory for the action"
-        required: false
-        default: "."
-        type: string
+permissions:
+  contents: write
+  packages: write
+run-name: ${{ github.repository }} Release ${{ github.event.inputs.release }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if tag exists
+        id: check_tag
+        uses: netcracker/qubership-workflow-hub/actions/tag-action@main
+        with:
+          tag-name: '${{ inputs.release }}'
+          ref: ${{ github.ref }}
+          create-tag: false
+          check-tag: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  load-docker-build-components:
+    runs-on: ubuntu-latest
     outputs:
-      images-versions:
-        description: "Image versions updated in the values.yaml file"
-        value: ${{ steps.update-versions.outputs.images-versions }}
-runs:
-  using: "composite"
-  steps:
-    - name: "Check release-version is valid Docker image tag"
-      id: check-release-version
-      run: |
-        tag="${{ inputs.release-version }}"
-        # Docker tag regex: must be alphanumeric, '.', '_', or '-', and up to 128 characters
-        if [[ "$tag" =~ ^[a-zA-Z0-9._-]{1,128}$ ]]; then
-            echo "Valid Docker tag"
-        else
-            echo "❌ Provided release-version: '${{ inputs.release-version }}' isn't a valid Docker tag." >> $GITHUB_STEP_SUMMARY
-            echo "Valid Docker tag must be alphanumeric, '.', '_', or '-', and up to 128 characters" >> $GITHUB_STEP_SUMMARY
-            echo "Please check the release-version and try again." >> $GITHUB_STEP_SUMMARY
+      component: ${{ steps.load_component.outputs.components }}
+      platforms: ${{ steps.load_component.outputs.platforms }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load Docker Configuration
+        id: load_component
+        run:  |
+          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-build-config.json" | jq '
+          def verify_structure:
+          .components as $components
+          | .platforms as $platforms
+          | ($components | type == "array")
+          and (all($components[]; has("name") and has("file") and has("context")))
+          and ($platforms | type == "string");
+          verify_structure
+          | if . then true else false end
+          ')
+          if [ ${verify} == 'true' ]; then
+            echo "✅ $GITHUB_WORKSPACE/.github/docker-build-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-build-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-build-config.json")
+          else
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-build-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-build-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
             exit 1
-        fi
-      shell: bash
-    - name: "Create release branch"
-      if: ${{ inputs.create-release-branch == 'true' }}
-      id: create-release-branch
-      run: |
-        git config --global user.name "qubership-actions[bot]"
-        git config --global user.email "qubership-actions[bot]@users.noreply.github.com"
-        git checkout -b release-${{ inputs.release-version }}
-        git config pull.rebase false
-        git pull origin main
-        git push --set-upstream origin release-${{ inputs.release-version }}
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - name: "Update chart and images versions"
-      id: update-versions
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y skopeo
-        sudo chmod +x "${GITHUB_ACTION_PATH}/image-versions-replace.py"
-        ${GITHUB_ACTION_PATH}/image-versions-replace.py \
-          --config-file ${{ inputs.config-file }} \
-          --release-version ${{ inputs.release-version }} \
-          --chart-version ${{ inputs.chart-version || inputs.release-version }} \
-          --version-replace-method ${{ inputs.version-replace-method }}
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - name: "Summary"
-      run: |
-        echo "## Release version ${{ inputs.release-version }}" >> $GITHUB_STEP_SUMMARY
-        echo "Chart version ${{ inputs.chart-version || inputs.release-version }}" >> $GITHUB_STEP_SUMMARY
-        if [[ -f summary.md ]]; then
-          cat summary.md >> $GITHUB_STEP_SUMMARY
-          rm -f summary.md
-        fi
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - name: "Commit changed files"
-      if: ${{ inputs.create-release-branch == 'true' }}
-      run: |
-        git config --global user.name "qubership-actions[bot]"
-        git config --global user.email "qubership-actions[bot]@users.noreply.github.com"
-        git add .
-        git commit -m "release: Set chart and images versions to release ${{ inputs.release-version }}. [skip ci]"
-        git push
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
+          fi
+          echo "components=${components}" >> $GITHUB_OUTPUT
+          echo "platforms=${platforms}" >> $GITHUB_OUTPUT
