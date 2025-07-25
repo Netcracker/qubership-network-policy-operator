@@ -24,7 +24,7 @@ jobs:
           config-file: './.github/workflows/helm-charts-release-config.yaml'
           create-release-branch: 'true'
           version-replace-method: 'parse'
-          working-directory: './'
+          working-directory: '/charts'
         env:
           ${{ insert }}: ${{ vars }} # This will insert all repository variables into env context
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
