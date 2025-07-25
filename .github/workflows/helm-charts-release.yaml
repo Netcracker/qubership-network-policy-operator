@@ -2,41 +2,42 @@
 
 name: "Charts Release"
 description: "Update helm charts versions in values.yaml file and create a release draft"
-
-inputs:
-  release-version:
-    description: "Release version"
-    required: true
-    type: string
-  chart-version:
-    description: "Chart version. If not provided, the chart version will be set to the release version."
-    required: false
-    type: string
-  config-file:
-    description: "Path to the configuration file for updating versions in values.yaml"
-    required: true
-    type: string
-  create-release-branch:
-    description: "Create a release branch"
-    required: false
-    default: "true"
-    type: string
-  version-replace-method:
-    description: "Method to replace version in values.yaml. Can be 'replace' or 'parse'."
-    # 'replace' will replace the image version with the release version as is.
-    # 'parse' will parse the version string from config file, make variables substitution, prefix/suffix addition."
-    required: false
-    default: "parse"
-    type: string
-  working-directory:
-    description: "Working directory for the action"
-    required: false
-    default: "."
-    type: string
-outputs:
-  images-versions:
-    description: "Image versions updated in the values.yaml file"
-    value: ${{ steps.update-versions.outputs.images-versions }}
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: "Release version"
+        required: true
+        type: string
+      chart-version:
+        description: "Chart version. If not provided, the chart version will be set to the release version."
+        required: false
+        type: string
+      config-file:
+        description: "Path to the configuration file for updating versions in values.yaml"
+        required: true
+        type: string
+      create-release-branch:
+        description: "Create a release branch"
+        required: false
+        default: "true"
+        type: string
+      version-replace-method:
+        description: "Method to replace version in values.yaml. Can be 'replace' or 'parse'."
+        # 'replace' will replace the image version with the release version as is.
+        # 'parse' will parse the version string from config file, make variables substitution, prefix/suffix addition."
+        required: false
+        default: "parse"
+        type: string
+      working-directory:
+        description: "Working directory for the action"
+        required: false
+        default: "."
+        type: string
+    outputs:
+      images-versions:
+        description: "Image versions updated in the values.yaml file"
+        value: ${{ steps.update-versions.outputs.images-versions }}
 runs:
   using: "composite"
   steps:
