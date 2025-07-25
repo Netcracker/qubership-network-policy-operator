@@ -58,3 +58,27 @@ jobs:
           fi
           echo "components=${components}" >> $GITHUB_OUTPUT
           echo "platforms=${platforms}" >> $GITHUB_OUTPUT
+
+  docker-check-build:
+    needs: [load-docker-build-components, check-tag]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ${{ fromJson(needs.load-docker-build-components.outputs.component) }}
+    steps:
+      - name: Get version for current component
+        id: get-version
+        run: |
+          echo "IMAGE=${{ matrix.component.name }}" >> $GITHUB_ENV
+      - name: Docker build
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        with:
+          ref: ${{ github.ref }}
+          download-artifact: false
+          dry-run: true
+          component: ${{ toJson(matrix.component) }}
+          platforms: ${{ needs.load-docker-build-components.outputs.platforms }}
+          tags: "${{ env.IMAGE_VERSION }}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
