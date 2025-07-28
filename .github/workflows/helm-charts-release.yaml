@@ -19,8 +19,8 @@ jobs:
       - name: Release Helm Charts
         uses: netcracker/qubership-workflow-hub/actions/charts-values-update-action@main
         with:
-          release-version: '1.0.0'
-          chart-version: '1.0.0'
+          release-version: '0.5.0'
+          chart-version: '0.3.0'
           config-file: './.github/workflows/helm-charts-release-config.yaml'
           create-release-branch: 'true'
           version-replace-method: 'parse'
