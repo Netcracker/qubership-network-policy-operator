@@ -1,0 +1,20 @@
+{
+  "components": [
+    {
+      "name": "qubership-network-policy-operator",
+      "file": "Dockerfile",
+      "context": "."
+    },
+    {
+      "name": "qubership-network-policy-job",
+      "file": "job/Dockerfile",
+      "context": ""
+    },
+    {
+      "name": "qubership-network-policy-operator-transfer",
+      "file": "docker-transfer/Dockerfile",
+      "context": ""
+    }
+  ],
+  "platforms": "linux/amd64,linux/arm64"
+}
