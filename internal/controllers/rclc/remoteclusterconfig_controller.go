@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,14 +19,15 @@ package rclc
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strings"
+
 	"gopkg.in/yaml.v3"
-	"net"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,9 +36,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
@@ -45,27 +46,27 @@ import (
 )
 
 const (
-	ExcludingAnnotation	   = "network-policy.qubership.org/exclude-from-external-namespace"
+	ExcludingAnnotation        = "network-policy.qubership.org/exclude-from-external-namespace"
 	operatorNamespaceEnvVar    = "NAMESPACE"
-	NodeAddressAnnotation	   = "projectcalico.org/IPv4Address"
+	NodeAddressAnnotation      = "projectcalico.org/IPv4Address"
 	TunnelAddressAnnotation    = "projectcalico.org/IPv4IPIPTunnelAddr"
-	OCPConfigMap		   = "cluster-config-v1"
-	KubernetesConfigMap	   = "kubeadm-config"
-	ConfigMapNamespace	   = "kube-system"
-	OCPCoreDNSName		   = "dns-default"
-	OCPCoreDNSNamespace	   = "openshift-dns"
-	KubernetesCoreDNSName	   = "kube-dns"
+	OCPConfigMap               = "cluster-config-v1"
+	KubernetesConfigMap        = "kubeadm-config"
+	ConfigMapNamespace         = "kube-system"
+	OCPCoreDNSName             = "dns-default"
+	OCPCoreDNSNamespace        = "openshift-dns"
+	KubernetesCoreDNSName      = "kube-dns"
 	KubernetesCoreDNSNamespace = "kube-system"
-	KubeAPIService		   = "kubernetes"
-	KubeAPIServiceNamespace	   = "default"
+	KubeAPIService             = "kubernetes"
+	KubeAPIServiceNamespace    = "default"
 )
 
 type RemoteClusterConfigType string
 
 const (
 	TypeInitialized  RemoteClusterConfigType = "Initialized"
-	TypeCoupled	 RemoteClusterConfigType = "Coupled"
-	TypeLoose	 RemoteClusterConfigType = "Loose"
+	TypeCoupled      RemoteClusterConfigType = "Coupled"
+	TypeLoose        RemoteClusterConfigType = "Loose"
 	TypeSynchronized RemoteClusterConfigType = "Synchronized"
 )
 
@@ -126,11 +127,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	svcCFG, err = r.getServiceSubnet()
 	if err != nil {
 		log.Error(err, "Failed identify Service subnet. Egress NetworkPolicies won't be created")
-		rcl.Status.ServiceSubnet  = ""
+		rcl.Status.ServiceSubnet = ""
 		rcl.Status.KubeAPIService = ""
 		rcl.Status.CoreDNSService = ""
 	} else {
-		rcl.Status.ServiceSubnet  = svcCFG.Subnet
+		rcl.Status.ServiceSubnet = svcCFG.Subnet
 		rcl.Status.KubeAPIService = svcCFG.KubeAPI
 		rcl.Status.CoreDNSService = svcCFG.CoreDNS
 		log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the local Service Subnet, '%s' as the Kubernetes API Service, '%s' as the CoreDNS Service", rcl.GetName(), rcl.Status.ServiceSubnet, rcl.Status.KubeAPIService, rcl.Status.CoreDNSService))
@@ -195,7 +196,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	log.Info(fmt.Sprintf("The couple for '%s' RemoteClusterConfig is '%s'", rcl.GetName(), rclCouple.GetName()))
 	// Updating RemoteClusterConfig status
 	// Setting couple Services configuration
-	rcl.Status.CoupleServiceSubnet  = rclCouple.Status.ServiceSubnet
+	rcl.Status.CoupleServiceSubnet = rclCouple.Status.ServiceSubnet
 	rcl.Status.CoupleKubeAPIService = rclCouple.Status.KubeAPIService
 	rcl.Status.CoupleCoreDNSService = rclCouple.Status.CoreDNSService
 	log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the remote Service Subnet", rcl.GetName(), rcl.Status.CoupleServiceSubnet))
@@ -240,7 +241,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 		labels = accessor.GetLabels()
 
-		opts := &client.ListOptions{Namespace: nsItem.GetName(),}
+		opts := &client.ListOptions{Namespace: nsItem.GetName()}
 		err = r.List(ctx, podList, opts)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to list Pods in '%s' Namespace", nsItem.GetName()))
@@ -252,8 +253,8 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{}, err
 		}
 		ens, err = r.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
-								nsItem.GetName(), string(nsItem.GetUID()),
-								labels, tunnelIPs, nsAnn)
+			nsItem.GetName(), string(nsItem.GetUID()),
+			labels, tunnelIPs, nsAnn)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", nsItem.Name))
 			return ctrl.Result{}, err
@@ -267,7 +268,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info(fmt.Sprintf("ExternalNamespace: %v", ens))
 		// Converting ExtenalNamespace to Unstructured
 		unstr.Object, err = runtime.DefaultUnstructuredConverter.
-				ToUnstructured(ens)
+			ToUnstructured(ens)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to convert '%s' ExternalNamespace to Unstructured", ens.GetName()))
 			return ctrl.Result{}, err
@@ -330,14 +331,14 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 				podIP = ""
 			}
 		} else {
-			podIP    = podItem.Status.PodIP
+			podIP = podItem.Status.PodIP
 		}
-		pod.Labels   = podItem.GetLabels()
-		pod.Name     = podItem.GetName()
+		pod.Labels = podItem.GetLabels()
+		pod.Name = podItem.GetName()
 		pod.NodeName = podItem.Spec.NodeName
-		pod.HostIP   = podItem.Status.HostIP
-		pod.PodIP    = podIP
-		pods	     = append(pods, *pod)
+		pod.HostIP = podItem.Status.HostIP
+		pod.PodIP = podIP
+		pods = append(pods, *pod)
 	}
 	for _, svcItem := range svcList.Items {
 		if svcItem.GetDeletionTimestamp() != nil {
@@ -345,28 +346,28 @@ func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podLis
 		}
 		// Only Services with `clusterIP` are needed
 		if len(svcItem.Spec.ClusterIP) > 0 && svcItem.Spec.ClusterIP != "None" {
-			svc.Selector  = svcItem.Spec.Selector
-			svc.Labels    = svcItem.GetLabels()
-			svc.Name      = svcItem.GetName()
+			svc.Selector = svcItem.Spec.Selector
+			svc.Labels = svcItem.GetLabels()
+			svc.Name = svcItem.GetName()
 			svc.ClusterIP = svcItem.Spec.ClusterIP
-			svcs	      = append(svcs, *svc)
+			svcs = append(svcs, *svc)
 		}
 	}
 	resourceList := &npcv1.Resources{
-		Pods:	 pods,
+		Pods:     pods,
 		Services: svcs,
 	}
 	ens := &npcv1.ExternalNamespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:		 ensName,
-			Namespace:	 rclCouple.GetNamespace(),
-			Labels:		 labels,
-			Annotations:	 ann,
+			Name:        ensName,
+			Namespace:   rclCouple.GetNamespace(),
+			Labels:      labels,
+			Annotations: ann,
 		},
 		Spec: npcv1.ExternalNamespaceSpec{
-			RemoteCluster:	 rcl.GetName(),
+			RemoteCluster:   rcl.GetName(),
 			RemoteNamespace: ns,
-			Resources:	 *resourceList,
+			Resources:       *resourceList,
 		},
 	}
 	return ens, nil
@@ -385,9 +386,9 @@ func (r *RemoteClusterConfigReconciler) GetOperatorNamespace() string {
 }
 
 // GetCouple returns a RemoteClusterConfig couple from remote cluster
-func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig, 
+func (r *RemoteClusterConfigReconciler) GetCouple(rcl *npcv1.RemoteClusterConfig,
 	dynamicClient *dynamic.DynamicClient) (*npcv1.RemoteClusterConfig, error) {
-	rclGet := npcv1.RemoteClusterConfig{} 
+	rclGet := npcv1.RemoteClusterConfig{}
 	rclCouple := npcv1.RemoteClusterConfig{}
 	log := log.FromContext(context.TODO())
 	// Getting list of RemoteClusterConfig from remote cluster
@@ -460,7 +461,6 @@ func (r *RemoteClusterConfigReconciler) NodeToTunnelIPs(c client.Client) (map[st
 
 	return tunnelIPs, nil
 }
-
 
 // getServiceSubnet extracts the current cluster Service subnet
 // Also, it gets KubeAPI and CoreDNS Services IPs
@@ -560,7 +560,7 @@ func (r *RemoteClusterConfigReconciler) getServiceSubnet() (ServiceConfig, error
 }
 
 // GetRemoteConfig makes configuration to connect to remote cluster
-func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret * corev1.Secret) (*rest.Config, error) {
+func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteClusterConfig, secret *corev1.Secret) (*rest.Config, error) {
 
 	log := log.FromContext(context.TODO())
 	apiWoPrefix, _ := strings.CutPrefix(rcl.Spec.RemoteCluster.API, "https://")
@@ -587,8 +587,8 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 			return nil, err
 		}
 		remoteConfig = &rest.Config{
-			Host:        rcl.Spec.RemoteCluster.API,
-			APIPath:     "/apis",
+			Host:    rcl.Spec.RemoteCluster.API,
+			APIPath: "/apis",
 			TLSClientConfig: rest.TLSClientConfig{
 				Insecure:   false,
 				ServerName: strings.Split(apiWoPrefix, ":")[0],
@@ -611,7 +611,7 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	var conditionType string
 	log := log.FromContext(context.TODO())
 	rclList := &npcv1.RemoteClusterConfigList{}
-	opt := &client.ListOptions{Namespace: oprNamespace,}
+	opt := &client.ListOptions{Namespace: oprNamespace}
 	err := c.List(context.TODO(), rclList, opt)
 	if err != nil {
 		log.Error(err, "Failed to list RemoteClusterConfigs")
@@ -621,15 +621,15 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	rclsLoose := 0
 	rclsCoupled := 0
 	rclsSynch := 0
-	latestTime := metav1.Unix(0,0)
+	latestTime := metav1.Unix(0, 0)
 	for _, rclItem := range rclList.Items {
 		// Checking the latest condition
-		for _, conditionItem := range rclItem.Status.Conditions{
+		for _, conditionItem := range rclItem.Status.Conditions {
 			if latestTime.Before(&conditionItem.LastTransitionTime) {
 				latestTime = conditionItem.LastTransitionTime
 			}
 		}
-		for _, conditionItem := range rclItem.Status.Conditions{
+		for _, conditionItem := range rclItem.Status.Conditions {
 			if latestTime == conditionItem.LastTransitionTime {
 				conditionType = conditionItem.Type
 			}

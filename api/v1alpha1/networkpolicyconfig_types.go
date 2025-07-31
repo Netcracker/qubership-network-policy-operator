@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,27 +21,27 @@ import (
 )
 
 type LogsSpec struct {
-	Enabled	       bool `json:"enabled,omitempty"`
-	CollectingAll  bool `json:"collectingAll,omitempty"`
+	Enabled        bool   `json:"enabled,omitempty"`
+	CollectingAll  bool   `json:"collectingAll,omitempty"`
 	NamespaceLabel string `json:"namespaceScope,omitempty"`
 }
 
 // NetworkPolicyConfigSpec defines the desired state of NetworkPolicyConfig
 type NetworkPolicyConfigSpec struct {
-	Enabled			bool `json:"enabled"`
-	Scope			map[string]string `json:"scope,omitempty"`
-	Policies		map[string]string `json:"policies,omitempty"`
-	AllowAnnotation		string `json:"allowAnnotation,omitempty"`
-	ControlPlane		string `json:"controlPlane,omitempty"`
-	ImplicitNamespaces	string `json:"implicitNamespaces,omitempty"`
-	Logs			LogsSpec `json:"logs"`
-	DefaultTier             string `json:"defaultTier,omitempty"`
-	CustomTier	        string `json:"customTier,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Scope              map[string]string `json:"scope,omitempty"`
+	Policies           map[string]string `json:"policies,omitempty"`
+	AllowAnnotation    string            `json:"allowAnnotation,omitempty"`
+	ControlPlane       string            `json:"controlPlane,omitempty"`
+	ImplicitNamespaces string            `json:"implicitNamespaces,omitempty"`
+	Logs               LogsSpec          `json:"logs"`
+	DefaultTier        string            `json:"defaultTier,omitempty"`
+	CustomTier         string            `json:"customTier,omitempty"`
 }
 
 // NetworkPolicyConfigStatus defines the observed state of NetworkPolicyConfig
 type NetworkPolicyConfigStatus struct {
-	Conditions	    []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 //+kubebuilder:object:root=true
