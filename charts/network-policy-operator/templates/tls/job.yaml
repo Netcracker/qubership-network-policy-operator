@@ -26,7 +26,7 @@ spec:
       containers:
         - name: create
           image: {{ template "job.image" . }}
-          imagePullPolicy: {{ .Values.dr.tlsJob.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.dr.tlsJob.pullPolicy }}
           args:
             - /script.sh
           env:

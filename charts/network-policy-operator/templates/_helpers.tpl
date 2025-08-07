@@ -73,7 +73,7 @@ Allows overriding it for multi-namespace deployments in combined charts.
 Network Policy Operator image.
 */}}
 {{- define "operator.image" -}}
-    {{ printf "%s:%s" .Values.manager.image.repository (.Values.manager.image.tag | default .Chart.AppVersion) }}
+    {{ .Values.manager.image }}
 {{- end -}}
 
 {{/*
@@ -101,5 +101,5 @@ TLS Job name.
 TLS Job image.
 */}}
 {{- define "job.image" -}}
-    {{ printf "%s:%s" .Values.dr.tlsJob.image.repository (.Values.dr.tlsJob.image.tag | default .Chart.AppVersion) }}
+    {{ printf "%s:%s" .Values.dr.tlsJob.image }}
 {{- end -}}
