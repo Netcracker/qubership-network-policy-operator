@@ -101,5 +101,5 @@ TLS Job name.
 TLS Job image.
 */}}
 {{- define "job.image" -}}
-    {{ printf "%s:%s" .Values.dr.tlsJob.image }}
+    {{ .Values.dr.tlsJob.image }}
 {{- end -}}
