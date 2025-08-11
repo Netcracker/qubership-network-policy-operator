@@ -39,7 +39,7 @@ leaderElection:
 
 manager:
   # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-  image: ghcr.io/netcracker/qubership-network-policy-operator:main
+  image: ghcr.io/netcracker/qubership-network-policy-operator:0.0.8
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
 
@@ -205,7 +205,7 @@ dr:
   # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
   tls: auto
   tlsJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: ghcr.io/netcracker/qubership-network-policy-job:0.0.8
     pullPolicy: IfNotPresent
     resources:
       requests:
