@@ -18,114 +18,114 @@ package cnp
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
-	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcc "github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
+	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
 var _ = Describe("NetworkPolicy Controller", func() {
 	Context("When reconciling a resource", func() {
-/*
-For comprehensive test running the NetworkPolicyConfig reconciliation must be disabled and in the `test` namespaces must be ceated the following policies:
-apiVersion: projectcalico.org/v3
-kind: NetworkPolicy
-metadata:
-  name: allow-from-ns
-  namespace: test1
-spec:
-  egress:
-  - action: Allow
-    destination:
-      namespaceSelector: kubernetes.io/metadata.name in {'test-2','test-1'}
-      ports:
-      - 5555
-      selector: all()
-    protocol: TCP
-    source: {}
-  ingress:
-  - action: Log
-    destination: {}
-    source:
-      nets:
-      - 0.0.0.0/0
-  - action: Allow
-    destination:
-      ports:
-      - 5432
-    protocol: TCP
-    source:
-      namespaceSelector: kubernetes.io/metadata.name in {'test-2','test-1'}
-      selector: all()
-  - action: Allow
-    destination:
-      ports:
-      - 5000
-    protocol: TCP
-    source:
-      selector: all()
-  - action: Allow
-    destination:
-      ports:
-      - 5555
-    protocol: TCP
-    source:
-      nets:
-      - 10.0.0.0/16
-  selector: all()
-  types:
-  - Ingress
-  - Egress
----
-apiVersion: projectcalico.org/v3
-kind: NetworkPolicy
-metadata:
-  name: restrict-service
-  namespace: test1
-  labels:
-    network-policy.qubership.org/generated: "true"
-    network-policy.qubership.org/egress-svc: "true"
-spec:
-  order: 10
-  egress:
-  - action: Allow
-    destination:
-      nets:
-        - 0.0.0.0/0
-  selector: all()
-  types:
-  - Egress
-*/
+		/*
+		   For comprehensive test running the NetworkPolicyConfig reconciliation must be disabled and in the `test` namespaces must be ceated the following policies:
+		   apiVersion: projectcalico.org/v3
+		   kind: NetworkPolicy
+		   metadata:
+		     name: allow-from-ns
+		     namespace: test1
+		   spec:
+		     egress:
+		     - action: Allow
+		       destination:
+		         namespaceSelector: kubernetes.io/metadata.name in {'test-2','test-1'}
+		         ports:
+		         - 5555
+		         selector: all()
+		       protocol: TCP
+		       source: {}
+		     ingress:
+		     - action: Log
+		       destination: {}
+		       source:
+		         nets:
+		         - 0.0.0.0/0
+		     - action: Allow
+		       destination:
+		         ports:
+		         - 5432
+		       protocol: TCP
+		       source:
+		         namespaceSelector: kubernetes.io/metadata.name in {'test-2','test-1'}
+		         selector: all()
+		     - action: Allow
+		       destination:
+		         ports:
+		         - 5000
+		       protocol: TCP
+		       source:
+		         selector: all()
+		     - action: Allow
+		       destination:
+		         ports:
+		         - 5555
+		       protocol: TCP
+		       source:
+		         nets:
+		         - 10.0.0.0/16
+		     selector: all()
+		     types:
+		     - Ingress
+		     - Egress
+		   ---
+		   apiVersion: projectcalico.org/v3
+		   kind: NetworkPolicy
+		   metadata:
+		     name: restrict-service
+		     namespace: test1
+		     labels:
+		       network-policy.qubership.org/generated: "true"
+		       network-policy.qubership.org/egress-svc: "true"
+		   spec:
+		     order: 10
+		     egress:
+		     - action: Allow
+		       destination:
+		         nets:
+		           - 0.0.0.0/0
+		     selector: all()
+		     types:
+		     - Egress
+		*/
 
 		const (
-			rclName	      = "test-remote-cluster-config"
+			rclName       = "test-remote-cluster-config"
 			rclCoupleName = "couple-remote-cluster-config"
-			rclNS	     = "default"
-			ensName	     = "ext-ns"
-			podName      = "test-pod1"
-			nsName       = "test1"
-			nsOpr        = "default"
-			npcName	     = "default1"
+			rclNS         = "default"
+			ensName       = "ext-ns"
+			podName       = "test-pod1"
+			nsName        = "test1"
+			nsOpr         = "default"
+			npcName       = "default1"
 		)
 
 		var pod1IP, pod2IP string = "10.132.132.132", "10.132.132.133"
 		ctx := context.Background()
-		policyName1  := "allow-within-ns"
-		policyName2  := "restrict-service"
+		policyName1 := "allow-within-ns"
+		policyName2 := "restrict-service"
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      ensName,
@@ -157,7 +157,7 @@ spec:
 		}
 
 		svcSelector := map[string]string{
-			"app":        "target",
+			"app": "target",
 		}
 
 		nsLabels := map[string]string{
@@ -177,7 +177,7 @@ spec:
 		isTier := false
 		dfTier := "automated"
 		dfOrder := float64(10000)
-		act :=	calicov3.Pass
+		act := calicov3.Pass
 		tr1 := &calicov3.Tier{}
 		typeNamespacedNameT1 := types.NamespacedName{
 			Name:      dfTier,
@@ -276,11 +276,11 @@ spec:
 
 		policies := make(map[string]string)
 		policies["AllowWithinNamespace"] = WNS
-		policies["AllowFromNamespace"] 	 = ANS
-		policies["DefaultDeny"]		 = DD
-		policies["RestrictService"]	 = RS
-		policies["CustomPolicies"]	 = ""
-		policies["DefaultLog"]		 = DL
+		policies["AllowFromNamespace"] = ANS
+		policies["DefaultDeny"] = DD
+		policies["RestrictService"] = RS
+		policies["CustomPolicies"] = ""
+		policies["DefaultLog"] = DL
 
 		BeforeEach(func() {
 			By("Creating the ExternalNamespace")
@@ -290,7 +290,7 @@ spec:
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        ensName,
 						Namespace:   nsOpr,
-						Labels:	     nsLabels,
+						Labels:      nsLabels,
 						Annotations: nsAnnotations,
 					},
 					Spec: npcv1.ExternalNamespaceSpec{
@@ -304,15 +304,15 @@ spec:
 								NodeName: "ubuntu",
 								PodIP:    pod1IP,
 							},
-							{
-								Labels:   podLabels,
-								HostIP:   "192.168.56.106",
-								Name:     podName,
-								NodeName: "ubuntu",
-								PodIP:    pod2IP,
-							}},
+								{
+									Labels:   podLabels,
+									HostIP:   "192.168.56.106",
+									Name:     podName,
+									NodeName: "ubuntu",
+									PodIP:    pod2IP,
+								}},
 							Services: []npcv1.Service{{
-								Selector: svcSelector,
+								Selector:  svcSelector,
 								Name:      "test-svc",
 								ClusterIP: "172.30.10.1",
 							}},
@@ -350,16 +350,16 @@ spec:
 					return k8sClient.Create(ctx, rcl)
 				}, time.Minute, time.Second).Should(Succeed())
 				meta.SetStatusCondition(&rcl.Status.Conditions,
-							metav1.Condition{
-								Type: TypeCoupled,
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
-								Message: "Couple is identified",
-							})
-				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
+					metav1.Condition{
+						Type:    string(TypeCoupled),
+						Status:  metav1.ConditionTrue,
+						Reason:  "Initializing",
+						Message: "Couple is identified",
+					})
+				rcl.Status.ServiceSubnet = "172.30.0.0/16"
 				rcl.Status.KubeAPIService = "172.30.0.1"
 				rcl.Status.CoreDNSService = "172.30.0.10"
-				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.CoupleServiceSubnet = "172.30.0.0/16"
 				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
 				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
 				Eventually(func() error {
@@ -373,13 +373,13 @@ spec:
 			if err != nil && errors.IsNotFound(err) {
 				npc = &npcv1.NetworkPolicyConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      npcName,
+						Name: npcName,
 					},
 					Spec: npcv1.NetworkPolicyConfigSpec{
 						Enabled:  true,
-						Scope:	  scope,
+						Scope:    scope,
 						Policies: policies,
-						Logs:	  npcv1.LogsSpec{
+						Logs: npcv1.LogsSpec{
 							Enabled:       true,
 							CollectingAll: true,
 						},
@@ -397,7 +397,7 @@ spec:
 			if err != nil && errors.IsNotFound(err) {
 				ns = &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      nsName,
+						Name: nsName,
 					},
 				}
 				Eventually(func() error {
@@ -419,11 +419,11 @@ spec:
 				if err != nil && errors.IsNotFound(err) {
 					tr1 = &calicov3.Tier{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      dfTier,
+							Name: dfTier,
 						},
 						Spec: calicov3.TierSpec{
-							Order:		&dfOrder,
-							DefaultAction:	&act,
+							Order:         &dfOrder,
+							DefaultAction: &act,
 						},
 					}
 					Eventually(func() error {
@@ -457,7 +457,7 @@ spec:
 				return k8sClient.Delete(ctx, npc)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			time.Sleep(15*time.Second)
+			time.Sleep(15 * time.Second)
 
 			// It's a workaround to fix the cascading deletion
 			By("Cleanup the NetworkPolicies")
@@ -528,7 +528,7 @@ spec:
 				Name:      policyName1,
 				Namespace: nsName,
 			}
-	
+
 			typeNamespacedNameNP2 := types.NamespacedName{
 				Name:      policyName2,
 				Namespace: nsName,
@@ -549,7 +549,7 @@ spec:
 				LabelSelector: labels.SelectorFromSet(labelSet),
 			}
 
-			time.Sleep(45*time.Second)
+			time.Sleep(45 * time.Second)
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			found = false
@@ -560,7 +560,7 @@ spec:
 				}
 				nsAnn = accessor.GetAnnotations()
 				if len(nsAnn) > 0 {
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
+					if nsAnn[NetworkPolicyOriginAnnotation] == policyName1 {
 						found = true
 						targetNP = &npItem
 					}
@@ -571,12 +571,12 @@ spec:
 			}
 
 			By("Checking Ingress IPs in NetworkPolicy")
-			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
-					fmt.Sprintf("%s/32", pod1IP)) &&
-				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
-						fmt.Sprintf("%s/32", pod2IP)) &&
+			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets,
+				fmt.Sprintf("%s/32", pod1IP)) &&
+				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets,
+					fmt.Sprintf("%s/32", pod2IP)) &&
 				(len(targetNP.Spec.Ingress[0].Source.Nets) == 2) {
-					By("Ingress IPs are matched")
+				By("Ingress IPs are matched")
 			} else {
 				Fail("Ingress IPs are not mached")
 			}
@@ -584,7 +584,7 @@ spec:
 			if len(targetNP.Spec.Egress) > 0 {
 				By("Checking Egress IPs in NetworkPolicy")
 				if slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(targetNP.Spec.Egress[0].Destination.Nets) == 2) {
-						By("Egress IPs are matched")
+					By("Egress IPs are matched")
 				} else {
 					Fail("Egress IPs are not mached")
 				}
@@ -617,7 +617,7 @@ spec:
 				}
 				nsAnn = accessor.GetAnnotations()
 				if len(nsAnn) > 0 {
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName1 {
+					if nsAnn[NetworkPolicyOriginAnnotation] == policyName1 {
 						found = true
 						targetNP = &npItem
 					}
@@ -628,12 +628,12 @@ spec:
 			}
 
 			By("Checking Ingress IPs in NetworkPolicy")
-			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
-					fmt.Sprintf("%s/32", pod1IP)) &&
-				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets, 
-						fmt.Sprintf("%s/32", pod2IP)) &&
+			if slices.Contains(targetNP.Spec.Ingress[0].Source.Nets,
+				fmt.Sprintf("%s/32", pod1IP)) &&
+				slices.Contains(targetNP.Spec.Ingress[0].Source.Nets,
+					fmt.Sprintf("%s/32", pod2IP)) &&
 				(len(targetNP.Spec.Ingress[0].Source.Nets) == 2) {
-					By("Ingress IPs are matched")
+				By("Ingress IPs are matched")
 			} else {
 				Fail("Ingress IPs are not mached")
 			}
@@ -641,7 +641,7 @@ spec:
 			if len(targetNP.Spec.Egress) > 0 {
 				By("Checking Egress IPs in NetworkPolicy")
 				if slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod1IP)) && slices.Contains(targetNP.Spec.Egress[0].Destination.Nets, fmt.Sprintf("%s/32", pod2IP)) && (len(targetNP.Spec.Egress[0].Destination.Nets) == 2) {
-						By("Egress IPs are matched")
+					By("Egress IPs are matched")
 				} else {
 					Fail("Egress IPs are not mached")
 				}
@@ -665,7 +665,7 @@ spec:
 				}
 				nsAnn = accessor.GetAnnotations()
 				if len(nsAnn) > 0 {
-					if nsAnn[NetworkPolicyOriginAnnotation] ==  policyName2 {
+					if nsAnn[NetworkPolicyOriginAnnotation] == policyName2 {
 						found = true
 						targetNP = &npItem
 					}
