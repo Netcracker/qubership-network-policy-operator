@@ -34,4 +34,10 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - qubership.org
+  resources:
+  - remoteclusterconfigs/finalizers
+  verbs:
+  - update
 {{- end }}
