@@ -144,6 +144,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	extName := ""
 	pref := strings.Split(policy.GetName(), ".")[0]
 	if (pref != policy.GetName()) && (len(pref) > 0) {
+		// Calico v3.29.4 and higher requires NetworkPolicy name preffix that equal to Tier name
 		extName = fmt.Sprintf("%s.ens-%s-%s", pref, randomString(10), randomString(5))
 	} else {
 		extName = fmt.Sprintf("ens-netpol-%s-%s", randomString(10), randomString(5))
