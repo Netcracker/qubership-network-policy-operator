@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	crtv1 "k8s.io/api/certificates/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	corev1 "k8s.io/api/core/v1"
-	crtv1 "k8s.io/api/certificates/v1"
-	rbac "k8s.io/api/rbac/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -39,17 +39,17 @@ import (
 var _ = Describe("RemoteClusterConfig Controller", func() {
 	Context("When reconciling a resource", func() {
 		const (
-			rclName 	= "test-remote-cluster-config"
-			rclCoupleName 	= "couple-remote-cluster-config"
-			rclNS   	= "default"
-			s1Name		= "remote-cluster1"
-			s2Name		= "remote-cluster2"
-			s2NameC		= "remote-cluster2-cert"
-			csrName		= "remote-cluster2-cert"
-			cmName		= "kube-root-ca.crt"
-			roleName	= "npo-role"
-			rbName		= "npo-rb"
-			userName	= "user1"
+			rclName       = "test-remote-cluster-config"
+			rclCoupleName = "couple-remote-cluster-config"
+			rclNS         = "default"
+			s1Name        = "remote-cluster1"
+			s2Name        = "remote-cluster2"
+			s2NameC       = "remote-cluster2-cert"
+			csrName       = "remote-cluster2-cert"
+			cmName        = "kube-root-ca.crt"
+			roleName      = "npo-role"
+			rbName        = "npo-rb"
+			userName      = "user1"
 		)
 
 		var accessor metav1.Object
@@ -74,13 +74,13 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Namespace: rclNS,
 		}
 		typeNamespacedNameR := types.NamespacedName{
-			Name:      roleName,
+			Name: roleName,
 		}
 		typeNamespacedNameRB := types.NamespacedName{
-			Name:      rbName,
+			Name: rbName,
 		}
 		typeNamespacedNameCRT := types.NamespacedName{
-			Name:      csrName,
+			Name: csrName,
 		}
 		typeNamespacedNameSC := types.NamespacedName{
 			Name:      s2NameC,
@@ -98,7 +98,7 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 		s2 := &corev1.Secret{}
 		role := &rbac.ClusterRole{}
 		rb := &rbac.ClusterRoleBinding{}
-		sl :=[]string{"*"}
+		sl := []string{"*"}
 		ensList := &npcv1.ExternalNamespaceList{}
 		owns := []metav1.OwnerReference{}
 		csr := &crtv1.CertificateSigningRequest{}
@@ -119,8 +119,8 @@ PKignC4tNqN4VvGjry3GDBOOqWzRsVTz3/YORT6Y2HYbUhtOTwsSToKVK2etJcoU
 SdkWhTI7Js+NZDPy4UjB+sQw1wkuGMNFSHhhkUa8HEg/yK1FHuvjeXON
 -----END CERTIFICATE REQUEST-----`)
 		usage := []crtv1.KeyUsage{crtv1.UsageDigitalSignature,
-					crtv1.UsageKeyEncipherment,
-					crtv1.UsageClientAuth}
+			crtv1.UsageKeyEncipherment,
+			crtv1.UsageClientAuth}
 		data := make(map[string][]byte)
 		data["tls.key"] = []byte(`-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAyZxCaW5+crG2wR9bAxyqYchfyHo0CjML9fKsP8Xj1pfd3OTE
@@ -203,13 +203,13 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 					return k8sClient.Create(ctx, rclCouple)
 				}, time.Minute, time.Second).Should(Succeed())
 				meta.SetStatusCondition(&rclCouple.Status.Conditions,
-							metav1.Condition{
-								Type:   string(TypeCoupled),
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
-								Message: "Couple is identified",
-							})
-				rclCouple.Status.ServiceSubnet  = "172.31.0.0/16"
+					metav1.Condition{
+						Type:    string(TypeCoupled),
+						Status:  metav1.ConditionTrue,
+						Reason:  "Initializing",
+						Message: "Couple is identified",
+					})
+				rclCouple.Status.ServiceSubnet = "172.31.0.0/16"
 				rclCouple.Status.KubeAPIService = "172.31.0.1"
 				rclCouple.Status.CoreDNSService = "172.31.0.10"
 				Eventually(func() error {
@@ -224,7 +224,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			if err != nil && errors.IsNotFound(err) {
 				sa1 = &corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:	   s1Name,
+						Name:      s1Name,
 						Namespace: rclNS,
 					},
 					Secrets: []corev1.ObjectReference{{
@@ -297,7 +297,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 						Name: roleName,
 					},
 					Rules: []rbac.PolicyRule{{
-						Verbs:	   sl,
+						Verbs:     sl,
 						APIGroups: sl,
 						Resources: sl,
 					}},
@@ -315,21 +315,21 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 						Name: rbName,
 					},
 					Subjects: []rbac.Subject{{
-						Kind:	   "ServiceAccount",
-						Name:	   s1Name,
+						Kind:      "ServiceAccount",
+						Name:      s1Name,
 						Namespace: rclNS,
 					}, {
-						Kind:	   "ServiceAccount",
-						Name:	   s2Name,
+						Kind:      "ServiceAccount",
+						Name:      s2Name,
 						Namespace: rclNS,
 					}, {
-						Kind:	   "User",
-						Name:	   userName,
+						Kind: "User",
+						Name: userName,
 					}},
 					RoleRef: rbac.RoleRef{
-						Kind:	  "ClusterRole",
+						Kind:     "ClusterRole",
 						APIGroup: "rbac.authorization.k8s.io",
-						Name:	  roleName,
+						Name:     roleName,
 					},
 				}
 				Eventually(func() error {
@@ -350,20 +350,20 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 						Groups:     []string{"system:authenticated"},
 						SignerName: "kubernetes.io/kube-apiserver-client",
 						Username:   "user1",
-						Usages:	    usage,
+						Usages:     usage,
 						Request:    req,
 					},
 				}
 				err = k8sClient.Create(ctx, csr)
 				Expect(err).NotTo(HaveOccurred())
-				csr.Status.Conditions = append (csr.Status.Conditions,
-								crtv1.CertificateSigningRequestCondition{
-								Type: crtv1.CertificateApproved,
-								Status: corev1.ConditionTrue,
-								Reason: "KubectlApprove",
-								Message: "This CSR was approved by kubectl certificate approve",
-								LastTransitionTime: metav1.Now(),
-							})
+				csr.Status.Conditions = append(csr.Status.Conditions,
+					crtv1.CertificateSigningRequestCondition{
+						Type:               crtv1.CertificateApproved,
+						Status:             corev1.ConditionTrue,
+						Reason:             "KubectlApprove",
+						Message:            "This CSR was approved by kubectl certificate approve",
+						LastTransitionTime: metav1.Now(),
+					})
 				_, err = k8sClientSet.CertificatesV1().CertificateSigningRequests().UpdateApproval(ctx, csrName, csr, metav1.UpdateOptions{})
 				Expect(err).NotTo(HaveOccurred())
 			} else if err != nil {
@@ -376,7 +376,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			data["ca.crt"] = []byte(cm.Data["ca.crt"])
 
 			By("Getting the certificate")
-			time.Sleep(5*time.Second)
+			time.Sleep(5 * time.Second)
 			err = k8sClient.Get(ctx, typeNamespacedNameCRT, csr)
 			Expect(err).NotTo(HaveOccurred())
 			data["tls.crt"] = csr.Status.Certificate
@@ -386,8 +386,8 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			if err != nil && errors.IsNotFound(err) {
 				sc = &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:        s2NameC,
-						Namespace:   rclNS,
+						Name:      s2NameC,
+						Namespace: rclNS,
 					},
 					Data: data,
 					Type: "Opaque",
@@ -466,7 +466,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 				return k8sClient.Delete(ctx, sc)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			time.Sleep(15*time.Second)
+			time.Sleep(15 * time.Second)
 
 			// It's a workaround to fix the cascading deletion
 			err = k8sClient.List(ctx, ensList)
@@ -476,7 +476,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 				for _, ensItem := range ensList.Items {
 					accessor, err = meta.Accessor(&ensItem)
 					owns = accessor.GetOwnerReferences()
-					for _, own := range owns{
+					for _, own := range owns {
 						if own.UID == rclUID {
 							Eventually(func() error {
 								return k8sClient.Delete(ctx, &ensItem)

@@ -198,12 +198,12 @@ To avoid any discrepancy, it is easier to use transparent unique names of the se
 dr:
   install: true
   localCluster:
-    api: cluster-1.openshift.sdntest.netcracker.com:6443
+    api: cluster-1.domain.com:6443
     name: cluster-1
     secret: cluster-1-secret
   remoteClusters:
     - name: cluster-2
-      api: cluster-2.openshift.sdntest.netcracker.com:6443
+      api: cluster-2.domain.com:6443
       secret: cluster-2-secret
 ```
 
@@ -213,12 +213,12 @@ The second cluster `values.yaml`:
 dr:
   install: true
   localCluster:
-    api: cluster-2.openshift.sdntest.netcracker.com:6443
+    api: cluster-2.domain.com:6443
     name: cluster-2
     secret: cluster-2-secret
   remoteClusters:
     - name: cluster-1
-      api: cluster-1.openshift.sdntest.netcracker.com:6443
+      api: cluster-1.domain.com:6443
       secret: cluster-1-secret
 ```
 

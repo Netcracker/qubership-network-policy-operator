@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,16 +31,16 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
-	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 )
 
 const (
@@ -96,7 +96,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Listing the RemoteClusterConfigs
 	rclList := &npcv1.RemoteClusterConfigList{}
-	opts := &client.ListOptions{Namespace: oprNamespace,}
+	opts := &client.ListOptions{Namespace: oprNamespace}
 	err = r.List(ctx, rclList, opts)
 	if err != nil {
 		log.Error(err, "Failed to list RemoteClusterConfigs")
@@ -108,7 +108,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	podList := &corev1.PodList{}
 	svcList := &corev1.ServiceList{}
-	opts = &client.ListOptions{Namespace: ns.GetName(),}
+	opts = &client.ListOptions{Namespace: ns.GetName()}
 	err = r.List(ctx, podList, opts)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to list Pods in '%s' Namespace", ns.GetName()))
@@ -133,7 +133,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	defer close(cErr)
 	for _, rclItem := range rclList.Items {
 		go r.processRCL(&rclItem, podList, svcList, ns, labels, tunnelIPs, nsAnn, cErr)
-		err, ok := <- cErr
+		err, ok := <-cErr
 		if ok && err != nil {
 			return ctrl.Result{}, err
 		}
@@ -227,7 +227,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 
 	// Method from other controller
 	ens, err = rc.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
-			ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
+		ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", ns.GetName()))
 		cErr <- err
@@ -243,7 +243,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	log.Info(fmt.Sprintf("ExternalNamespace: %v", ens))
 	// Convert ExtenalNamespace to Unstructured
 	unstr.Object, err = runtime.DefaultUnstructuredConverter.
-			ToUnstructured(ens)
+		ToUnstructured(ens)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to convert '%s' ExternalNamespace to Unstructured", ens.GetName()))
 		cErr <- err
@@ -271,7 +271,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 				return
 			}
 			log.Info(fmt.Sprintf("'%s' ExternalNamespace has been created", ens.GetName()))
-		// Updating ExternalNamespace
+			// Updating ExternalNamespace
 		} else {
 			err = runtime.DefaultUnstructuredConverter.
 				FromUnstructured(resp.UnstructuredContent(), &ensGet)

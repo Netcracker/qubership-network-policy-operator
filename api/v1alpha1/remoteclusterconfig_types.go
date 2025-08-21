@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,13 +41,13 @@ type RemoteClusterConfigSpec struct {
 
 // RemoteClusterConfigStatus defines the observed state of RemoteClusterConfig
 type RemoteClusterConfigStatus struct {
-	Conditions	    []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
-	ServiceSubnet	     string `json:"serviceSubnet,omitempty"`
-	CoupleServiceSubnet  string `json:"coupleServiceSubnet,omitempty"`
-	KubeAPIService	     string `json:"kubeAPIService,omitempty"`
-	CoupleKubeAPIService string `json:"coupleKubeAPIService,omitempty"`
-	CoreDNSService	     string `json:"coreDNSService,omitempty"`
-	CoupleCoreDNSService string `json:"coupleCoreDNSService,omitempty"`
+	Conditions           []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	ServiceSubnet        string             `json:"serviceSubnet,omitempty"`
+	CoupleServiceSubnet  string             `json:"coupleServiceSubnet,omitempty"`
+	KubeAPIService       string             `json:"kubeAPIService,omitempty"`
+	CoupleKubeAPIService string             `json:"coupleKubeAPIService,omitempty"`
+	CoreDNSService       string             `json:"coreDNSService,omitempty"`
+	CoupleCoreDNSService string             `json:"coupleCoreDNSService,omitempty"`
 }
 
 //+kubebuilder:object:root=true

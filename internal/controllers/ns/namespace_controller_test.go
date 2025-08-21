@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,14 +23,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 )
@@ -38,18 +38,17 @@ import (
 var _ = Describe("Namespace Controller", func() {
 	Context("When reconciling a resource", func() {
 		const (
-			rclName	      = "test-remote-cluster-config"
+			rclName       = "test-remote-cluster-config"
 			rclCoupleName = "couple-remote-cluster-config"
-			nsName	      = "test-ns-npo"
-			podName	      = "test-pod"
+			nsName        = "test-ns-npo"
+			podName       = "test-pod"
 			svcName       = "test-svc"
-			rclNS	      = "default"
-			s1Name	      = "remote-cluster1"
-			s2Name	      = "remote-cluster2"
+			rclNS         = "default"
+			s1Name        = "remote-cluster1"
+			s2Name        = "remote-cluster2"
 			roleName      = "npo-role"
-			rbName	      = "npo-rb"
+			rbName        = "npo-rb"
 		)
-
 
 		var accessor metav1.Object
 		var num int
@@ -82,10 +81,10 @@ var _ = Describe("Namespace Controller", func() {
 			Namespace: rclNS,
 		}
 		typeNamespacedNameR := types.NamespacedName{
-			Name:      roleName,
+			Name: roleName,
 		}
 		typeNamespacedNameRB := types.NamespacedName{
-			Name:      rbName,
+			Name: rbName,
 		}
 		typeNamespacedNameP := types.NamespacedName{
 			Name:      podName,
@@ -105,7 +104,7 @@ var _ = Describe("Namespace Controller", func() {
 		s2 := &corev1.Secret{}
 		role := &rbac.ClusterRole{}
 		rb := &rbac.ClusterRoleBinding{}
-		sl :=[]string{"*"}
+		sl := []string{"*"}
 		pod := &corev1.Pod{}
 		svc := &corev1.Service{}
 
@@ -132,10 +131,10 @@ var _ = Describe("Namespace Controller", func() {
 					Status: npcv1.RemoteClusterConfigStatus{
 						Conditions: []metav1.Condition{{
 							LastTransitionTime: metav1.Now(),
-							Message: "Couple is identified",
-							Reason: "Initializing",
-							Status: "True",
-							Type: "Coupled",
+							Message:            "Couple is identified",
+							Reason:             "Initializing",
+							Status:             "True",
+							Type:               "Coupled",
 						}},
 					},
 				}
@@ -144,16 +143,16 @@ var _ = Describe("Namespace Controller", func() {
 				}, time.Minute, time.Second).Should(Succeed())
 
 				meta.SetStatusCondition(&rcl.Status.Conditions,
-							metav1.Condition{
-								Type: string(TypeCoupled),
-								Status: metav1.ConditionTrue,
-								Reason: "Initializing",
-								Message: "Couple is identified",
-							})
-				rcl.Status.ServiceSubnet  = "172.30.0.0/16"
+					metav1.Condition{
+						Type:    string(TypeCoupled),
+						Status:  metav1.ConditionTrue,
+						Reason:  "Initializing",
+						Message: "Couple is identified",
+					})
+				rcl.Status.ServiceSubnet = "172.30.0.0/16"
 				rcl.Status.KubeAPIService = "172.30.0.1"
 				rcl.Status.CoreDNSService = "172.30.0.10"
-				rcl.Status.CoupleServiceSubnet  = "172.30.0.0/16"
+				rcl.Status.CoupleServiceSubnet = "172.30.0.0/16"
 				rcl.Status.CoupleKubeAPIService = "172.30.0.1"
 				rcl.Status.CoupleCoreDNSService = "172.30.0.10"
 				Eventually(func() error {
@@ -195,7 +194,7 @@ var _ = Describe("Namespace Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				ns = &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      nsName,
+						Name: nsName,
 					},
 				}
 				Eventually(func() error {
@@ -226,7 +225,7 @@ var _ = Describe("Namespace Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				sa1 = &corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:	   s1Name,
+						Name:      s1Name,
 						Namespace: rclNS,
 					},
 					Secrets: []corev1.ObjectReference{{
@@ -299,7 +298,7 @@ var _ = Describe("Namespace Controller", func() {
 						Name: roleName,
 					},
 					Rules: []rbac.PolicyRule{{
-						Verbs:	   sl,
+						Verbs:     sl,
 						APIGroups: sl,
 						Resources: sl,
 					}},
@@ -317,18 +316,18 @@ var _ = Describe("Namespace Controller", func() {
 						Name: rbName,
 					},
 					Subjects: []rbac.Subject{{
-						Kind:	   "ServiceAccount",
-						Name:	   s1Name,
+						Kind:      "ServiceAccount",
+						Name:      s1Name,
 						Namespace: rclNS,
 					}, {
-						Kind:	   "ServiceAccount",
-						Name:	   s2Name,
+						Kind:      "ServiceAccount",
+						Name:      s2Name,
 						Namespace: rclNS,
 					}},
 					RoleRef: rbac.RoleRef{
-						Kind:	  "ClusterRole",
+						Kind:     "ClusterRole",
 						APIGroup: "rbac.authorization.k8s.io",
-						Name:	  roleName,
+						Name:     roleName,
 					},
 				}
 				Eventually(func() error {
@@ -404,9 +403,9 @@ var _ = Describe("Namespace Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				pod = &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:        podName,
-						Namespace:   nsName,
-						Labels:      label,
+						Name:      podName,
+						Namespace: nsName,
+						Labels:    label,
 					},
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{{
@@ -434,17 +433,17 @@ var _ = Describe("Namespace Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				svc = &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:        svcName,
-						Namespace:   nsName,
-						Labels:	     label,
+						Name:      svcName,
+						Namespace: nsName,
+						Labels:    label,
 					},
 					Spec: corev1.ServiceSpec{
 						Selector:  label,
 						ClusterIP: "172.30.10.10",
-						Ports:	   []corev1.ServicePort{{
-							Port:	    5000,
-							Name:	    "random",
-							Protocol:   corev1.ProtocolTCP,
+						Ports: []corev1.ServicePort{{
+							Port:     5000,
+							Name:     "random",
+							Protocol: corev1.ProtocolTCP,
 							TargetPort: intstr.IntOrString{
 								Type:   intstr.Int,
 								IntVal: 5000,
