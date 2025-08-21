@@ -1,4 +1,4 @@
-FROM bash:devel-alpine3.22
+FROM bash:devel-20250814-alpine3.22
 
 LABEL maintainer=""
 

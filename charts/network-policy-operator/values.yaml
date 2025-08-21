@@ -107,10 +107,10 @@ manager:
 
 authProxy:
   image:
-    repository: gcr.io/kubebuilder/kube-rbac-proxy
+    repository: bitnami/kube-rbac-proxy
     # This sets the pull policy for images.
     pullPolicy: IfNotPresent
-    tag: "v0.15.0"
+    tag: "0.19.1"
 
   # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
