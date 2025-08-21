@@ -107,6 +107,7 @@ var _ = Describe("Namespace Controller", func() {
 		sl := []string{"*"}
 		pod := &corev1.Pod{}
 		svc := &corev1.Service{}
+		pssLabel := map[string]string{"pod-security.kubernetes.io/enforce": "privileged"}
 
 		BeforeEach(func() {
 			By("Creating the RemoteClusterConfig")
@@ -194,7 +195,8 @@ var _ = Describe("Namespace Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				ns = &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: nsName,
+						Name:   nsName,
+						Labels: pssLabel,
 					},
 				}
 				Eventually(func() error {
