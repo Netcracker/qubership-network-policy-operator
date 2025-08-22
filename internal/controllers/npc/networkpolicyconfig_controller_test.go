@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2024 NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@ package npc
 
 import (
 	"context"
-	"slices"
 	"fmt"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -102,7 +102,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Name:      cmTier,
 			Namespace: "",
 		}
-		act :=	calicov3.Pass
+		act := calicov3.Pass
 		WNS := `
     apiVersion: projectcalico.org/v3
     kind: NetworkPolicy
@@ -224,11 +224,11 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 		policies := make(map[string]string)
 		policies["AllowWithinNamespace"] = WNS
-		policies["AllowFromNamespace"] 	 = ANS
-		policies["DefaultDeny"]		 = DD
-		policies["RestrictService"]	 = RS
-		policies["CustomPolicies"]	 = CST
-		policies["DefaultLog"]		 = DL
+		policies["AllowFromNamespace"] = ANS
+		policies["DefaultDeny"] = DD
+		policies["RestrictService"] = RS
+		policies["CustomPolicies"] = CST
+		policies["DefaultLog"] = DL
 
 		BeforeEach(func() {
 			By("Creating the NetworkPolicyConfig")
@@ -236,13 +236,13 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				npc = &npcv1.NetworkPolicyConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      npcName,
+						Name: npcName,
 					},
 					Spec: npcv1.NetworkPolicyConfigSpec{
 						Enabled:  en,
-						Scope:	  scope,
+						Scope:    scope,
 						Policies: policies,
-						Logs:	  npcv1.LogsSpec{
+						Logs: npcv1.LogsSpec{
 							Enabled:       true,
 							CollectingAll: true,
 						},
@@ -261,7 +261,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				ns = &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      nsName,
+						Name: nsName,
 					},
 				}
 				Eventually(func() error {
@@ -283,11 +283,11 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				if err != nil && errors.IsNotFound(err) {
 					tr1 = &calicov3.Tier{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      dfTier,
+							Name: dfTier,
 						},
 						Spec: calicov3.TierSpec{
-							Order:		&dfOrder,
-							DefaultAction:	&act,
+							Order:         &dfOrder,
+							DefaultAction: &act,
 						},
 					}
 					Eventually(func() error {
@@ -302,11 +302,11 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				if err != nil && errors.IsNotFound(err) {
 					tr2 = &calicov3.Tier{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      dfNewTier,
+							Name: dfNewTier,
 						},
 						Spec: calicov3.TierSpec{
-							Order:		&dfNewOrder,
-							DefaultAction:	&act,
+							Order:         &dfNewOrder,
+							DefaultAction: &act,
 						},
 					}
 					Eventually(func() error {
@@ -321,11 +321,11 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				if err != nil && errors.IsNotFound(err) {
 					tr3 = &calicov3.Tier{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      cmTier,
+							Name: cmTier,
 						},
 						Spec: calicov3.TierSpec{
-							Order:		&cmOrder,
-							DefaultAction:	&act,
+							Order:         &cmOrder,
+							DefaultAction: &act,
 						},
 					}
 					Eventually(func() error {
@@ -414,7 +414,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				defaultDeny = fmt.Sprintf("%s.%s", dfTier, defaultDeny)
 			}
 			By("Checking if the NetworkPolicy was successfully created in regular Namespace")
-			opts = &client.ListOptions{Namespace: "default",}
+			opts = &client.ListOptions{Namespace: "default"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			var npNamesList []string
@@ -430,7 +430,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if the NetworkPolicy was successfully created in control-plane Namespace")
-			opts = &client.ListOptions{Namespace: "kube-system",}
+			opts = &client.ListOptions{Namespace: "kube-system"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			var logNamesList []string
@@ -465,7 +465,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
-			opts = &client.ListOptions{Namespace: "default",}
+			opts = &client.ListOptions{Namespace: "default"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			for _, npItem := range npList.Items {
@@ -478,7 +478,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
-			opts = &client.ListOptions{Namespace: "kube-system",}
+			opts = &client.ListOptions{Namespace: "kube-system"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			logNamesList = []string{}
@@ -504,12 +504,12 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
-			opts = &client.ListOptions{Namespace: "default",}
+			opts = &client.ListOptions{Namespace: "default"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			for _, npItem := range npList.Items {
 				for _, rule := range npItem.Spec.Ingress {
-					if (rule.Action == calicov3.Log) {
+					if rule.Action == calicov3.Log {
 						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
 					}
 				}
@@ -517,7 +517,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
-			opts = &client.ListOptions{Namespace: "kube-system",}
+			opts = &client.ListOptions{Namespace: "kube-system"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
 			logNamesList = []string{}
@@ -630,16 +630,16 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Reconciling several NetworkPolicyConfigs")
-				npc2 = &npcv1.NetworkPolicyConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      npcNameAdd,
-					},
-					Spec: npcv1.NetworkPolicyConfigSpec{
-						Enabled:  en,
-						Scope:	  scope,
-						Policies: policies,
-					},
-				}
+			npc2 = &npcv1.NetworkPolicyConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: npcNameAdd,
+				},
+				Spec: npcv1.NetworkPolicyConfigSpec{
+					Enabled:  en,
+					Scope:    scope,
+					Policies: policies,
+				},
+			}
 			Eventually(func() error {
 				return k8sClient.Create(ctx, npc2)
 			}, time.Minute, time.Second).Should(Succeed())

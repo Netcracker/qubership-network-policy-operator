@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2024 NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	clientset "k8s.io/client-go/kubernetes"
 
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
