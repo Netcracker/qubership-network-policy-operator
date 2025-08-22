@@ -107,6 +107,13 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
+	npcGet := &npcv1.NetworkPolicyConfig{}
+	err = r.Get(ctx, req.NamespacedName, npcGet)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		return ctrl.Result{}, err
+	}
+	npc.SetResourceVersion(npcGet.GetResourceVersion())
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
@@ -317,10 +324,9 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Setting condition
-	npcGet := &npcv1.NetworkPolicyConfig{}
 	err = r.Get(ctx, req.NamespacedName, npcGet)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("There is no '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
 		return ctrl.Result{}, err
 	}
 	npc.SetResourceVersion(npcGet.GetResourceVersion())
