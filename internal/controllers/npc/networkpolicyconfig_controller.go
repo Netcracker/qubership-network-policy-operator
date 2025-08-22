@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright NetCracker Technology Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,55 +17,55 @@ limitations under the License.
 package npc
 
 import (
-	"fmt"
 	"context"
-	"strings"
-	"slices"
+	"fmt"
 	"maps"
+	"slices"
+	"strings"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	corev1 "k8s.io/api/core/v1"
 
-	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
-	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
+	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
+	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
 const (
-	NetworkPolicyLabel	= "network-policy.qubership.org/generated"
-	EgressServiceLabel	= "network-policy.qubership.org/egress-svc"
-	TunnelAddressAnnotation	= rclc.TunnelAddressAnnotation	
-	TypeCoupled		= rclc.TypeCoupled
-	TypeDefaultApplied	= "DefaultApplied"
-	TypeCustomApplied	= "CustomApplied"
-	TypeDuplicated		= "Duplicated"
-	TypeStarted		= "Started"
+	NetworkPolicyLabel      = "network-policy.qubership.org/generated"
+	EgressServiceLabel      = "network-policy.qubership.org/egress-svc"
+	TunnelAddressAnnotation = rclc.TunnelAddressAnnotation
+	TypeCoupled             = rclc.TypeCoupled
+	TypeDefaultApplied      = "DefaultApplied"
+	TypeCustomApplied       = "CustomApplied"
+	TypeDuplicated          = "Duplicated"
+	TypeStarted             = "Started"
 )
 
-var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"} 
+var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"}
 
-var ControlPlane          string = "kube-,openshift,calico,tigera,ingress-nginx"
-var ImplicitNamespaces    string = "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
-var AllowAnnotation       string = "network-policy.qubership.org/allowed-from"
+var ControlPlane string = "kube-,openshift,calico,tigera,ingress-nginx"
+var ImplicitNamespaces string = "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
+var AllowAnnotation string = "network-policy.qubership.org/allowed-from"
 var NetworkPolicyLogLabel string = "network-policy.qubership.org/collecting-logs"
-var DefaultTier		  string = "automated"
-var CustomTier		  string = "default"
+var DefaultTier string = "automated"
+var CustomTier string = "default"
 
-var LogsEnabled		  bool
-var CollectAllLogs	  bool
+var LogsEnabled bool
+var CollectAllLogs bool
 
 // NetworkPolicyConfigReconciler reconciles a NetworkPolicyConfig object
 type NetworkPolicyConfigReconciler struct {
@@ -107,6 +107,13 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
 	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
+	npcGet := &npcv1.NetworkPolicyConfig{}
+	err = r.Get(ctx, req.NamespacedName, npcGet)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		return ctrl.Result{}, err
+	}
+	npc.SetResourceVersion(npcGet.GetResourceVersion())
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
@@ -317,6 +324,12 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Setting condition
+	err = r.Get(ctx, req.NamespacedName, npcGet)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		return ctrl.Result{}, err
+	}
+	npc.SetResourceVersion(npcGet.GetResourceVersion())
 	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
@@ -464,7 +477,7 @@ func setSelector(str string) string {
 }
 
 // processNamespace applies NetworkPolicies in particular Namespace
-func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, npc *npcv1.NetworkPolicyConfig, 
+func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, npc *npcv1.NetworkPolicyConfig,
 	cpNSList []string, impNS string, tunnelIPs []string, controlPlane bool) error {
 
 	log := log.FromContext(context.TODO())
@@ -502,7 +515,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		// Concatenation of namespaces from annotation and implicit namespaces
 		allowNS = fmt.Sprintf("%s,%s", nsAnn[AllowAnnotation], impNS)
 	}
-	
+
 	// Deleting log rule if logs disabled or it's needed to collect only denied connection
 	deleteLog := false
 	if !LogsEnabled {
@@ -582,7 +595,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 				log.Info(fmt.Sprintf("Log rules are deleted from '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), ns.GetName()))
 			}
 			// Setting Namespace selectors
-			for i := range	policy.Spec.Ingress {
+			for i := range policy.Spec.Ingress {
 				if policy.Spec.Ingress[i].Action != calicov3.Log {
 					policy.Spec.Ingress[i].Source.NamespaceSelector = setSelector(allowNS)
 				}
@@ -662,7 +675,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 
 // processCustom applies Custom NetworkPolicy
 func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPolicy,
-	npc * npcv1.NetworkPolicyConfig) error {
+	npc *npcv1.NetworkPolicyConfig) error {
 
 	log := log.FromContext(context.TODO())
 	var accessor metav1.Object
@@ -692,7 +705,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 	// Processing Tiers and changing name
 	if len(CustomTier) != 0 {
 		ns := &corev1.Namespace{}
-		err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetNamespace(), Namespace: "",}, ns)
+		err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetNamespace(), Namespace: ""}, ns)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace", policy.GetNamespace()))
 			return err
