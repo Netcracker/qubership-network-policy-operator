@@ -53,6 +53,7 @@ const (
 )
 
 var AllowAnnotation string = npc.AllowAnnotation
+var ImplicitNamespaces string = npc.ImplicitNamespaces
 var oprNamespace string
 
 // NetworkPolicyReconciler reconciles a NetworkPolicy object
@@ -479,7 +480,7 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 	log := log.FromContext(context.TODO())
 
 	var accessor metav1.Object
-	var svcIPs, allowedNS, servicesSubnets []string
+	var svcIPs, implicitNS, allowedNS, servicesSubnets []string
 	var allow string
 
 	rules := []calicov3.Rule{}
@@ -506,6 +507,12 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 		allow = npcList.Items[0].Spec.AllowAnnotation
 	}
 
+	if len(npcList.Items[0].Spec.ImplicitNamespaces) == 0 {
+		implicitNS = strings.Split(ImplicitNamespaces, ",")
+	} else {
+		implicitNS = strings.Split(npcList.Items[0].Spec.AllowAnnotation, ",")
+	}
+
 	ensList := &npcv1.ExternalNamespaceList{}
 	opts = &client.ListOptions{Namespace: oprNamespace}
 	err = r.List(context.TODO(), ensList, opts)
@@ -520,7 +527,7 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 		_, ok := ensAnn[allow]
 		if ok {
 			// Getting allowed Namespaces
-			allowedNS = strings.Split(ensAnn[allow], ",")
+			allowedNS = append(implicitNS, strings.Split(ensAnn[allow], ",")...)
 			log.Info(fmt.Sprintf("'%s' ExternalNamespace has allowed Namespaces: %v", ensItem.GetName(), allowedNS))
 		} else {
 			allowedNS = []string{}
