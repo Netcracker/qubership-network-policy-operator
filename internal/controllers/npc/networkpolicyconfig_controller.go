@@ -375,10 +375,10 @@ func (r *NetworkPolicyConfigReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Owns(&calicov3.NetworkPolicy{}).
 		Watches(&corev1.Namespace{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequestByNamespace),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+			builder.WithPredicates(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Watches(&corev1.Node{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.triggerRequestByNode),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+			builder.WithPredicates(predicate.AnnotationChangedPredicate{})).
 		Complete(r)
 }
 
