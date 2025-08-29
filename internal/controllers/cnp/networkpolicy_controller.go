@@ -525,13 +525,13 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 		ensAnn = accessor.GetAnnotations()
 		ensLabels = accessor.GetLabels()
 		_, ok := ensAnn[allow]
+		// Getting allowed Namespaces as concatenation of list from annotation and `implicitNamespaces`
 		if ok {
-			// Getting allowed Namespaces
 			allowedNS = append(implicitNS, strings.Split(ensAnn[allow], ",")...)
-			log.Info(fmt.Sprintf("'%s' ExternalNamespace has allowed Namespaces: %v", ensItem.GetName(), allowedNS))
 		} else {
-			allowedNS = []string{}
+			allowedNS = implicitNS
 		}
+		log.Info(fmt.Sprintf("'%s' ExternalNamespace has allowed Namespaces: %v", ensItem.GetName(), allowedNS))
 		// Traffic to Services must be allowed if the Services are located in allowed Namespaces
 		// or if Namespaces name are equal
 		if slices.Contains(allowedNS, policy.GetNamespace()) || ensLabels["kubernetes.io/metadata.name"] == policy.GetNamespace() {

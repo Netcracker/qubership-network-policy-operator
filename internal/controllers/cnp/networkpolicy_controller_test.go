@@ -579,6 +579,7 @@ var _ = Describe("NetworkPolicy Controller", func() {
 				By("Ingress IPs are matched")
 			} else {
 				Fail("Ingress IPs are not mached")
+				By(fmt.Sprintf("Actual IPs: %v", targetNP.Spec.Ingress[0].Source.Nets))
 			}
 
 			if len(targetNP.Spec.Egress) > 0 {
