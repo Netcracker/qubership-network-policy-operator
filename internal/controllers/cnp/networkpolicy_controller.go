@@ -510,7 +510,7 @@ func (r *NetworkPolicyReconciler) processServiceRules(policy *calicov3.NetworkPo
 	if len(npcList.Items[0].Spec.ImplicitNamespaces) == 0 {
 		implicitNS = strings.Split(ImplicitNamespaces, ",")
 	} else {
-		implicitNS = strings.Split(npcList.Items[0].Spec.AllowAnnotation, ",")
+		implicitNS = strings.Split(npcList.Items[0].Spec.ImplicitNamespaces, ",")
 	}
 
 	ensList := &npcv1.ExternalNamespaceList{}
