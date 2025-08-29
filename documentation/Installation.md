@@ -118,7 +118,7 @@ Navigate to the `chart/network-policy-operator/` directory and edit the `values.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
 * `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction.
-* All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`.
+* All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`. That access extends to neighbor clusters in case of DR scheme.
 * The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
 
 ```
