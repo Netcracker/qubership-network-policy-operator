@@ -5,9 +5,13 @@ on:
   push:
     branches:
       - '**'
+    paths-ignore:
+      - 'documentation/**'
   pull_request:
     branches:
       - '**'
+    paths-ignore:
+      - 'documentation/**'
   workflow_dispatch:
     inputs:
       publish_docker:
