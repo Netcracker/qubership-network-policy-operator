@@ -271,7 +271,7 @@ kubectl get npc
 
 The output must include only one resource with name from `values.yaml`.
 
-Also, you can create `NetworkPolicies` on the cluster (it depends on configuration). You can check it using the command:
+The created `NetworkPolicies` on the cluster could be checked by the command:
 
 ```sh
 kubectl get cnp -A
@@ -287,6 +287,23 @@ default             default-deny      2024-10-15T11:15:44Z
 test                allow-from-ns     2024-10-15T11:43:08Z
 test                allow-within-ns   2024-10-15T11:43:08Z
 test                default-deny      2024-10-15T11:43:08Z
+```
+
+The `NetworkPolicyConfig` resource should have the similar status if the NetworkPolicies have been applied successfully:
+
+```yaml
+status:
+  conditions:
+  - lastTransitionTime: "2025-08-29T12:16:30Z"
+    message: NetworkPolicyConfig reconciliation has been started
+    reason: Reconciliation
+    status: Unknown
+    type: Started
+  - lastTransitionTime: "2025-08-29T12:16:43Z"
+    message: Default NetworkPolicies have been applied
+    reason: Reconciliation
+    status: "True"
+    type: DefaultApplied
 ```
 
 In case of Calico v3.29+ check the `Tiers`:
@@ -312,7 +329,7 @@ kubectl -n network-policy-operator get rclc
 
 In case of correct DR settings, the `RemoteClusterConfig` must have at least the following message in status:
 
-```
+```yaml
 status:
   conditions:
   - lastTransitionTime: "2024-10-10T11:02:49Z"

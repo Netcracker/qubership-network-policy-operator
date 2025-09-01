@@ -53,6 +53,7 @@ const (
 	TypeCustomApplied       = "CustomApplied"
 	TypeDuplicated          = "Duplicated"
 	TypeStarted             = "Started"
+	TypeNamespaceUpdated    = "NamespaceUpdated"
 )
 
 var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"}
@@ -102,29 +103,31 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
-	// Removing all previous conditions
-	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeStarted)
-	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
-	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
-	meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
 	npcGet := &npcv1.NetworkPolicyConfig{}
-	err = r.Get(ctx, req.NamespacedName, npcGet)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
-		return ctrl.Result{}, err
-	}
-	npc.SetResourceVersion(npcGet.GetResourceVersion())
-	err = r.Status().Update(ctx, npc)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
-		return ctrl.Result{}, err
-	}
-	// Setting condition
-	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
-	err = r.Status().Update(ctx, npc)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
-		return ctrl.Result{}, err
+	// Removing all previous conditions if the loop is not trigged by the Namespace change
+	if len(req.NamespacedName.Namespace) == 0 {
+		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeStarted)
+		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
+		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
+		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
+		err = r.Get(ctx, req.NamespacedName, npcGet)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		}
+		npc.SetResourceVersion(npcGet.GetResourceVersion())
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
+		}
+		// Setting condition
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
+		err = r.Status().Update(ctx, npc)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Couning NetworkPolicies
@@ -330,16 +333,20 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	npc.SetResourceVersion(npcGet.GetResourceVersion())
-	meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
+	if len(req.NamespacedName.Namespace) == 0 {
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
+	} else {
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeNamespaceUpdated, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: fmt.Sprintf("Default NetworkPolicies have been updated in '%s' Namespace", req.NamespacedName.Namespace)})
+	}
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
 		return ctrl.Result{}, err
 	}
 
-	// Custom NetworkPolicies
+	// Custom NetworkPolicies is not applyed is the loop is triggred by Namespace changes
 	templateName = "CustomPolicies"
-	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 {
+	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 && len(req.NamespacedName.Namespace) == 0 {
 		log.Info(fmt.Sprintf("'%s' NetworkPolicies: %s", templateName, npc.Spec.Policies[templateName]))
 		customPolicyList := r.getCustomPolicies(npc.Spec.Policies[templateName])
 		for _, policyItem := range customPolicyList.Items {
@@ -368,10 +375,10 @@ func (r *NetworkPolicyConfigReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Owns(&calicov3.NetworkPolicy{}).
 		Watches(&corev1.Namespace{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequestByNamespace),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+			builder.WithPredicates(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Watches(&corev1.Node{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.triggerRequestByNode),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+			builder.WithPredicates(predicate.AnnotationChangedPredicate{})).
 		Complete(r)
 }
 
