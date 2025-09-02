@@ -4,6 +4,10 @@ kind: Tier
 metadata:
   name: {{ .Values.networkPolicies.defaultTier }}
 spec:
+  {{- if .Values.networkPolicies.onEKS }}
+  defaultAction: Deny
+  {{- else }}
   defaultAction: Pass
+  {{- end }}
   order: 10000
 {{- end }}
