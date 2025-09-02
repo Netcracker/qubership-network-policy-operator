@@ -2,6 +2,8 @@ This manual provides information on the installation procedure of Network Policy
 
 ## Prerequisites
 
+### Overall Calico CNI configuration
+
 The prerequisites for the installation are as follwos:
 
 - kubectl version v1.11.3+
@@ -28,6 +30,17 @@ spec:
   nodeSelector: all()
   vxlanMode: Never
 ```
+
+### Limited Calico CNI configuration
+
+- kubectl version v1.11.3+
+- Limited Calico CNI installation v3.30.1+
+- Kubernetes v1.30+ or OCP4.16+ cluster
+- Cluster admin access to the cluster
+
+**Notes:**
+* This case supports only standalone scheme
+* Limited Calico configuration example: [Install EKS with Amazon VPC networking](https://docs.tigera.io/calico/latest/getting-started/kubernetes/managed-public-cloud/eks#install-eks-with-amazon-vpc-networking)
 
 ## Deployment with Helm Chart
 
@@ -169,7 +182,7 @@ In case of DR scheme, check the [DR Preparation](#dr-preparation) section below.
 **Installation**
 
 ```sh
-helm install npc-operator . -n network-policy-operator
+helm install network-policy-operator . -n network-policy-operator
 ```
 
 ### DR Preparation

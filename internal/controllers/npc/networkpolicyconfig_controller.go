@@ -803,7 +803,7 @@ func (r *NetworkPolicyConfigReconciler) getTunnelIPs() ([]string, error) {
 		nodeAnn = accessor.GetAnnotations()
 		_, ok := nodeAnn[TunnelAddressAnnotation]
 		if !ok {
-			log.Info(fmt.Sprintf("The '%s' node hasn't had tunnel interface address yet", nodeItem.GetName()))
+			log.Info(fmt.Sprintf("The '%s' node hasn't had tunnel interface address yet, or the operator is running on limited Calico configuration", nodeItem.GetName()))
 			continue
 		}
 		// Adding IP in annotation into list

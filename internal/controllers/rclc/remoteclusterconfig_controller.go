@@ -679,7 +679,7 @@ func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterCon
 	return nil
 }
 
-// Checking if the operator is running on Calico limited configuration by the existance of other CNI pods
+// Checking if the operator is running on limited Calico configuration by the existance of other CNI pods
 func (r *RemoteClusterConfigReconciler) CheckCNI(c client.Client) (string, error) {
 	podList := &corev1.PodList{}
 	// EKS: finding pods labeled by `k8s-app=aws-node`
