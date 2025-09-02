@@ -150,10 +150,11 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Namespace{}).
+		For(&corev1.Namespace{},
+			builder.WithPredicates(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Watches(&corev1.Pod{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+			builder.WithPredicates(predicate.LabelChangedPredicate{})).
 		Watches(&corev1.Service{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
