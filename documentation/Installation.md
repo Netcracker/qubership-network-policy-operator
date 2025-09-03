@@ -1,4 +1,4 @@
-This manual provides information on installation procedure of Network Policy Operator.
+This manual provides information on the installation procedure of Network Policy Operator.
 
 ## Prerequisites
 
@@ -30,13 +30,12 @@ spec:
 ```
 
 ## Deployment with Helm Chart
-The deployment with Helm chart is specified below.
 
-The deployment with Helm Chart is described below.
+The deployment with Helm chart is specified below.
 
 ### Parameters
 
-The parameters are specified in the below table.
+The parameters for deployment with Helm chart are specified in the below table.
 
 | Parameter                           |	Type   |	Default value                                                                                                                           |	Description                                                                                      |
 |-------------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
@@ -114,11 +113,11 @@ kubectl create ns network-policy-operator
 
 **values.yaml Configuration**
 
-Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always be unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
+Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
 * `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction.
-* All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`.
+* All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`. That access extends to the neighbor clusters in case of DR scheme.
 * The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
 
 ```
@@ -131,8 +130,8 @@ networkPolicies:
 ...
 ```
 
-* `customPolicies` option includes custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
-* `enabled` option switches on and off NetworkPolicies globaly
+* `customPolicies` option includes the custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
+* `enabled` option switches on and off NetworkPolicies globally
 
 The `logs` section manages the connections logs. There are several options to configure it:
 
@@ -228,7 +227,6 @@ The post-installation process is described below.
 
 **Token Authentication**
 
-
 Change the token inside the `Secret` to connect to remote clusters in the following manner.
 
 Run this command on local cluster for one of the `values.yaml` files.
@@ -263,7 +261,7 @@ Repeat the procedure for all of the clusters in DR scheme.
 
 ### Check Installation
 
-The successful installation could be checked by `NetworkPolicyConfig` custom resource:
+You can check the successful installation by `NetworkPolicyConfig` custom resource:
 
 ```sh
 kubectl get npc
@@ -271,7 +269,7 @@ kubectl get npc
 
 The output must include only one resource with name from `values.yaml`.
 
-The created `NetworkPolicies` on the cluster could be checked by the command:
+You can check the created `NetworkPolicies` on the cluster by the command:
 
 ```sh
 kubectl get cnp -A
@@ -289,7 +287,7 @@ test                allow-within-ns   2024-10-15T11:43:08Z
 test                default-deny      2024-10-15T11:43:08Z
 ```
 
-The `NetworkPolicyConfig` resource should have the similar status if the NetworkPolicies have been applied successfully:
+The `NetworkPolicyConfig` resource should have the similar status, if the NetworkPolicies have been applied successfully:
 
 ```yaml
 status:
