@@ -325,7 +325,7 @@ func (r *NetworkPolicyReconciler) findServiceNetworkPolicies(ctx context.Context
 	requests := make([]reconcile.Request, len(policyList.Items))
 	i := 0
 	for _, policyItem := range policyList.Items {
-		accessor, err = meta.Accessor(policyItem)
+		accessor, err = meta.Accessor(&policyItem)
 		policyLabels = accessor.GetLabels()
 		_, ok := policyLabels[EgressServiceLabel]
 		if ok {
