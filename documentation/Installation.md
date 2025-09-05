@@ -35,7 +35,7 @@ spec:
 
 - kubectl version v1.11.3+
 - Limited Calico CNI installation v3.30.1+
-- Kubernetes v1.30+ or OCP4.16+ cluster
+- EKS cluster v1.32+
 - Cluster admin access to the cluster
 
 **Notes:**
