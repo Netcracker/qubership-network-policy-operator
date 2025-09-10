@@ -105,6 +105,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	var accessor metav1.Object
 	var svcCFG ServiceConfig
 	var errSt error
+	var ensName string
 
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
@@ -233,7 +234,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	ens := &npcv1.ExternalNamespace{}
 	for _, nsItem := range nsList.Items {
 		log.Info(fmt.Sprintf("'%s' Namespace will be processed", nsItem.GetName()))
-		ensName := fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), nsItem.GetUID())
+		ensName = r.SetExternalNamespaceName(rcl, &nsItem)
 		if deletion {
 			// Deleting ExternalNamespace
 			log.Info(fmt.Sprintf("'%s' ExternalNamespace deletion", ens.GetName()))
@@ -683,4 +684,8 @@ func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterCon
 	}
 
 	return nil
+}
+
+func (r *RemoteClusterConfigReconciler) SetExternalNamespaceName(rcl *npcv1.RemoteClusterConfig, ns *corev1.Namespace) string {
+	return fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), ns.GetUID())
 }
