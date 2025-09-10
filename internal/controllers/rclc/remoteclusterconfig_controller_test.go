@@ -492,6 +492,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 				Scheme: k8sClient.Scheme(),
 			}
 
+			By("Token authentication")
 			By("Reconciling the RemoteClusterConfig")
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
@@ -502,6 +503,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			err = k8sClient.Get(ctx, typeNamespacedName, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("TLS certificate authentication")
 			By("Updating Remote Secret in RemoteClusterConfig")
 			rcl.Spec.RemoteCluster.Secret = s2NameC
 			Eventually(func() error {

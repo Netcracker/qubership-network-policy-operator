@@ -119,8 +119,12 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	rcl := &npcv1.RemoteClusterConfig{}
 	err := r.Get(ctx, req.NamespacedName, rcl)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("There is no '%s' RemoteClusterConfig", req.NamespacedName.Name))
+		log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", req.NamespacedName.Name))
 		return ctrl.Result{}, err
+	}
+	deletion := false
+	if rcl.GetDeletionTimestamp() != nil {
+		deletion = true
 	}
 
 	// Setting ServiceSubnet
@@ -219,6 +223,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	// Processing Namespace by Namespace in the following maner:
+	// Checking if it's deletion, process it or
 	// Getting Pods from Namespace
 	// Creating ExternalNamespace description
 	// Sending the ExternalNamespace to remote cluster
@@ -228,6 +233,20 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	ens := &npcv1.ExternalNamespace{}
 	for _, nsItem := range nsList.Items {
 		log.Info(fmt.Sprintf("'%s' Namespace will be processed", nsItem.GetName()))
+		ensName := fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), nsItem.GetUID())
+		if deletion {
+			// Deleting ExternalNamespace
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace deletion", ens.GetName()))
+			err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+				Delete(ctx, ensName, metav1.DeleteOptions{})
+			if err != nil && !errors.IsNotFound(err) {
+				log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ens.GetName()))
+				return ctrl.Result{}, err
+			} else {
+				log.Info(fmt.Sprintf("'%s' ExternalNamespace aleady has been deleted", ens.GetName()))
+				continue
+			}
+		}
 		accessor, err = meta.Accessor(&nsItem)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace annotaion", nsItem.GetName()))
@@ -253,8 +272,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{}, err
 		}
 		ens, err = r.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
-			nsItem.GetName(), string(nsItem.GetUID()),
-			labels, tunnelIPs, nsAnn)
+			nsItem.GetName(), ensName, labels, tunnelIPs, nsAnn)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", nsItem.Name))
 			return ctrl.Result{}, err
@@ -309,10 +327,9 @@ func (r *RemoteClusterConfigReconciler) SetupWithManager(mgr ctrl.Manager) error
 // ExternalNamespaceForRemoteCluster combine Pods specs into ExternalNamespace
 func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podList *corev1.PodList,
 	svcList *corev1.ServiceList, rcl *npcv1.RemoteClusterConfig, rclCouple *npcv1.RemoteClusterConfig,
-	ns string, uid string, labels map[string]string, tunnelIPs map[string]string,
+	ns string, ensName string, labels map[string]string, tunnelIPs map[string]string,
 	ann map[string]string) (*npcv1.ExternalNamespace, error) {
 
-	ensName := fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), uid)
 	var podIP string
 	pod := &npcv1.Pod{}
 	pods := []npcv1.Pod{}
