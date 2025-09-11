@@ -28,7 +28,7 @@ spec:
           image: {{ template "job.image" . }}
           imagePullPolicy: {{ .Values.dr.tlsJob.pullPolicy }}
           args:
-            - /script.sh
+            - /tls.sh
           env:
             - name: POD_NAMESPACE
               valueFrom:
