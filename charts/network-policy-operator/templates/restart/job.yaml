@@ -34,8 +34,13 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-            - name: SECRET
-              value: {{ .Values.dr.localCluster.secret }}-restart
+            {{- if eq .Values.dr.authentication "token" }}
+            - name: TOKEN
+              value: "True"
+            {{- else }}
+            - name: TOKEN
+              value: "False"
+            {{- end }}
           {{- if .Values.dr.restartJob.resources }}
           resources: {{ toYaml .Values.dr.restartJob.resources | nindent 12 }}
           {{- end }}
