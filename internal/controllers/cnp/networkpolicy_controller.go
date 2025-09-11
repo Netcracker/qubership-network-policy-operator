@@ -266,11 +266,17 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// The controller must watch:
+	// * the ExternalNamespaces to process changes in Pods and Services and Namespaces labels and annotations changes
+	// * the NetworkPolicyConfig to process `implicitNamespaces` option changes
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&calicov3.NetworkPolicy{}).
 		Watches(&npcv1.ExternalNamespace{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.findNetworkPolicyByExternalNamespace),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+		Watches(&npcv1.NetworkPolicyConfig{},
+			handler.TypedEnqueueRequestsFromMapFunc(r.findServiceNetworkPolicies),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -300,6 +306,41 @@ func (r *NetworkPolicyReconciler) findNetworkPolicyByExternalNamespace(ctx conte
 	}
 
 	return requests
+}
+
+// Find Service Networkpolicies for reconciliation
+func (r *NetworkPolicyReconciler) findServiceNetworkPolicies(ctx context.Context, ens client.Object) []reconcile.Request {
+	log := log.FromContext(ctx)
+
+	var accessor metav1.Object
+	policyLabels := make(map[string]string)
+	// Getting all of NetworkPolicies
+	policyList := &calicov3.NetworkPolicyList{}
+	opts := &client.ListOptions{}
+	err := r.List(context.TODO(), policyList, opts)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(policyList.Items))
+	i := 0
+	for _, policyItem := range policyList.Items {
+		accessor, err = meta.Accessor(&policyItem)
+		policyLabels = accessor.GetLabels()
+		_, ok := policyLabels[EgressServiceLabel]
+		if ok {
+			log.Info(fmt.Sprintf("'%s' NetworkPolicyConfig triggers '%s' NetworkPolicy reconciliation", ens.GetName(), policyItem.GetName()))
+			requests[i] = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      policyItem.GetName(),
+					Namespace: policyItem.GetNamespace(),
+				},
+			}
+			i++
+		}
+	}
+
+	return requests[:i]
 }
 
 // processRules returns Calico Rules with IPs instead of selectors
