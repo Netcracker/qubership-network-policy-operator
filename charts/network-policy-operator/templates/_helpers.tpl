@@ -100,7 +100,7 @@ TLS Job name.
 {{/*
 TLS Job image.
 */}}
-{{- define "job.image" -}}
+{{- define "tlsjob.image" -}}
     {{ .Values.dr.tlsJob.image }}
 {{- end -}}
 
@@ -114,6 +114,6 @@ Restart Job name.
 {{/*
 Restart Job image.
 */}}
-{{- define "job.image" -}}
+{{- define "restartjob.image" -}}
     {{ .Values.dr.restartJob.image }}
 {{- end -}}

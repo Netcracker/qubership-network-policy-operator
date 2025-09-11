@@ -43,7 +43,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pod
+  - pods
   verbs:
   - "*"
 {{- end }}

@@ -27,12 +27,7 @@ do
 	echo "$(date +%FT%H:%M:%S%:z) The remote cluster API is $API"
 	TOKEN=$(kubectl -n ${POD_NAMESPACE} get secret $SC -o jsonpath='{.data.token}' | base64 -d)
 	echo "$(date +%FT%H:%M:%S%:z) Creating remote kubeconfig file"
-	cp /tmp/cm/kubeconfig ./${CL}-kubeconfig
-	sed -i "s/\(token:\)/\1 ${TOKEN}/" ./${CL}-kubeconfig
-	sed -i "s/\(server:\ \)\+/\1 ${API}/" ./${CL}-kubeconfig
-	sed -i "s/\(cluster:\ \)\+/\1 ${API}/" ./${CL}-kubeconfig
-	kubectl -n ${POD_NAMESPACE} delete pod --all --kubeconfig='./${CL}-kubeconfig' > /dev/null 2>&1 \
-		&& echo "$(date +%FT%H:%M:%S%:z) The Network Policy Operator in ${CL} has been restarted"
+	kubectl -n ${POD_NAMESPACE} delete pod --all --token=${TOKEN} --server=${API} --insecure-skip-tls-verify=true > /dev/null 2>&1 && echo "$(date +%FT%H:%M:%S%:z) The Network Policy Operator in ${CL} has been restarted"
 done < $LIST
 
 echo "$(date +%FT%H:%M:%S%:z) The Job is done"

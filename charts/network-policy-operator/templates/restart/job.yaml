@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: create
-          image: {{ template "job.image" . }}
+          image: {{ template "restartjob.image" . }}
           imagePullPolicy: {{ .Values.dr.restartJob.pullPolicy }}
           args:
             - /restart.sh

@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: create
-          image: {{ template "job.image" . }}
+          image: {{ template "tlsjob.image" . }}
           imagePullPolicy: {{ .Values.dr.tlsJob.pullPolicy }}
           args:
             - /tls.sh
