@@ -38,6 +38,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -59,6 +61,7 @@ const (
 	KubernetesCoreDNSNamespace = "kube-system"
 	KubeAPIService             = "kubernetes"
 	KubeAPIServiceNamespace    = "default"
+	FinalizerName              = "network-policy.qubership.org/finalizer"
 )
 
 type RemoteClusterConfigType string
@@ -120,12 +123,29 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	rcl := &npcv1.RemoteClusterConfig{}
 	err := r.Get(ctx, req.NamespacedName, rcl)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", req.NamespacedName.Name))
-		return ctrl.Result{}, err
+		if !errors.IsNotFound(err) {
+			log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		} else {
+			log.Info("RemoteClusterConfig Reconciler loop has been finished")
+			return ctrl.Result{}, nil
+		}
 	}
 	deletion := false
+	// Checking the deletion
 	if rcl.GetDeletionTimestamp() != nil {
 		deletion = true
+	} else {
+		if !controllerutil.ContainsFinalizer(rcl, FinalizerName) {
+			// Adding finalizer
+			log.Info(fmt.Sprintf("Adding finilizer to '%s' RemoteClusterConfig", req.NamespacedName.Name))
+			controllerutil.AddFinalizer(rcl, FinalizerName)
+			err = r.Update(ctx, rcl)
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	// Setting ServiceSubnet
@@ -237,16 +257,20 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		ensName = r.SetExternalNamespaceName(rcl, &nsItem)
 		if deletion {
 			// Deleting ExternalNamespace
-			log.Info(fmt.Sprintf("'%s' ExternalNamespace deletion", ens.GetName()))
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace deletion", ensName))
 			err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
 				Delete(ctx, ensName, metav1.DeleteOptions{})
-			if err != nil && !errors.IsNotFound(err) {
-				log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ens.GetName()))
-				return ctrl.Result{}, err
-			} else {
-				log.Info(fmt.Sprintf("'%s' ExternalNamespace aleady has been deleted", ens.GetName()))
-				continue
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ensName))
+					return ctrl.Result{}, err
+				} else {
+					log.Info(fmt.Sprintf("'%s' ExternalNamespace aleady has been deleted", ensName))
+					continue
+				}
 			}
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace has been deleted sucessfully", ensName))
+			continue
 		}
 		accessor, err = meta.Accessor(&nsItem)
 		if err != nil {
@@ -314,14 +338,56 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if deletion {
+		// Removing finalizer
+		log.Info(fmt.Sprintf("Removing finilizer from '%s' RemoteClusterConfig", req.NamespacedName.Name))
+		controllerutil.RemoveFinalizer(rcl, FinalizerName)
+		err = r.Update(ctx, rcl)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to remove '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		}
+	}
 	log.Info("RemoteClusterConfig Reconciler loop has been finished")
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	applicablePredicates := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldRcl := e.ObjectOld.(*npcv1.RemoteClusterConfig)
+			newRcl := e.ObjectNew.(*npcv1.RemoteClusterConfig)
+
+			// Trigger reconciliation only if the `spec` has changed and `deletionTimestamp` is set
+			if newRcl.GetDeletionTimestamp() != nil {
+				return true
+			}
+			if newRcl.GetGeneration() != oldRcl.GetGeneration() {
+				return true
+			}
+			return false
+		},
+
+		// Allow create events
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+
+		// Reject delete events
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+
+		// Reject generic events
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&npcv1.RemoteClusterConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&npcv1.RemoteClusterConfig{}, builder.WithPredicates(applicablePredicates)).
 		Complete(r)
 }
 
