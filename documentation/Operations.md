@@ -131,3 +131,4 @@ Run upgrade procedure:
 helm upgrade npc-operator . -f values.yaml -n network-policy-operator
 ```
 
+**Notice:** `RemoteClusterConfig` resource is being recreated during the upgrade procedure it causes the `ExternalNamespaces` deletion on both sides
