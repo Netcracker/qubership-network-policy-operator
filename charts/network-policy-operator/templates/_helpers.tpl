@@ -77,13 +77,6 @@ Network Policy Operator image.
 {{- end -}}
 
 {{/*
-Auth Proxy image.
-*/}}
-{{- define "authProxy.image" -}}
-    {{ printf "%s:%s" .Values.authProxy.image.repository .Values.authProxy.image.tag }}
-{{- end -}}
-
-{{/*
 Remote operator connection Role
 */}}
 {{- define "network-policy-operator.remoteRole" -}}
@@ -117,3 +110,16 @@ Restart Job image.
 {{- define "restartjob.image" -}}
     {{ .Values.dr.restartJob.image }}
 {{- end -}}
+
+Mertics reader Role
+*/}}
+{{- define "network-policy-operator.metricsRole" -}}
+{{- printf "%s-%s" (include "network-policy-operator.namespace" .) .Values.manager.rbac.metrics | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{/*
+Mertics reader Rolebinding
+*/}}
+{{- define "network-policy-operator.metricsRolebinding" -}}
+{{- printf "%s-%s-rb" (include "network-policy-operator.namespace" .) .Values.manager.rbac.metrics | trunc 63 | trimSuffix "-" -}}
+{{- end }}

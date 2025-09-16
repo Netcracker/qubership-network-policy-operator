@@ -34,7 +34,7 @@ spec:
           - /manager
           args:
           - "--health-probe-bind-address=:8081"
-          - "--metrics-bind-address=127.0.0.1:8080"
+          - "--metrics-bind-address=:8443"
           - "--leader-elect"
           name: manager
           securityContext:
@@ -56,22 +56,6 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-        - name: kube-rbac-proxy
-          securityContext:
-            {{- toYaml .Values.authProxy.securityContext | nindent 12 }}
-          image: {{ template "authProxy.image" . }}
-          imagePullPolicy: {{ .Values.authProxy.image.pullPolicy }}
-          args:
-          - "--secure-listen-address=0.0.0.0:8443"
-          - "--upstream=http://127.0.0.1:8080/"
-          - "--logtostderr=true"
-          - "--v=0"
-          ports:
-          - containerPort: 8443
-            protocol: TCP
-            name: https-metrics
-          resources:
-            {{- toYaml .Values.authProxy.resources | nindent 12 }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
