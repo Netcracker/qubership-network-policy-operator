@@ -222,3 +222,21 @@ dr:
           - "ALL"
       seccompProfile:
         type: RuntimeDefault
+  restartJob:
+    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations: []
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - "ALL"
+      seccompProfile:
+        type: RuntimeDefault

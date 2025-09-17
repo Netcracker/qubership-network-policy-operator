@@ -1,0 +1,66 @@
+{{- if .Values.dr.install }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "network-policy-operator.restart.name" . }}
+  namespace: {{ include "network-policy-operator.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "network-policy-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: restart
+spec:
+{{- if .Capabilities.APIVersions.Has "batch/v1alpha1" }}
+  # Alpha feature since k8s 1.12
+  ttlSecondsAfterFinished: 0
+{{- end }}
+  template:
+    metadata:
+      name: {{ include "network-policy-operator.restart.name" . }}
+      labels:
+        {{- include "network-policy-operator.labels" . | nindent 8 }}
+        app.kubernetes.io/component: restart
+    spec:
+      containers:
+        - name: create
+          image: {{ template "restartjob.image" . }}
+          imagePullPolicy: {{ .Values.dr.restartJob.pullPolicy }}
+          args:
+            - /restart.sh
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            {{- if eq .Values.dr.authentication "token" }}
+            - name: TOKEN
+              value: "True"
+            {{- else }}
+            - name: TOKEN
+              value: "False"
+            {{- end }}
+          {{- if .Values.dr.restartJob.resources }}
+          resources: {{ toYaml .Values.dr.restartJob.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/cm
+              name: kubeconfig
+          {{- if .Values.dr.restartJob.securityContext }}
+          securityContext: {{ toYaml .Values.dr.restartJob.securityContext | nindent 12 }}
+          {{- end }}
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "network-policy-operator.restart.name" . }}
+      volumes:
+        - name: kubeconfig
+          configMap:
+            name: {{ include "network-policy-operator.restart.name" . }}
+    {{- if .Values.dr.restartJob.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.dr.restartJob.nodeSelector | nindent 8 }}
+    {{- end }}
+    {{- if .Values.dr.restartJob.tolerations }}
+      tolerations: {{ toYaml .Values.dr.restartJob.tolerations | nindent 8 }}
+    {{- end }}
+{{- end }}
+

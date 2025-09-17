@@ -40,4 +40,10 @@ rules:
   - remoteclusterconfigs/finalizers
   verbs:
   - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - "*"
 {{- end }}

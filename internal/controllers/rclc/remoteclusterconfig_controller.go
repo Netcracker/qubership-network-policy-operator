@@ -38,6 +38,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -59,6 +61,7 @@ const (
 	KubernetesCoreDNSNamespace = "kube-system"
 	KubeAPIService             = "kubernetes"
 	KubeAPIServiceNamespace    = "default"
+	FinalizerName              = "network-policy.qubership.org/finalizer"
 )
 
 type RemoteClusterConfigType string
@@ -105,6 +108,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	var accessor metav1.Object
 	var svcCFG ServiceConfig
 	var errSt error
+	var ensName string
 
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
@@ -119,8 +123,29 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	rcl := &npcv1.RemoteClusterConfig{}
 	err := r.Get(ctx, req.NamespacedName, rcl)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("There is no '%s' RemoteClusterConfig", req.NamespacedName.Name))
-		return ctrl.Result{}, err
+		if !errors.IsNotFound(err) {
+			log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		} else {
+			log.Info("RemoteClusterConfig Reconciler loop has been finished")
+			return ctrl.Result{}, nil
+		}
+	}
+	deletion := false
+	// Checking the deletion
+	if rcl.GetDeletionTimestamp() != nil {
+		deletion = true
+	} else {
+		if !controllerutil.ContainsFinalizer(rcl, FinalizerName) {
+			// Adding finalizer
+			log.Info(fmt.Sprintf("Adding finilizer to '%s' RemoteClusterConfig", req.NamespacedName.Name))
+			controllerutil.AddFinalizer(rcl, FinalizerName)
+			err = r.Update(ctx, rcl)
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	// Setting ServiceSubnet
@@ -219,6 +244,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	// Processing Namespace by Namespace in the following maner:
+	// Checking if it's deletion, process it or
 	// Getting Pods from Namespace
 	// Creating ExternalNamespace description
 	// Sending the ExternalNamespace to remote cluster
@@ -228,6 +254,24 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	ens := &npcv1.ExternalNamespace{}
 	for _, nsItem := range nsList.Items {
 		log.Info(fmt.Sprintf("'%s' Namespace will be processed", nsItem.GetName()))
+		ensName = r.SetExternalNamespaceName(rcl, &nsItem)
+		if deletion {
+			// Deleting ExternalNamespace
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace deletion", ensName))
+			err = dynamicClient.Resource(extNamespace).Namespace(oprNamespace).
+				Delete(ctx, ensName, metav1.DeleteOptions{})
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					log.Error(err, fmt.Sprintf("Failed to delete '%s' ExternalNamespace", ensName))
+					return ctrl.Result{}, err
+				} else {
+					log.Info(fmt.Sprintf("'%s' ExternalNamespace aleady has been deleted", ensName))
+					continue
+				}
+			}
+			log.Info(fmt.Sprintf("'%s' ExternalNamespace has been deleted sucessfully", ensName))
+			continue
+		}
 		accessor, err = meta.Accessor(&nsItem)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace annotaion", nsItem.GetName()))
@@ -253,8 +297,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{}, err
 		}
 		ens, err = r.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
-			nsItem.GetName(), string(nsItem.GetUID()),
-			labels, tunnelIPs, nsAnn)
+			nsItem.GetName(), ensName, labels, tunnelIPs, nsAnn)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", nsItem.Name))
 			return ctrl.Result{}, err
@@ -295,24 +338,65 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if deletion {
+		// Removing finalizer
+		log.Info(fmt.Sprintf("Removing finilizer from '%s' RemoteClusterConfig", req.NamespacedName.Name))
+		controllerutil.RemoveFinalizer(rcl, FinalizerName)
+		err = r.Update(ctx, rcl)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to remove '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		}
+	}
 	log.Info("RemoteClusterConfig Reconciler loop has been finished")
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	applicablePredicates := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldRcl := e.ObjectOld.(*npcv1.RemoteClusterConfig)
+			newRcl := e.ObjectNew.(*npcv1.RemoteClusterConfig)
+
+			// Trigger reconciliation only if the `spec` has changed and `deletionTimestamp` is set
+			if newRcl.GetDeletionTimestamp() != nil {
+				return true
+			}
+			if newRcl.GetGeneration() != oldRcl.GetGeneration() {
+				return true
+			}
+			return false
+		},
+
+		// Allow create events
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+
+		// Reject delete events
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+
+		// Reject generic events
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&npcv1.RemoteClusterConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&npcv1.RemoteClusterConfig{}, builder.WithPredicates(applicablePredicates)).
 		Complete(r)
 }
 
 // ExternalNamespaceForRemoteCluster combine Pods specs into ExternalNamespace
 func (r *RemoteClusterConfigReconciler) ExternalNamespaceForRemoteCluster(podList *corev1.PodList,
 	svcList *corev1.ServiceList, rcl *npcv1.RemoteClusterConfig, rclCouple *npcv1.RemoteClusterConfig,
-	ns string, uid string, labels map[string]string, tunnelIPs map[string]string,
+	ns string, ensName string, labels map[string]string, tunnelIPs map[string]string,
 	ann map[string]string) (*npcv1.ExternalNamespace, error) {
 
-	ensName := fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), uid)
 	var podIP string
 	pod := &npcv1.Pod{}
 	pods := []npcv1.Pod{}
@@ -666,4 +750,8 @@ func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterCon
 	}
 
 	return nil
+}
+
+func (r *RemoteClusterConfigReconciler) SetExternalNamespaceName(rcl *npcv1.RemoteClusterConfig, ns *corev1.Namespace) string {
+	return fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), ns.GetUID())
 }

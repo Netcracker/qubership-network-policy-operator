@@ -227,8 +227,9 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 	log.Info(fmt.Sprintf("The couple for '%s' RemoteClusterConfig is '%s'", rcl.GetName(), rclCouple.GetName()))
 
 	// Method from other controller
+	ensName := rc.SetExternalNamespaceName(rcl, ns)
 	ens, err = rc.ExternalNamespaceForRemoteCluster(podList, svcList, rcl, rclCouple,
-		ns.GetName(), string(ns.GetUID()), labels, tunnelIPs, nsAnn)
+		ns.GetName(), ensName, labels, tunnelIPs, nsAnn)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to render ExternalNamespace for '%s' Namespace", ns.GetName()))
 		cErr <- err
