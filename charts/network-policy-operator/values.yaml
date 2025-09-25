@@ -182,8 +182,6 @@ networkPolicies:
   defaultTier: automated
   # NetwokPolicies Tier for custom NetworkPolicies
   customTier: default
-  # EKS compatibility. Calico CNI manages only NetworkPolicies: https://docs.tigera.io/calico/latest/getting-started/kubernetes/managed-public-cloud/eks#install-eks-with-amazon-vpc-networking
-  onEKS: false
 # RemoteClusterConfig section
 dr:
   install: false
