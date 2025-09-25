@@ -777,6 +777,7 @@ func (r *RemoteClusterConfigReconciler) CheckCNI(c client.Client) (string, error
 		return "eks", nil
 	}
 	return "", nil
+}
 
 func (r *RemoteClusterConfigReconciler) SetExternalNamespaceName(rcl *npcv1.RemoteClusterConfig, ns *corev1.Namespace) string {
 	return fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), ns.GetUID())
