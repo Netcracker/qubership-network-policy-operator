@@ -357,3 +357,16 @@ status:
   coupleKubeAPIService = "172.31.0.1"
   coupleCoreDNSService = "172.31.0.10"
 ```
+
+Also, the following finalizer is set to `RemoteClusterConfig` to synchronize the `ExternalNamespaces` deletion on the neighbor cluster:
+
+```yaml
+kind: RemoteClusterConfig
+metadata:
+  annotations:
+    helm.sh/hook: post-install, post-upgrade
+  finalizers:
+  - network-policy.qubership.org/finalizer
+```
+
+If the `RemoteClusterConfig` has been delete the operator at first deletes the `ExternalNamespaces` on the neighbor cluster and only after that removes the finalizer.

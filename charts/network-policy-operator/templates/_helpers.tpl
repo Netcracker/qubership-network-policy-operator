@@ -100,6 +100,20 @@ TLS Job name.
 {{/*
 TLS Job image.
 */}}
-{{- define "job.image" -}}
+{{- define "tlsjob.image" -}}
     {{ .Values.dr.tlsJob.image }}
+{{- end -}}
+
+{{/*
+Restart Job name.
+*/}}
+{{- define "network-policy-operator.restart.name" -}}
+{{- printf "%s-%s" (include "network-policy-operator.name" .) "restart" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Restart Job image.
+*/}}
+{{- define "restartjob.image" -}}
+    {{ .Values.dr.restartJob.image }}
 {{- end -}}

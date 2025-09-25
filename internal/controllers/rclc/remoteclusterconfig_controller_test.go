@@ -413,15 +413,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 		})
 
 		AfterEach(func() {
-			err := k8sClient.Get(ctx, typeNamespacedName, rcl)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the RemoteClusterConfig")
-			Eventually(func() error {
-				return k8sClient.Delete(ctx, rcl)
-			}, time.Minute, time.Second).Should(Succeed())
-
-			err = k8sClient.Get(ctx, typeNamespacedNameC, rclCouple)
+			err := k8sClient.Get(ctx, typeNamespacedNameC, rclCouple)
 			Expect(err).NotTo(HaveOccurred())
 			accessor, err = meta.Accessor(rclCouple)
 			rclUID = accessor.GetUID()
@@ -511,6 +503,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 				Scheme: k8sClient.Scheme(),
 			}
 
+			By("Token authentication")
 			By("Reconciling the RemoteClusterConfig")
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
@@ -521,6 +514,7 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			err = k8sClient.Get(ctx, typeNamespacedName, rcl)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("TLS certificate authentication")
 			By("Updating Remote Secret in RemoteClusterConfig")
 			rcl.Spec.RemoteCluster.Secret = s2NameC
 			Eventually(func() error {
@@ -528,6 +522,13 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the RemoteClusterConfig")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+
+			err = k8sClient.Delete(ctx, rcl)
+			Expect(err).NotTo(HaveOccurred())
+			By("Reconciling the RemoteClusterConfig deletion")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
