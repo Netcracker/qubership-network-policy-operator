@@ -160,7 +160,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{},
-			builder.WithPredicates(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
 		Watches(&corev1.Pod{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
