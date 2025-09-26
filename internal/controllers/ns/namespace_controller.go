@@ -154,7 +154,7 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(predicate.Or(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
 		Watches(&corev1.Pod{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
-			builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
 		Watches(&corev1.Service{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
