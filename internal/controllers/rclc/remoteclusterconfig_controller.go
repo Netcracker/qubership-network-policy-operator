@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -113,6 +114,15 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
 
+	cni, err := r.CheckCNI(r.Client)
+	if err != nil {
+		log.Error(err, "The CNI cant't be identified")
+		return ctrl.Result{}, err
+	}
+	if cni == "eks" {
+		log.Info("The operator is running on the EKS. The DR part is not applicable in that case.")
+		return ctrl.Result{}, nil
+	}
 	oprNamespace = r.GetOperatorNamespace()
 	// Checking the RemoteClusterConfig has been created in a valid namespace
 	if req.NamespacedName.Namespace != oprNamespace {
@@ -121,7 +131,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	rcl := &npcv1.RemoteClusterConfig{}
-	err := r.Get(ctx, req.NamespacedName, rcl)
+	err = r.Get(ctx, req.NamespacedName, rcl)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", req.NamespacedName.Name))
@@ -737,6 +747,7 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	return nil
 }
 
+// Update RemoteClusterConfig status
 func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterConfig, rclType RemoteClusterConfigType, status metav1.ConditionStatus, reason string, message string, c client.Client) error {
 	log := log.FromContext(context.TODO())
 	// Deleting previous Condition with the same Type
@@ -750,6 +761,22 @@ func (r *RemoteClusterConfigReconciler) UpdateStatus(rcl *npcv1.RemoteClusterCon
 	}
 
 	return nil
+}
+
+// Checking if the operator is running on limited Calico configuration by the existance of other CNI pods
+func (r *RemoteClusterConfigReconciler) CheckCNI(c client.Client) (string, error) {
+	podList := &corev1.PodList{}
+	// EKS: finding pods labeled by `k8s-app=aws-node`
+	labelSet := labels.Set{"k8s-app": "aws-node"}
+	opts := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labelSet)}
+	err := c.List(context.TODO(), podList, opts)
+	if err != nil {
+		return "", err
+	}
+	if len(podList.Items) > 0 {
+		return "eks", nil
+	}
+	return "", nil
 }
 
 func (r *RemoteClusterConfigReconciler) SetExternalNamespaceName(rcl *npcv1.RemoteClusterConfig, ns *corev1.Namespace) string {

@@ -50,12 +50,18 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			roleName      = "npo-role"
 			rbName        = "npo-rb"
 			userName      = "user1"
+			podName       = "aws-node-1"
+			podNS         = "kube-system"
 		)
 
 		var accessor metav1.Object
 		var rclUID types.UID
 		ctx := context.Background()
 		ann := make(map[string]string)
+		args := []string{"sleep", "infinity"}
+		label := map[string]string{
+			"k8s-app": "aws-node",
+		}
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      rclName,
@@ -90,6 +96,10 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 			Name:      cmName,
 			Namespace: rclNS,
 		}
+		typeNamespacedNamePod := types.NamespacedName{
+			Name:      podName,
+			Namespace: podNS,
+		}
 		rcl := &npcv1.RemoteClusterConfig{}
 		rclCouple := &npcv1.RemoteClusterConfig{}
 		sa1 := &corev1.ServiceAccount{}
@@ -103,6 +113,7 @@ var _ = Describe("RemoteClusterConfig Controller", func() {
 		owns := []metav1.OwnerReference{}
 		csr := &crtv1.CertificateSigningRequest{}
 		sc := &corev1.Secret{}
+		pod := &corev1.Pod{}
 		req := []byte(`-----BEGIN CERTIFICATE REQUEST-----
 MIICZjCCAU4CAQAwITEOMAwGA1UEAwwFdXNlcjExDzANBgNVBAoMBmdyb3VwMTCC
 ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMmcQmlufnKxtsEfWwMcqmHI
@@ -477,6 +488,14 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 					}
 				}
 			}
+
+			err = k8sClient.Get(ctx, typeNamespacedNamePod, pod)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the AWS-CNI Pod")
+			Eventually(func() error {
+				return k8sClient.Delete(ctx, pod)
+			}, time.Minute, time.Second).Should(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			controllerReconciler := &RemoteClusterConfigReconciler{
@@ -510,6 +529,37 @@ yTm84gb6A1e3oe72514r0bim5PnoKg1swg+4HxPirARvZvnmpRw+
 			err = k8sClient.Delete(ctx, rcl)
 			Expect(err).NotTo(HaveOccurred())
 			By("Reconciling the RemoteClusterConfig deletion")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Reconciling the EKS CNI")
+			// Create Pod with `k8s-app=aws-node` label
+			By("Creating the AWS-CNI Pod")
+			err = k8sClient.Get(ctx, typeNamespacedNamePod, pod)
+			if err != nil && errors.IsNotFound(err) {
+				pod = &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      podName,
+						Namespace: podNS,
+						Labels:    label,
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Name:            podName,
+							Image:           "debian:bookworm-slim",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args:            args,
+						}},
+					},
+				}
+				Eventually(func() error {
+					return k8sClient.Create(ctx, pod)
+				}, time.Minute, time.Second).Should(Succeed())
+			} else if err != nil {
+				Fail(fmt.Sprint("Failed to get the Pod:", err))
+			}
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})

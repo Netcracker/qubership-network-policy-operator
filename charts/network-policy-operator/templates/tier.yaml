@@ -4,6 +4,6 @@ kind: Tier
 metadata:
   name: {{ .Values.networkPolicies.defaultTier }}
 spec:
-  defaultAction: Pass
+  defaultAction: Deny
   order: 10000
 {{- end }}

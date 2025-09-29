@@ -71,10 +71,19 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	nsAnn := make(map[string]string)
 
 	rc := &rclc.RemoteClusterConfigReconciler{}
+	cni, err := rc.CheckCNI(r.Client)
+	if err != nil {
+		log.Error(err, "The CNI cant't be identified")
+		return ctrl.Result{}, err
+	}
+	if cni == "eks" {
+		log.Info("The operator is running on the EKS. The DR part is not applicable in that case.")
+		return ctrl.Result{}, nil
+	}
 	oprNamespace = rc.GetOperatorNamespace()
 
 	ns := &corev1.Namespace{}
-	err := r.Get(ctx, req.NamespacedName, ns)
+	err = r.Get(ctx, req.NamespacedName, ns)
 	if err != nil {
 		log.Info(fmt.Sprintf("There is no '%s' Namespace", req.NamespacedName.Namespace))
 		return ctrl.Result{}, nil
@@ -151,10 +160,10 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{},
-			builder.WithPredicates(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(predicate.AnnotationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
 		Watches(&corev1.Pod{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
-			builder.WithPredicates(predicate.LabelChangedPredicate{})).
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
 		Watches(&corev1.Service{},
 			handler.TypedEnqueueRequestsFromMapFunc(r.patchRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
