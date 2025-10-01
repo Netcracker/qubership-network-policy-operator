@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package e2edr
 
 import (
 	"fmt"
@@ -27,6 +27,6 @@ import (
 // Run e2e tests using the Ginkgo runner.
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	fmt.Fprintf(GinkgoWriter, "Starting npcv1 suite\n")
+	fmt.Fprintf(GinkgoWriter, "Starting Network Policy Operator DR suite\n")
 	RunSpecs(t, "e2e suite")
 }
