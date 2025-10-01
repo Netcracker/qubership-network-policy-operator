@@ -79,3 +79,14 @@ func GetProjectDir() (string, error) {
 	}
 	return wd, nil
 }
+
+func CreateCurlPod(ns1 string, ns2 string, img string) error {
+	cmd := exec.Command("kubectl", "-n", ns2, "delete", "pod", "curl", "||", "true")
+	_, _ = Run(cmd)
+	cmd = exec.Command("kubectl", "-n", ns2, "run", "curl", fmt.Sprintf("--image=%s",
+		img), "--", "-o", "/dev/null", "-s", "-w", "%{http_code}\n",
+		fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", ns1),
+	)
+	_, err := Run(cmd)
+	return err
+}

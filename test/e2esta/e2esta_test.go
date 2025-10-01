@@ -33,14 +33,21 @@ const (
 	testns2 = "testns2"
 )
 
-var img, rbacImg, chart, namespace string
+var img, rbacImg, curlImg, chart, namespace string
 
 var _ = Describe("Controller", Ordered, func() {
 	BeforeAll(func() {
-		rbacImg = os.Getenv("RP_IMG")
 		img = os.Getenv("OP_IMG")
 		if len(img) == 0 {
 			img = "ghcr.io/netcracker/qubership-network-policy-operator:main"
+		}
+		rbacImg = os.Getenv("RP_IMG")
+		if len(rbacImg) == 0 {
+			rbacImg = "bitnami/kube-rbac-proxy"
+		}
+		curlImg = os.Getenv("CURL_IMG")
+		if len(curlImg) == 0 {
+			curlImg = "alpine/curl"
 		}
 		chart = os.Getenv("CHART")
 		if len(chart) == 0 {
@@ -61,6 +68,11 @@ var _ = Describe("Controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		cmd = exec.Command("kubectl", "create", "ns", testns2)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By(fmt.Sprintf("Creating echo pod in `%s` namespace", testns1))
+		cmd = exec.Command("kubectl", "apply", "-f", "./test/yamls/echo.yaml", "-n", testns1)
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -102,12 +114,11 @@ var _ = Describe("Controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
-			var controllerPodName string
+			var controllerPodName, echoPodName, echoPodIP string
 
 			By("Validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func() error {
 				// Get pod name
-
 				cmd := exec.Command("kubectl", "get",
 					"pods", "-l", "app.kubernetes.io/name=network-policy-operator",
 					"-o", "go-template={{ range .items }}"+
@@ -138,21 +149,105 @@ var _ = Describe("Controller", Ordered, func() {
 			}
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
+			By("Validating that the echo pod is running as expected")
+			verifyEchoUp := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-l", "run=echoserver",
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+					"-n", testns1,
+				)
+
+				podOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				podNames := utils.GetNonEmptyLines(string(podOutput))
+				echoPodName = podNames[0]
+				ExpectWithOffset(2, echoPodName).Should(ContainSubstring("echoserver"))
+
+				// Validate pod status
+				cmd = exec.Command("kubectl", "get",
+					"pods", echoPodName, "-o", "jsonpath={.status.phase}",
+					"-n", testns1,
+				)
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("echo pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyEchoUp, time.Minute, time.Second).Should(Succeed())
+
+			By("Getting echo pod IP")
+			cmd := exec.Command("kubectl", "get",
+				"pods", echoPodName, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
+				"-n", testns1,
+			)
+			ipOutput, err := utils.Run(cmd)
+			echoPodIP = utils.GetNonEmptyLines(string(ipOutput))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("Echo pod IP: `%s`", echoPodIP))
+
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns2))
+			Expect(utils.CreateCurlPod(testns1, testns2, curlImg)).To(Succeed())
+			verifyCurlUp := func() error {
+				cmd = exec.Command("kubectl", "get",
+					"pods", "curl", "-o", "jsonpath={.status.phase}",
+					"-n", testns2,
+				)
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("curl pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", "curl")
+			curlOutput, err := utils.Run(cmd)
+			resp := utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if resp[0] != "200" {
+				Fail(fmt.Sprintf("Curl has invalid response: %v", resp))
+			}
+			By(fmt.Sprintf("Curl response: `%s`", resp[0]))
 
 			By("Enabling NetworkPolicyConfig")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				"'[{\"op\":\"replace\",\"path\":\"/spec/enabled\",\"value\":false}]'")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be REJECTED", testns1, testns2))
+			Expect(utils.CreateCurlPod(testns1, testns2, curlImg)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", "curl")
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			/*
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if resp[0] != "200" {
+					Fail(fmt.Sprintf("Curl has invalid response: %v", resp))
+				}
+			*/
+			By(fmt.Sprintf("Curl response: %v", resp))
 
-			By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
-			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-			By(fmt.Sprintf("NetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s`", testns1, testns2))
+			/*
+				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
+				By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+				By(fmt.Sprintf("NetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s`", testns1, testns2))
 
-			By("Enabling logs for rejected connection")
-			By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
-			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-			By("Checking logs")
+				By("Enabling logs for rejected connection")
+				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
+				By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+				By("Checking logs")
+			*/
 
 		})
 	})
