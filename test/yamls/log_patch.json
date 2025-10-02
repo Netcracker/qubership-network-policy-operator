@@ -1,0 +1,1 @@
+[{"op":"replace","path":"/spec/logs/collectingAll","value":false},{"op":"replace","path":"/spec/logs/enabled","value":true}]
