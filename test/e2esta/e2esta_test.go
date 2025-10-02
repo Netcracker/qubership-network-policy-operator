@@ -193,10 +193,15 @@ var _ = Describe("Controller", Ordered, func() {
 
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns2))
-			Expect(utils.CreateCurlPod(testns1, testns2, curlImg)).To(Succeed())
+			curlParam := make(map[string]string)
+			curlParam["ns1"] = testns1
+			curlParam["ns2"] = testns2
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl1"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
 			verifyCurlUp := func() error {
 				cmd = exec.Command("kubectl", "get",
-					"pods", "curl", "-o", "jsonpath={.status.phase}",
+					"pods", curlParam["name"], "-o", "jsonpath={.status.phase}",
 					"-n", testns2,
 				)
 				statusOutput, err := utils.Run(cmd)
@@ -208,7 +213,7 @@ var _ = Describe("Controller", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
-			cmd = exec.Command("kubectl", "-n", testns2, "logs", "curl")
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
 			curlOutput, err := utils.Run(cmd)
 			resp := utils.GetNonEmptyLines(string(curlOutput))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
@@ -218,16 +223,17 @@ var _ = Describe("Controller", Ordered, func() {
 			By(fmt.Sprintf("Curl response: `%s`", resp[0]))
 
 			By("Enabling NetworkPolicyConfig")
-			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
-				"'[{\"op\":\"replace\",\"path\":\"/spec/enabled\",\"value\":false}]'")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
+				"--patch-file", "./test/yamls/patch.json")
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be REJECTED", testns1, testns2))
-			Expect(utils.CreateCurlPod(testns1, testns2, curlImg)).To(Succeed())
+			curlParam["name"] = "curl2"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
 			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
-			cmd = exec.Command("kubectl", "-n", testns2, "logs", "curl")
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
 			curlOutput, err = utils.Run(cmd)
 			resp = utils.GetNonEmptyLines(string(curlOutput))
 			/*
