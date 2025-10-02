@@ -119,6 +119,7 @@ var _ = Describe("Controller", Ordered, func() {
 			var controllerPodName, echoPodName, echoPodIP string
 
 			By("Validating that the controller-manager pod is running as expected")
+			// TODO: generalization
 			verifyControllerUp := func() error {
 				// Get pod name
 				cmd := exec.Command("kubectl", "get",
@@ -136,7 +137,7 @@ var _ = Describe("Controller", Ordered, func() {
 				controllerPodName = podNames[0]
 				ExpectWithOffset(2, controllerPodName).Should(ContainSubstring("network-policy-operator"))
 
-				// Validate pod status
+				// Validating pod status
 				cmd = exec.Command("kubectl", "get",
 					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
 					"-n", namespace,
@@ -168,7 +169,7 @@ var _ = Describe("Controller", Ordered, func() {
 				echoPodName = podNames[0]
 				ExpectWithOffset(2, echoPodName).Should(ContainSubstring("echoserver"))
 
-				// Validate pod status
+				// Validating pod status
 				cmd = exec.Command("kubectl", "get",
 					"pods", echoPodName, "-o", "jsonpath={.status.phase}",
 					"-n", testns1,
@@ -231,7 +232,7 @@ var _ = Describe("Controller", Ordered, func() {
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
-			// Check NPO logs
+			// Checking NPO logs
 			verifyNPOLog := func() error {
 				cmd := exec.Command("kubectl", "-n", namespace, "logs", controllerPodName,
 					"-c", "manager", "--tail=10")
@@ -283,9 +284,14 @@ var _ = Describe("Controller", Ordered, func() {
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
-			/*
 
-				By("Enabling logs for rejected connection")
+			By("Enabling logs for rejected connection")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
+				"--patch-file", "./test/yamls/log_patch.json")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute, time.Second).Should(Succeed())
+			/*
 				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
 				By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 				By("Checking logs")
