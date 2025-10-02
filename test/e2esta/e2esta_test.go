@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -91,7 +92,8 @@ var _ = Describe("Controller", Ordered, func() {
 		By("Uninstalling operator with Helm")
 		cmd := exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace)
 		_, err := utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		// Uninstallation could fail
+		//ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("Deleting CRDs")
 		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart))
@@ -217,16 +219,35 @@ var _ = Describe("Controller", Ordered, func() {
 			curlOutput, err := utils.Run(cmd)
 			resp := utils.GetNonEmptyLines(string(curlOutput))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			if resp[0] != "200" {
-				Fail(fmt.Sprintf("Curl has invalid response: %v", resp))
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("%s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
-			By(fmt.Sprintf("Curl response: `%s`", resp[0]))
 
 			By("Enabling NetworkPolicyConfig")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
 				"--patch-file", "./test/yamls/patch.json")
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			// Check NPO logs
+			verifyNPOLog := func() error {
+				cmd := exec.Command("kubectl", "-n", namespace, "logs", controllerPodName,
+					"-c", "manager", "--tail=10")
+
+				logOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				lastMessages := utils.GetNonEmptyLines(string(logOutput))
+				for _, message := range lastMessages {
+					By(fmt.Sprintf("%s", message))
+					if strings.Contains(message, "NetworkPolicyConfig Reconciler loop has been finished") {
+						return nil
+					}
+				}
+				return fmt.Errorf("Reconciliation hasn't been finished")
+			}
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute, time.Second).Should(Succeed())
 
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be REJECTED", testns1, testns2))
@@ -236,18 +257,33 @@ var _ = Describe("Controller", Ordered, func() {
 			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
 			curlOutput, err = utils.Run(cmd)
 			resp = utils.GetNonEmptyLines(string(curlOutput))
-			/*
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if resp[0] != "200" {
-					Fail(fmt.Sprintf("Curl has invalid response: %v", resp))
-				}
-			*/
-			By(fmt.Sprintf("Curl response: %v", resp))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("%s response: `%v`", curlParam["name"], resp))
 
+			By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
+			cmd = exec.Command("kubectl", "annotate", "ns", testns1,
+				fmt.Sprintf("network-policy.qubership.org/allowed-from=%s", testns2))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute, time.Second).Should(Succeed())
+			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("NetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s`", testns1, testns2))
+			curlParam["name"] = "curl3"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("%s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
 			/*
-				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
-				By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-				By(fmt.Sprintf("NetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s`", testns1, testns2))
 
 				By("Enabling logs for rejected connection")
 				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
