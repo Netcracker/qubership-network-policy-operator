@@ -81,10 +81,18 @@ func GetProjectDir() (string, error) {
 }
 
 func CreateCurlPod(param map[string]string) error {
-	cmd := exec.Command("kubectl", "-n", param["ns2"], "run", param["name"], fmt.Sprintf("--image=%s",
-		param["img"]), "--", "-o", "/dev/null", "-s", "-w", "%{http_code}\n",
-		fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", param["ns1"]),
-	)
+	var cmd *exec.Cmd
+	if len(param["ip"]) == 0 {
+		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}\n",
+			fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", param["ns1"]))
+	} else {
+		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}\n",
+			fmt.Sprintf("http://%s:5678", param["ip"]))
+	}
 	_, err := Run(cmd)
 	return err
 }
