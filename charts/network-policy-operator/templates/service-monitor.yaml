@@ -14,7 +14,7 @@ spec:
     port: https-metrics
     scheme: https
     bearerTokenSecret:
-      name: {{ .Values.authProxy.rbac.metrics }}-token
+      name: {{ .Values.manager.rbac.metrics }}-token
       key: token
     tlsConfig:
       insecureSkipVerify: true

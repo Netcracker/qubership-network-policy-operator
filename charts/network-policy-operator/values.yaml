@@ -50,6 +50,7 @@ manager:
     create: true
     role: network-policy-operator-role
     rolebinding: network-policy-operator-rolebinding
+    metrics: metrics-reader
 
   securityContext:
     runAsNonRoot: true
@@ -104,39 +105,6 @@ manager:
   # - name: foo
   #   mountPath: "/etc/foo"
   #   readOnly: true
-
-authProxy:
-  image:
-    repository: bitnami/kube-rbac-proxy
-    # This sets the pull policy for images.
-    pullPolicy: IfNotPresent
-    tag: "0.19.1"
-
-  # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-  imagePullSecrets: []
-
-  securityContext:
-    runAsNonRoot: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - "ALL"
-    seccompProfile:
-      type: RuntimeDefault
-
-  resources: 
-    limits:
-      cpu: 500m
-      memory: 256Mi
-    requests:
-      cpu: 50m
-      memory: 64Mi
-
-  rbac:
-    create: true
-    role: network-policy-operator-proxy-role
-    rolebinding: network-policy-operator-proxy-rolebinding
-    metrics: metrics-reader
 
 nodeSelector: {}
 

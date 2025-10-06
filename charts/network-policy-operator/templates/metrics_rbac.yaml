@@ -1,21 +1,21 @@
-{{- if .Values.authProxy.rbac.create }}
+{{- if .Values.manager.rbac.create }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Values.authProxy.rbac.metrics }}
+  name: {{ .Values.manager.rbac.metrics }}
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
 secrets:
-- name: {{ .Values.authProxy.rbac.metrics }}-token
+- name: {{ .Values.manager.rbac.metrics }}-token
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   annotations:
-    kubernetes.io/service-account.name: {{ .Values.authProxy.rbac.metrics }}
+    kubernetes.io/service-account.name: {{ .Values.manager.rbac.metrics }}
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
-  name: {{ .Values.authProxy.rbac.metrics }}-token
+  name: {{ .Values.manager.rbac.metrics }}-token
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -23,14 +23,14 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
-  name: {{ .Values.authProxy.rbac.metrics }}-rolebinding
+  name: {{ include "network-policy-operator.metricsRolebinding" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Values.authProxy.rbac.metrics }}
+  name: {{ include "network-policy-operator.metricsRole" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ .Values.authProxy.rbac.metrics }}
+  name: {{ .Values.manager.rbac.metrics }}
   namespace: {{ include "network-policy-operator.namespace" . }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -38,7 +38,7 @@ kind: ClusterRole
 metadata:
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
-  name: {{ .Values.authProxy.rbac.metrics }}
+  name: {{ include "network-policy-operator.metricsRole" . }}
 rules:
 - nonResourceURLs:
   - "/metrics"
