@@ -34,7 +34,7 @@ const (
 	testns2 = "testns2"
 )
 
-var img, rbacImg, curlImg, chart, namespace string
+var img, rbacImg, curlImg, chart, namespace, key, user string
 
 var _ = Describe("Controller", Ordered, func() {
 	BeforeAll(func() {
@@ -57,6 +57,14 @@ var _ = Describe("Controller", Ordered, func() {
 		namespace = os.Getenv("NS")
 		if len(namespace) == 0 {
 			namespace = "network-policy-operator"
+		}
+		key = os.Getenv("SSH_KEY")
+		if len(namespace) == 0 {
+			namespace = "./id_rsa"
+		}
+		user = os.Getenv("SSH_USER")
+		if len(namespace) == 0 {
+			namespace = "ubuntu"
 		}
 
 		By("Creating manager namespace")
@@ -117,6 +125,7 @@ var _ = Describe("Controller", Ordered, func() {
 	Context("Operator", func() {
 		It("Should run successfully", func() {
 			var controllerPodName, echoPodName, echoPodIP string
+			curlParam := make(map[string]string)
 
 			By("Validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func() error {
@@ -195,7 +204,6 @@ var _ = Describe("Controller", Ordered, func() {
 
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
 			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns2))
-			curlParam := make(map[string]string)
 			curlParam["ns1"] = testns1
 			curlParam["ns2"] = testns2
 			curlParam["img"] = curlImg
@@ -366,18 +374,11 @@ var _ = Describe("Controller", Ordered, func() {
 
 			By("Getting node IP where the curl pod is running")
 			cmd = exec.Command("kubectl", "-n", testns1, "get", "pod", echoPodName, "-o",
-				"jsonpath='{.status.hostIP}'")
+				"jsonpath={.status.hostIP}")
 			nodeOutput, err := utils.Run(cmd)
 			nodeIP := utils.GetNonEmptyLines(string(nodeOutput))[0]
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			By(fmt.Sprintf("Node IP: %s", nodeIP))
-			By("Checking logs")
-			cmd = exec.Command("ssh", "-i", "~/.ssh/${SSH_KEY}",
-				fmt.Sprintf("${SSH_USER}@%s", nodeIP), "\"journalctl",
-				"--all", "|", "grep", "'calico-packet'\"")
-			logOutput, err := utils.Run(cmd)
-			message := utils.GetNonEmptyLines(string(logOutput))[len(logOtput)-1]
-			By(fmt.Sprintf("Logs: %s", message))
+			By(fmt.Sprintf("!!!!!!!! It's possible to check the logs by the following command:\n ssh -i %s %s@%s \"journalctl --all --grep 'calico-packet'\"", key, user, nodeIP))
 		})
 	})
 })
