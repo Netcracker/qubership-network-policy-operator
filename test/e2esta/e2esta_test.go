@@ -325,37 +325,59 @@ var _ = Describe("Controller", Ordered, func() {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
-			/*
-				By("Enabling logs for rejected connection")
-				cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
-					"--patch-file", "./test/yamls/log_patch.json")
-				_, err = utils.Run(cmd)
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				EventuallyWithOffset(1, verifyNPOLog, 2*time.Minute, time.Second).Should(Succeed())
+			By("Enabling logs for rejected connection")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
+				"--patch-file", "./test/yamls/log_patch.json")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			EventuallyWithOffset(1, verifyNPOLog, 2*time.Minute, time.Second).Should(Succeed())
 
-				By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
-				cmd = exec.Command("kubectl", "annotate", "ns", testns1,
-					"network-policy.qubership.org/allowed-from-")
-				_, err = utils.Run(cmd)
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				EventuallyWithOffset(1, verifyNPOLog, 2*time.Minute, time.Second).Should(Succeed())
-				By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-				curlParam["name"] = "curl7"
-				Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
-				EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
-				cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
-				curlOutput, err = utils.Run(cmd)
-				resp = utils.GetNonEmptyLines(string(curlOutput))
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if len(resp) != 0 {
-					Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
-				}
-				By(fmt.Sprintf("Pod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
+			By(fmt.Sprintf("Changing `%s` namespace annotation", testns1))
+			cmd = exec.Command("kubectl", "annotate", "ns", testns1,
+				"network-policy.qubership.org/allowed-from-")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			EventuallyWithOffset(1, verifyNPOLog, 2*time.Minute, time.Second).Should(Succeed())
+			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			curlParam["name"] = "curl7"
+			curlParam["ip"] = ""
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("Pod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
+			curlParam["name"] = "curl8"
+			curlParam["ip"] = echoPodIP
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("Pod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
 
-				By("Checking logs")
-				// TODO
-			*/
-
+			By("Getting node IP where the curl pod is running")
+			cmd = exec.Command("kubectl", "-n", testns1, "get", "pod", echoPodName, "-o",
+				"jsonpath='{.status.hostIP}'")
+			nodeOutput, err := utils.Run(cmd)
+			nodeIP := utils.GetNonEmptyLines(string(nodeOutput))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("Node IP: %s", nodeIP))
+			By("Checking logs")
+			cmd = exec.Command("ssh", "-i", "~/.ssh/${SSH_KEY}",
+				fmt.Sprintf("${SSH_USER}@%s", nodeIP), "\"journalctl",
+				"--all", "|", "grep", "'calico-packet'\"")
+			logOutput, err := utils.Run(cmd)
+			message := utils.GetNonEmptyLines(string(logOutput))[len(logOtput)-1]
+			By(fmt.Sprintf("Logs: %s", message))
 		})
 	})
 })

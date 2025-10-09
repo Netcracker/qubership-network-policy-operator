@@ -85,12 +85,12 @@ func CreateCurlPod(param map[string]string) error {
 	if len(param["ip"]) == 0 {
 		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
 			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-			"-s", "-w", "%{http_code}\n",
+			"-s", "-w", "%{http_code}",
 			fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", param["ns1"]))
 	} else {
 		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
 			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-			"-s", "-w", "%{http_code}\n",
+			"-s", "-w", "%{http_code}",
 			fmt.Sprintf("http://%s:5678", param["ip"]))
 	}
 	_, err := Run(cmd)
