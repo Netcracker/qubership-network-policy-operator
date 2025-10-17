@@ -86,13 +86,13 @@ The parameters for deployment with Helm chart are specified in the below table.
 | networkPolicies.name                | string | "default"                                                                                                                                  | NetworkPolicyConfig name                                                                           |
 | networkPolicies.enabled             | bool   | true                                                                                                                                       | If true NetworkPolicies will be created                                                            |
 | networkPolicies.scope               | object | {}                                                                                                                                         | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
-| networkPolicies.allowAnnotation     | string | "network-policy.qubership.org/allowed-from"                                                                                                | Annotation key to identify the allowed namespaces                                                  |
+| networkPolicies.allowAnnotation     | string | "network-policy.netcracker.com/allowed-from"                                                                                                | Annotation key to identify the allowed namespaces                                                  |
 | networkPolicies.controlPlane        | string | "kube-,openshift,calico,tigera,ingress-nginx"                                                                                              | Comma-separated list of namespaces that must not be restricted, processed as `start with`          |
 | networkPolicies.implicitNamespaces  | string | "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"                                                                 | Comma-separated list of namespaces that are allowed by default                                     |
 | networkPolicies.customPolicies      | string | ""                                                                                                                                         | Custom NetworkPolicies in raw YAML (only Calico notation)                                          |
 | networkPolicies.logs.enabled        | bool   | false                                                                                                                                      | If true the `Log` action will be added into NetworkPolicies                                        |
 | networkPolicies.logs.collectingAll  | bool   | true                                                                                                                                       | If true the all of the connections are logged, if false only denied                                |
-| networkPolicies.logs.namespaceScope | bool   | "network-policy.qubership.org/collecting-logs"                                                                                             | Namespace label key to disable logs flexible                                                       |
+| networkPolicies.logs.namespaceScope | bool   | "network-policy.netcracker.com/collecting-logs"                                                                                             | Namespace label key to disable logs flexible                                                       |
 | networkPolicies.defaultTier         | string | automated                                                                                                                                  | OOB NetworkPolicies Tier                                                                           |
 | networkPolicies.customTier          | string | default                                                                                                                                    | Custom NetworkPolicies Tier                                                                        |
 | dr.install                          | bool   | false                                                                                                                                      | If true RemoteClusterConfig will be created                                                        |
@@ -356,7 +356,7 @@ metadata:
   annotations:
     helm.sh/hook: post-install, post-upgrade
   finalizers:
-  - network-policy.qubership.org/finalizer
+  - network-policy.netcracker.com/finalizer
 ```
 
 If the `RemoteClusterConfig` has been delete the operator at first deletes the `ExternalNamespaces` on the neighbor cluster and only after that removes the finalizer.

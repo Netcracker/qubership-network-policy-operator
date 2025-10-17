@@ -28,7 +28,7 @@ rules:
     - list
     - watch
 - apiGroups:
-    - qubership.org
+    - netcracker.com
   resources:
     - remoteclusterconfigs
   verbs:

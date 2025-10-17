@@ -92,7 +92,7 @@ rules:
   - get
   - patch
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - externalnamespaces
   verbs:
@@ -100,7 +100,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - externalnamespaces/status
   verbs:
@@ -108,7 +108,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - networkpolicyconfigs
   verbs:
@@ -116,13 +116,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - networkpolicyconfigs/finalizers
   verbs:
   - update
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - networkpolicyconfigs/status
   verbs:
@@ -130,7 +130,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - remoteclusterconfigs
   verbs:
@@ -139,13 +139,13 @@ rules:
   - watch
   - update
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - remoteclusterconfigs/finalizers
   verbs:
   - update
 - apiGroups:
-  - qubership.org
+  - netcracker.com
   resources:
   - remoteclusterconfigs/status
   verbs:

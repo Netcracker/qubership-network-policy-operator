@@ -45,8 +45,8 @@ import (
 )
 
 const (
-	NetworkPolicyLabel      = "network-policy.qubership.org/generated"
-	EgressServiceLabel      = "network-policy.qubership.org/egress-svc"
+	NetworkPolicyLabel      = "network-policy.netcracker.com/generated"
+	EgressServiceLabel      = "network-policy.netcracker.com/egress-svc"
 	TunnelAddressAnnotation = rclc.TunnelAddressAnnotation
 	TypeCoupled             = rclc.TypeCoupled
 	TypeDefaultApplied      = "DefaultApplied"
@@ -60,8 +60,8 @@ var KubeAPINamespaces = []string{"kube-system", "openshift-kube-apiserver"}
 
 var ControlPlane string = "kube-,openshift,calico,tigera,ingress-nginx"
 var ImplicitNamespaces string = "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
-var AllowAnnotation string = "network-policy.qubership.org/allowed-from"
-var NetworkPolicyLogLabel string = "network-policy.qubership.org/collecting-logs"
+var AllowAnnotation string = "network-policy.netcracker.com/allowed-from"
+var NetworkPolicyLogLabel string = "network-policy.netcracker.com/collecting-logs"
 var DefaultTier string = "automated"
 var CustomTier string = "default"
 
@@ -74,9 +74,9 @@ type NetworkPolicyConfigReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=qubership.org,resources=networkpolicyconfigs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=netcracker.com,resources=networkpolicyconfigs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=netcracker.com,resources=networkpolicyconfigs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=netcracker.com,resources=networkpolicyconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies/finalizers,verbs=update
@@ -191,7 +191,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		if len(npc.Spec.Logs.NamespaceLabel) > 0 {
 			NetworkPolicyLogLabel = npc.Spec.Logs.NamespaceLabel
 		} else {
-			NetworkPolicyLogLabel = "network-policy.qubership.org/collecting-logs"
+			NetworkPolicyLogLabel = "network-policy.netcracker.com/collecting-logs"
 			log.Info(fmt.Sprintf("The '%s' NetworkPolicyConfig doesn't include 'namespaceLabel', let's set it to '%s'", npc.GetName(), NetworkPolicyLogLabel))
 		}
 		if !npc.Spec.Logs.CollectingAll {
@@ -756,7 +756,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 	policyList := &calicov3.NetworkPolicyList{}
 	opts := []client.ListOption{
 		client.InNamespace(ns.GetName()),
-		client.MatchingLabels{"network-policy.qubership.org/generated": "true"},
+		client.MatchingLabels{"network-policy.netcracker.com/generated": "true"},
 	}
 	err := r.List(context.TODO(), policyList, opts...)
 	if err != nil {
