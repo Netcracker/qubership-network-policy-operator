@@ -122,6 +122,13 @@ tolerations: []
 #            - worker
 affinity: {}
 
+args:
+  - "--health-probe-bind-address=:8081"
+  - "--metrics-bind-address=:8443"
+  - "--metrics-secure=true"
+  - "--leader-elect"
+  - "--zap-log-level=error"
+
 monitoring:
   enable: false
 
