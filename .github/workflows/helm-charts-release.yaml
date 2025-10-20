@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 0
       - name: "Update versions in values"
         id: update-versions
-        uses: netcracker/qubership-workflow-hub/actions/helm-charts-release@main
+        uses: netcracker/qubership-workflow-hub/actions/charts-values-update-action@main
         with:
           release-version: ${{ inputs.release }}
           config-file: .github/helm-charts-release-config.yaml
