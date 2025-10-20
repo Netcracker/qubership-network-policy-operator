@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -207,6 +208,9 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
+			var echoPodName1, echoPodName2, echoPodIP1, echoPodIP2 string
+			curlParam := make(map[string]string)
+
 			By("Getting RemoteClusterConfig names")
 			cmd := exec.Command("kubectl", "get",
 				"rclc", "-o", "go-template={{ range .items }}"+
@@ -264,12 +268,12 @@ var _ = Describe("controller", Ordered, func() {
 			err = os.WriteFile("/tmp/secret.yaml", []byte(strings.Join(secret, "\n")), 0666)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			cmd = exec.Command("kubectl", "apply", "-f", "/tmp/secret.yaml",
-				fmt.Sprintf("--kubeconfig=%s", conf1))
+				fmt.Sprintf("--kubeconfig=%s", conf2))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
 			By("Copy Secret from cluster #2 to cluster #1")
-			cmd = exec.Command("kubectl", "get", "secret", secret1, "-o", "yaml",
+			cmd = exec.Command("kubectl", "get", "secret", secret2, "-o", "yaml",
 				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf2))
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
@@ -277,29 +281,118 @@ var _ = Describe("controller", Ordered, func() {
 			err = os.WriteFile("/tmp/secret.yaml", []byte(strings.Join(secret, "\n")), 0666)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			cmd = exec.Command("kubectl", "apply", "-f", "/tmp/secret.yaml",
-				fmt.Sprintf("--kubeconfig=%s", conf2))
+				fmt.Sprintf("--kubeconfig=%s", conf1))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
-			verifyClusterCoupled := func(conf string) error {
+			verifyClusterCoupled := func(conf string, rclcName string) error {
 				cmd = exec.Command("kubectl", "get",
-					"rclc", rclcName1, "-o", "jsonpath={.status.conditions[*].type}",
+					"rclc", rclcName, "-o", "jsonpath={.status.conditions[*].type}",
 					"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf))
 				statusOutput, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				status := utils.GetNonEmptyLines(string(statusOutput))[0]
-				ExpectWithOffset(2, status).Should(ContainSubstring("Coupled"))
+				if slices.Contains(strings.Split(status, " "), "Coupled") {
+					return fmt.Errorf("'%s' hasn't coupled yet", rclcName)
+				}
 				return nil
 			}
 			By("Verifing the RemoteClusterConfig status on cluster #1")
-			EventuallyWithOffset(1, verifyClusterCoupled(conf1), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyClusterCoupled(conf1, rclcName1), time.Minute, time.Second).Should(Succeed())
 			By("The cluster #1 is coupled")
 
 			By("Verifing the RemoteClusterConfig status on cluster #2")
-			EventuallyWithOffset(1, verifyClusterCoupled(conf2), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyClusterCoupled(conf2, rclcName2), time.Minute, time.Second).Should(Succeed())
 			By("The cluster #2 is coupled")
+
+			By("Validating that the echo pod is running as expected")
+			verifyEchoUp := func(testns string, num int) error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-l", "run=echoserver",
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+					"-n", testns, fmt.Sprintf("--kubeconfig=%s", conf1))
+
+				podOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				podNames := utils.GetNonEmptyLines(string(podOutput))
+				echoPodName := podNames[0]
+				ExpectWithOffset(2, echoPodName).Should(ContainSubstring("echoserver"))
+
+				// Validating pod status
+				cmd = exec.Command("kubectl", "get",
+					"pods", echoPodName, "-o", "jsonpath={.status.phase}",
+					"-n", testns, fmt.Sprintf("--kubeconfig=%s", conf1))
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("echo pod in %s status", status)
+				}
+				if num == 1 {
+					echoPodName1 = echoPodName
+				}
+				if num == 2 {
+					echoPodName2 = echoPodName
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyEchoUp(testns1, 1), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyEchoUp(testns2, 2), time.Minute, time.Second).Should(Succeed())
+
+			By("Getting echo pods IPs")
+			cmd = exec.Command("kubectl", "get",
+				"pods", echoPodName1, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
+				"-n", testns1, fmt.Sprintf("--kubeconfig=%s", conf1))
+			output, err = utils.Run(cmd)
+			echoPodIP1 = utils.GetNonEmptyLines(string(output))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("Echo pod IP: `%s`", echoPodIP1))
+			By("Getting echo pods IPs")
+			cmd = exec.Command("kubectl", "get",
+				"pods", echoPodName2, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
+				"-n", testns2, fmt.Sprintf("--kubeconfig=%s", conf1))
+			output, err = utils.Run(cmd)
+			echoPodIP2 = utils.GetNonEmptyLines(string(output))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("Echo pod IP: `%s`", echoPodIP2))
+
+			By(fmt.Sprintf("Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
+			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns1))
+			curlParam["ns1"] = testns1
+			curlParam["ns2"] = testns1
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl1"
+			curlParam["ip"] = echoPodIP1
+			curlParam["conf"] = conf2
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			verifyCurlUp := func(testns string, conf string) error {
+				cmd = exec.Command("kubectl", "get",
+					"pods", curlParam["name"], "-o", "jsonpath={.status.phase}",
+					"-n", testns, fmt.Sprintf("--kubeconfig=%s", conf))
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("curl pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyCurlUp(testns1, conf2), time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			resp := utils.GetNonEmptyLines(string(output))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
 			// TODO:
-			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)

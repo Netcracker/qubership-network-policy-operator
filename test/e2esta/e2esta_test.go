@@ -203,7 +203,7 @@ var _ = Describe("Controller", Ordered, func() {
 			By(fmt.Sprintf("Echo pod IP: `%s`", echoPodIP))
 
 			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns2))
+			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns2))
 			curlParam["ns1"] = testns1
 			curlParam["ns2"] = testns2
 			curlParam["img"] = curlImg
