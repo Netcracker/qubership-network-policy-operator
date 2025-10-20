@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +35,8 @@ const (
 )
 
 var img, rbacImg, curlImg, chart, namespace, key, user string
-var conf1, conf2 string
+var conf1, conf2, values1, values2 string
+var rclcName1, rclcName2, secret1, secret2 string
 
 var _ = Describe("controller", Ordered, func() {
 	BeforeAll(func() {
@@ -57,23 +60,23 @@ var _ = Describe("controller", Ordered, func() {
 		if len(namespace) == 0 {
 			namespace = "network-policy-operator"
 		}
-		key = os.Getenv("SSH_KEY")
-		if len(namespace) == 0 {
-			namespace = "./id_rsa"
-		}
-		user = os.Getenv("SSH_USER")
-		if len(namespace) == 0 {
-			namespace = "ubuntu"
-		}
 
 		conf1 = os.Getenv("KUBECONF1")
 		if len(namespace) == 0 {
-			namespace = "./kubeconfig1"
+			conf1 = "./kubeconfig1"
 		}
-
 		conf2 = os.Getenv("KUBECONF2")
 		if len(namespace) == 0 {
-			namespace = "./kubeconfig2"
+			conf2 = "./kubeconfig2"
+		}
+
+		values1 = os.Getenv("VALUES1")
+		if len(values1) == 0 {
+			values1 = "./values1.yaml"
+		}
+		values2 = os.Getenv("VALUES2")
+		if len(values2) == 0 {
+			values2 = "./values2.yaml"
 		}
 
 		By("Creating manager namespace on cluster #1")
@@ -125,17 +128,48 @@ var _ = Describe("controller", Ordered, func() {
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 
+		By("Installing operator with Helm on cluster #1")
+		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
+			"--set", "networkPolicies.enabled=false",
+			"--values", values1, fmt.Sprintf("--kubeconfig=%s", conf1))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("Installing operator with Helm on cluster #2")
+		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
+			"--set", "networkPolicies.enabled=false",
+			"--values", values2, fmt.Sprintf("--kubeconfig=%s", conf2))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	})
 
 	AfterAll(func() {
-
-		// TODO:
-		// Delete finalizer
-
-		By("Deleting CRDs on cluster #1")
-		cmd := exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart),
+		By("Uninstalling operator with Helm cluster #1")
+		cmd := exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err := utils.Run(cmd)
+
+		By("Uninstalling operator with Helm cluster #2")
+		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
+			fmt.Sprintf("--kubeconfig=%s", conf2))
+		_, err = utils.Run(cmd)
+
+		By("Deleting finalizer from RemoteClusterConfig on cluster #1")
+		cmd = exec.Command("kubectl", "patch", "rclc", rclcName1, "--type", "json",
+			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
+			fmt.Sprintf("--kubeconfig=%s", conf1))
+		_, err = utils.Run(cmd)
+
+		By("Deleting finalizer from RemoteClusterConfig on cluster #2")
+		cmd = exec.Command("kubectl", "patch", "rclc", rclcName2, "--type", "json",
+			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
+			fmt.Sprintf("--kubeconfig=%s", conf2))
+		_, err = utils.Run(cmd)
+
+		By("Deleting CRDs on cluster #1")
+		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart),
+			fmt.Sprintf("--kubeconfig=%s", conf1))
+		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("Deleting CRDs on cluster #2")
@@ -173,12 +207,98 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
-			// TODO:
-			// ====Left side====
-			// Install operator with Helm. NetworkPolicyConfig disabled
-			// ====Right side====
-			// Install operator with Helm. NetworkPolicyConfig disabled
+			By("Getting RemoteClusterConfig names")
+			cmd := exec.Command("kubectl", "get",
+				"rclc", "-o", "go-template={{ range .items }}"+
+					"{{ if not .metadata.deletionTimestamp }}"+
+					"{{ .metadata.name }}"+
+					"{{ \"\\n\" }}{{ end }}{{ end }}",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf1))
 
+			output, err := utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			rclcName1 = utils.GetNonEmptyLines(string(output))[0]
+
+			cmd = exec.Command("kubectl", "get",
+				"rclc", "-o", "go-template={{ range .items }}"+
+					"{{ if not .metadata.deletionTimestamp }}"+
+					"{{ .metadata.name }}"+
+					"{{ \"\\n\" }}{{ end }}{{ end }}",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf2))
+
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			rclcName2 = utils.GetNonEmptyLines(string(output))[0]
+
+			By("Getting Secrets names")
+			cmd = exec.Command("kubectl", "get",
+				"secret", "-o", "go-template={{ range .items }}"+
+					"{{ if not .metadata.deletionTimestamp }}"+
+					"{{ .metadata.name }}"+
+					"{{ \"\\n\" }}{{ end }}{{ end }}",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf1))
+
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			secret1 = utils.GetNonEmptyLines(string(output))[0]
+			By(fmt.Sprintf("Secret name: '%s'", secret1))
+
+			cmd = exec.Command("kubectl", "get",
+				"secret", "-o", "go-template={{ range .items }}"+
+					"{{ if not .metadata.deletionTimestamp }}"+
+					"{{ .metadata.name }}"+
+					"{{ \"\\n\" }}{{ end }}{{ end }}",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf2))
+
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			secret2 = utils.GetNonEmptyLines(string(output))[0]
+			By(fmt.Sprintf("Secret name: '%s'", secret2))
+
+			By("Copy Secret from cluster #1 to cluster #2")
+			cmd = exec.Command("kubectl", "get", "secret", secret1, "-o", "yaml",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf1))
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			secret := utils.GetNonEmptyLines(string(output))
+			err = os.WriteFile("/tmp/secret.yaml", []byte(strings.Join(secret, "\n")), 0666)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			cmd = exec.Command("kubectl", "apply", "-f", "/tmp/secret.yaml",
+				fmt.Sprintf("--kubeconfig=%s", conf1))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			By("Copy Secret from cluster #2 to cluster #1")
+			cmd = exec.Command("kubectl", "get", "secret", secret1, "-o", "yaml",
+				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			secret = utils.GetNonEmptyLines(string(output))
+			err = os.WriteFile("/tmp/secret.yaml", []byte(strings.Join(secret, "\n")), 0666)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			cmd = exec.Command("kubectl", "apply", "-f", "/tmp/secret.yaml",
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			verifyClusterCoupled := func(conf string) error {
+				cmd = exec.Command("kubectl", "get",
+					"rclc", rclcName1, "-o", "jsonpath={.status.conditions[*].type}",
+					"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf))
+				statusOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, status).Should(ContainSubstring("Coupled"))
+				return nil
+			}
+			By("Verifing the RemoteClusterConfig status on cluster #1")
+			EventuallyWithOffset(1, verifyClusterCoupled(conf1), time.Minute, time.Second).Should(Succeed())
+			By("The cluster #1 is coupled")
+
+			By("Verifing the RemoteClusterConfig status on cluster #2")
+			EventuallyWithOffset(1, verifyClusterCoupled(conf2), time.Minute, time.Second).Should(Succeed())
+			By("The cluster #2 is coupled")
+			// TODO:
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test1`)
