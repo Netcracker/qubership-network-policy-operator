@@ -8,7 +8,7 @@
     {
       "name": "qubership-network-policy-job",
       "file": "job/Dockerfile",
-      "context": "."
+      "context": ""
     },
     {
       "name": "qubership-network-policy-operator-transfer",
