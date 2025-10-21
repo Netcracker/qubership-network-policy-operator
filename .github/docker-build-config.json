@@ -8,12 +8,12 @@
     {
       "name": "qubership-network-policy-job",
       "file": "job/Dockerfile",
-      "context": ""
+      "context": "."
     },
     {
       "name": "qubership-network-policy-operator-transfer",
       "file": "docker-transfer/Dockerfile",
-      "context": ""
+      "context": "."
     }
   ],
   "platforms": "linux/amd64,linux/arm64"
