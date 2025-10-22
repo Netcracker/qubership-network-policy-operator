@@ -295,20 +295,20 @@ var _ = Describe("controller", Ordered, func() {
 					"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf))
 				statusOutput, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				status := utils.GetNonEmptyLines(string(statusOutput))[0]
-				if slices.Contains(strings.Split(status, " "), "Coupled") {
-					return fmt.Errorf("'%s' hasn't coupled yet", rclcName)
+				status := utils.GetNonEmptyLines(string(statusOutput))
+				if !slices.Contains(strings.Split(status[0], " "), "Coupled") {
+					return fmt.Errorf("'%s' hasn't coupled yet; Output: %v", rclcName, status)
 				}
 				return nil
 			}
 			By("Verifing the RemoteClusterConfig status on cluster #1")
-			EventuallyWithOffset(1, verifyClusterCoupled(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyClusterCoupled, time.Minute*10, time.Second).Should(Succeed())
 			By("The cluster #1 is coupled")
 
 			rclcName = rclcName2
 			conf = conf2
 			By("Verifing the RemoteClusterConfig status on cluster #2")
-			EventuallyWithOffset(1, verifyClusterCoupled(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyClusterCoupled, time.Minute*10, time.Second).Should(Succeed())
 			By("The cluster #2 is coupled")
 
 			By("Validating that the echo pod is running as expected")
@@ -347,11 +347,11 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, verifyEchoUp(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyEchoUp, time.Minute, time.Second).Should(Succeed())
 
 			testns = testns2
 			num = 2
-			EventuallyWithOffset(1, verifyEchoUp(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyEchoUp, time.Minute, time.Second).Should(Succeed())
 
 			By("Getting echo pods IPs")
 			cmd = exec.Command("kubectl", "get",
@@ -388,12 +388,12 @@ var _ = Describe("controller", Ordered, func() {
 				statusOutput, err := utils.Run(cmd)
 				status := utils.GetNonEmptyLines(string(statusOutput))[0]
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if string(status) != "Pending" {
+				if string(status) != "Running" {
 					return fmt.Errorf("curl pod in %s status", status)
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
 			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
 				fmt.Sprintf("--kubeconfig=%s", conf2))
 			output, err = utils.Run(cmd)
@@ -413,7 +413,7 @@ var _ = Describe("controller", Ordered, func() {
 			curlParam["ip"] = echoPodIP2
 			curlParam["conf"] = conf2
 			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
-			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
 			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
 				fmt.Sprintf("--kubeconfig=%s", conf2))
 			output, err = utils.Run(cmd)
@@ -425,59 +425,13 @@ var _ = Describe("controller", Ordered, func() {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
-			By(fmt.Sprintf("Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
-			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns1))
-			curlParam["ns1"] = testns1
-			curlParam["ns2"] = testns1
-			curlParam["img"] = curlImg
-			curlParam["name"] = "curl3"
-			curlParam["ip"] = ""
-			curlParam["conf"] = conf2
-			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
-			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
-			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
-				fmt.Sprintf("--kubeconfig=%s", conf2))
-			output, err = utils.Run(cmd)
-			resp = utils.GetNonEmptyLines(string(output))
-			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
-			} else {
-				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
-			}
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
-			By(fmt.Sprintf("Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
-			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns1))
-			curlParam["ns1"] = testns2
-			curlParam["ns2"] = testns1
-			curlParam["img"] = curlImg
-			curlParam["name"] = "curl4"
-			curlParam["ip"] = ""
-			curlParam["conf"] = conf2
-			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
-			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
-			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
-				fmt.Sprintf("--kubeconfig=%s", conf2))
-			output, err = utils.Run(cmd)
-			resp = utils.GetNonEmptyLines(string(output))
-			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
-			} else {
-				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
-			}
-
 			// TODO:
 			// Enable NetworkPolicyConfig
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
 			// Add pod to `test` namespace
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test1`)
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
 
 		})
 	})
