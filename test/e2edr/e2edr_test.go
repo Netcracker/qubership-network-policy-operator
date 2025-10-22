@@ -388,7 +388,6 @@ var _ = Describe("controller", Ordered, func() {
 				statusOutput, err := utils.Run(cmd)
 				status := utils.GetNonEmptyLines(string(statusOutput))[0]
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				//if string(status) != "Running" {
 				if string(status) != "Pending" {
 					return fmt.Errorf("curl pod in %s status", status)
 				}
@@ -426,9 +425,49 @@ var _ = Describe("controller", Ordered, func() {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
-			// TODO:
-			// Check pod-to-svc connectivity between namespaces (`test1`, `test1`)
+			By(fmt.Sprintf("Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
+			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns1))
+			curlParam["ns1"] = testns1
+			curlParam["ns2"] = testns1
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl3"
+			curlParam["ip"] = ""
+			curlParam["conf"] = conf2
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(output))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
+			By(fmt.Sprintf("Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
+			By(fmt.Sprintf("NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be ALLOWED", testns1, testns1))
+			curlParam["ns1"] = testns2
+			curlParam["ns2"] = testns1
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl4"
+			curlParam["ip"] = ""
+			curlParam["conf"] = conf2
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp(), time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(output))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
+			// TODO:
 			// Enable NetworkPolicyConfig
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
