@@ -210,8 +210,48 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
+			var controllerPodName1, controllerPodName2, podName string
 			var echoPodName1, echoPodName2, echoPodIP1, echoPodIP2 string
 			curlParam := make(map[string]string)
+
+			By("Validating that the controller-manager pod is running as expected")
+			verifyControllerUp := func() error {
+				// Get pod name
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-l", "app.kubernetes.io/name=network-policy-operator",
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+					"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf))
+
+				podOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				podNames := utils.GetNonEmptyLines(string(podOutput))
+				ExpectWithOffset(2, podName).Should(ContainSubstring("network-policy-operator"))
+
+				// Validating pod status
+				cmd = exec.Command("kubectl", "get",
+					"pods", podNames[0], "-o", "jsonpath={.status.phase}",
+					"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf))
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("controller pod in %s status", status)
+				}
+				if num == 1 {
+					controllerPodName1 = podNames[0]
+				}
+				if num == 2 {
+					controllerPodName2 = podNames[0]
+				}
+				return nil
+			}
+			conf = conf1
+			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
+			conf = conf2
+			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
 			By("Getting RemoteClusterConfig names")
 			cmd := exec.Command("kubectl", "get",
@@ -425,10 +465,88 @@ var _ = Describe("controller", Ordered, func() {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
+			By("Enabling NetworkPolicyConfig on cluster #1")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
+				"--patch-file", "./test/yamls/patch.json",
+				fmt.Sprintf("--kubeconfig=%s", conf1))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			By("Enabling NetworkPolicyConfig on cluster #2")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
+				"--patch-file", "./test/yamls/patch.json",
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			// Checking NPO logs
+			conf = conf1
+			podName = controllerPodName1
+			verifyNPOLog := func() error {
+				cmd := exec.Command("kubectl", "-n", namespace,
+					fmt.Sprintf("--kubeconfig=%s", conf),
+					"logs", podName, "-c", "manager", "--tail=10",
+				)
+
+				logOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				lastMessages := utils.GetNonEmptyLines(string(logOutput))
+				for _, message := range lastMessages {
+					//By(fmt.Sprintf("%s", message))
+					if strings.Contains(message, "NetworkPolicyConfig Reconciler loop has been finished") {
+						return nil
+					}
+				}
+				return fmt.Errorf("Reconciliation hasn't been finished")
+			}
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
+			conf = conf2
+			podName = controllerPodName2
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
+
+			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns1))
+			By(fmt.Sprintf("Even though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be ALLOWED, because they have the same name", testns1, testns1))
+			curlParam["ns1"] = testns1
+			curlParam["ns2"] = testns1
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl3"
+			curlParam["ip"] = echoPodIP1
+			curlParam["conf"] = conf2
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(output))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
+			By(fmt.Sprintf("Checking connectivity between `%s` and `%s` namespaces", testns1, testns1))
+			By(fmt.Sprintf("NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be REJECTED", testns2, testns1))
+			curlParam["ns1"] = testns2
+			curlParam["ns2"] = testns1
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl4"
+			curlParam["ip"] = echoPodIP2
+			curlParam["conf"] = conf2
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(output))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
 			// TODO:
-			// Enable NetworkPolicyConfig
-			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
-			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Add pod to `test` namespace
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
