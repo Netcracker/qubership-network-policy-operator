@@ -115,6 +115,14 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log.Info(fmt.Sprintf("RemoteClusterConfigs list is: %v", rclList))
 	monitoring.RemoteClustersConfigTotal.Set(float64(len(rclList.Items)))
 
+	ensList := &npcv1.ExternalNamespaceList{}
+	err = r.List(context.TODO(), ensList, opts)
+	if err != nil {
+		log.Error(err, "Failed to get list of ExternalNamespaces")
+		return ctrl.Result{}, err
+	}
+	monitoring.ExternalNamespacesTotal.Set(float64(len(ensList.Items)))
+
 	podList := &corev1.PodList{}
 	svcList := &corev1.ServiceList{}
 	opts = &client.ListOptions{Namespace: ns.GetName()}

@@ -744,6 +744,15 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
 	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
 
+	ensList := &npcv1.ExternalNamespaceList{}
+	opt = &client.ListOptions{Namespace: oprNamespace}
+	err = c.List(context.TODO(), ensList, opt)
+	if err != nil {
+		log.Error(err, "Failed to get list of ExternalNamespaces")
+		return err
+	}
+	monitoring.ExternalNamespacesTotal.Set(float64(len(ensList.Items)))
+
 	return nil
 }
 
