@@ -114,6 +114,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
 
+	err := r.UpdateMetrics(r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	cni, err := r.CheckCNI(r.Client)
 	if err != nil {
 		log.Error(err, "The CNI cant't be identified")
