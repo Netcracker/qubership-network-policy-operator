@@ -35,6 +35,8 @@ spec:
 
 ### Limited Calico CNI Configuration
 
+The prerequisites for limited Calico CNI configuration are as follows:
+
 - kubectl version v1.11.3+
 - Limited Calico CNI installation v3.30.1+
 - EKS cluster v1.32+
