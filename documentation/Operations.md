@@ -18,9 +18,9 @@ Before the new application installation the following steps must be performed to
 * If the new application id a part of control-pale, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
-Then create namespace for the application and set the list of allowed namespaces into `network-policy.qubership.org/allowed-from` annotation.
+Then create namespace for the application and set the list of allowed namespaces into `network-policy.netcracker.com/allowed-from` annotation.
 
-After that, check the list of NetworkPolicies in application namespace and install application if it is acceptable for a particular case.
+After that, check the list of NetworkPolicies in the application namespace and install the application if it is acceptable for a particular case.
 
 ## Operator Check
 
@@ -63,7 +63,7 @@ The outgoing traffic policy:
 
 * restrict-service restricts egress connections to the neighbor cluster services subnet
 
-All of the NetworkPolicies that has been created by operator have `network-policy.qubership.org/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.qubership.org/target-policy: "true"` label in addition.
+All of the NetworkPolicies that has been created by operator have `network-policy.netcracker.com/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.netcracker.com/target-policy: "true"` label in addition.
 
 In DR clusters `Externalnamespaces` will be created after the clusters are coupled.
 
@@ -80,7 +80,7 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-5a66930b-4ddd-4e87-b523-c685848790d2   
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-5dd0c278-6f59-455b-a764-dcfa2846df0f   43h
 ```
 
-Due to long names it's easier to get the particular `Externalnamespace` by label that describes the original name of namespace:
+Due to long names, it is easier to get the particular `Externalnamespace` by label that describes the original name of namespace:
 
 ```sh
 $ kubectl -n network-policy-operator get extns -l kubernetes.io/metadata.name=postgres-test
@@ -98,14 +98,14 @@ spec:
   logs:
     enabled: false
     collectingAll: true
-    namespaceScope: "network-policy.qubership.org/collecting-logs"
+    namespaceScope: "network-policy.netcracker.com/collecting-logs"
 ```
 
 * `logs.enable` enables and disables the collecting connection logs
 * `logs.collectingAll` allowes to change collecting logs for all of the connections or only denied connections
 * `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace.
 
-Connections logs for particular pod are collected on the node, where the pod has been started. If the logs collecting has been enabled it is possible to revise them on the following manner:
+Connections logs for a particular pod are collected on the node, where the pod has been started. If the logs collecting has been enabled, it is possible to revise them on the following manner:
 
 1. Connect to the particular node by SSH or by usage the `kubectl debug` option.
 2. Run the `journalctl` command, for example:

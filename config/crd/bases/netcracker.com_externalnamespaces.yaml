@@ -4,16 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: externalnamespaces.qubership.org
+  name: externalnamespaces.netcracker.com
 spec:
-  group: qubership.org
+  group: netcracker.com
   names:
     kind: ExternalNamespace
     listKind: ExternalNamespaceList
     plural: externalnamespaces
     singular: externalnamespace
-    shortNames:
-      - extns
   scope: Namespaced
   versions:
   - name: v1alpha1

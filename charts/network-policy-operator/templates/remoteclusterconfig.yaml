@@ -3,7 +3,7 @@
 {{- range $key, $value := .Values.dr.remoteClusters }}
 {{- with $outer -}}
 ---
-apiVersion: qubership.org/v1alpha1
+apiVersion: netcracker.com/v1alpha1
 kind: RemoteClusterConfig
 metadata:
   annotations:

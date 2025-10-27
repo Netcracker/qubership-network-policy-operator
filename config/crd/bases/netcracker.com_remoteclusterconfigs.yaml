@@ -4,16 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: remoteclusterconfigs.qubership.org
+  name: remoteclusterconfigs.netcracker.com
 spec:
-  group: qubership.org
+  group: netcracker.com
   names:
     kind: RemoteClusterConfig
     listKind: RemoteClusterConfigList
     plural: remoteclusterconfigs
     singular: remoteclusterconfig
-    shortNames:
-      - rclc
   scope: Namespaced
   versions:
   - name: v1alpha1

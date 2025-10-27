@@ -1,4 +1,4 @@
-apiVersion: qubership.org/v1alpha1
+apiVersion: netcracker.com/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
   labels:
@@ -11,13 +11,13 @@ metadata:
 spec:
   enabled: true
   scope: {}
-  allowAnnotation: "network-policy.qubership.org/allowed-from"
+  allowAnnotation: "network-policy.netcracker.com/allowed-from"
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx,cert-manager,site-manager"
   implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
   logs:
     enabled: false
     collectingAll: true
-    namespaceScope: "network-policy.qubership.org/collecting-logs"
+    namespaceScope: "network-policy.netcracker.com/collecting-logs"
   policies:
     AllowWithinNamespace: |
       apiVersion: projectcalico.org/v3

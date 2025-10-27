@@ -28,8 +28,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# qubership.org/npcv1-bundle:$VERSION and qubership.org/npcv1-catalog:$VERSION.
-IMAGE_TAG_BASE ?= qubership.org/npcv1
+# netcracker.com/npcv1-bundle:$VERSION and netcracker.com/npcv1-catalog:$VERSION.
+IMAGE_TAG_BASE ?= netcracker.com/npcv1
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)

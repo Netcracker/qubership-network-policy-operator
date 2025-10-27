@@ -49,7 +49,7 @@ import (
 )
 
 const (
-	ExcludingAnnotation        = "network-policy.qubership.org/exclude-from-external-namespace"
+	ExcludingAnnotation        = "network-policy.netcracker.com/exclude-from-external-namespace"
 	operatorNamespaceEnvVar    = "NAMESPACE"
 	NodeAddressAnnotation      = "projectcalico.org/IPv4Address"
 	TunnelAddressAnnotation    = "projectcalico.org/IPv4IPIPTunnelAddr"
@@ -62,7 +62,7 @@ const (
 	KubernetesCoreDNSNamespace = "kube-system"
 	KubeAPIService             = "kubernetes"
 	KubeAPIServiceNamespace    = "default"
-	FinalizerName              = "network-policy.qubership.org/finalizer"
+	FinalizerName              = "network-policy.netcracker.com/finalizer"
 )
 
 type RemoteClusterConfigType string
@@ -76,7 +76,7 @@ const (
 
 var oprNamespace string
 
-var remoteCluster = schema.GroupVersionResource{Group: "qubership.org",
+var remoteCluster = schema.GroupVersionResource{Group: "netcracker.com",
 	Version: "v1alpha1", Resource: "remoteclusterconfigs"}
 
 // Structure to store Service configuration
@@ -92,9 +92,9 @@ type RemoteClusterConfigReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=qubership.org,resources=remoteclusterconfigs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=netcracker.com,resources=remoteclusterconfigs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=netcracker.com,resources=remoteclusterconfigs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=netcracker.com,resources=remoteclusterconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
@@ -104,7 +104,7 @@ type RemoteClusterConfigReconciler struct {
 func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
+	var extNamespace = schema.GroupVersionResource{Group: "netcracker.com",
 		Version: "v1alpha1", Resource: "externalnamespaces"}
 	var accessor metav1.Object
 	var svcCFG ServiceConfig
@@ -327,7 +327,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{}, err
 		}
 		unstructured.SetNestedField(unstr.Object,
-			"qubership.org/v1alpha1", "apiVersion")
+			"netcracker.com/v1alpha1", "apiVersion")
 		unstructured.SetNestedField(unstr.Object,
 			"ExternalNamespace", "kind")
 		log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))

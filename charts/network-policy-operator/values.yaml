@@ -134,7 +134,7 @@ networkPolicies:
   #   my-lable: skiped-namespace
   scope: {}
   # Namespace annotation that is a coma separated list of namespaces from where access must be allowed
-  allowAnnotation: "network-policy.qubership.org/allowed-from"
+  allowAnnotation: "network-policy.netcracker.com/allowed-from"
   # List of namespaces prefixes that are not restricted by NetworkPlolicies, therefore connections to pods in that namespaces are allowed
   # `kube-` means `kube-sytem`, `kube-public` `kube-node-lease` namespace are not resticted
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
@@ -145,7 +145,7 @@ networkPolicies:
   logs:
     enabled: false
     collectingAll: true
-    namespaceScope: "network-policy.qubership.org/collecting-logs"
+    namespaceScope: "network-policy.netcracker.com/collecting-logs"
   # Default NetwokPolicies Tier
   defaultTier: automated
   # NetwokPolicies Tier for custom NetworkPolicies

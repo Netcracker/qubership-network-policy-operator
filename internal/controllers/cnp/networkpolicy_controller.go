@@ -45,8 +45,8 @@ import (
 )
 
 const (
-	NetworkPolicyOriginAnnotation = "network-policy.qubership.org/origin-policy"
-	NetworkPolicyTargetLabel      = "network-policy.qubership.org/target-policy"
+	NetworkPolicyOriginAnnotation = "network-policy.netcracker.com/origin-policy"
+	NetworkPolicyTargetLabel      = "network-policy.netcracker.com/target-policy"
 	TypeCoupled                   = rclc.TypeCoupled
 	NetworkPolicyLabel            = npc.NetworkPolicyLabel
 	EgressServiceLabel            = npc.EgressServiceLabel
@@ -65,8 +65,8 @@ type NetworkPolicyReconciler struct {
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=projectcalico.org,resources=networkpolicies/finalizers,verbs=update
-//+kubebuilder:rbac:groups=qubership.org,resources=externalnamespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=qubership.org,resources=externalnamespaces/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=netcracker.com,resources=externalnamespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups=netcracker.com,resources=externalnamespaces/status,verbs=get;update;patch
 
 func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -125,13 +125,13 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' namespace has target label, it's skipped", policy.GetName(), policy.GetNamespace()))
 		return ctrl.Result{}, nil
 	}
-	// Checking "network-policy.qubership.org/generated" label
+	// Checking "network-policy.netcracker.com/generated" label
 	_, ok = policyLabels[NetworkPolicyLabel]
 	if !ok {
 		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' namespace doesn't have '%s' label, it's skipped", policy.GetName(), policy.GetNamespace(), NetworkPolicyLabel))
 		return ctrl.Result{}, nil
 	}
-	// Checking "network-policy.qubership.org/egress-svc" label
+	// Checking "network-policy.netcracker.com/egress-svc" label
 	isService := false
 	_, ok = policyLabels[EgressServiceLabel]
 	if ok {

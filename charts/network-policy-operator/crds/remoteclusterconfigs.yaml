@@ -5,9 +5,9 @@ metadata:
   annotations:
     crd/version: 0.1.1
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: remoteclusterconfigs.qubership.org
+  name: remoteclusterconfigs.netcracker.com
 spec:
-  group: qubership.org
+  group: netcracker.com
   names:
     kind: RemoteClusterConfig
     listKind: RemoteClusterConfigList

@@ -185,7 +185,7 @@ func (r *NamespaceReconciler) patchRequest(ctx context.Context, res client.Objec
 // processRCL creates, updates, or deletes ExternalNamespace
 func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList *corev1.PodList, svcList *corev1.ServiceList, ns *corev1.Namespace, labels map[string]string, tunnelIPs map[string]string, nsAnn map[string]string, cErr chan error) {
 
-	var extNamespace = schema.GroupVersionResource{Group: "qubership.org",
+	var extNamespace = schema.GroupVersionResource{Group: "netcracker.com",
 		Version: "v1alpha1", Resource: "externalnamespaces"}
 
 	rc := &rclc.RemoteClusterConfigReconciler{}
@@ -260,7 +260,7 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 		cErr <- err
 		return
 	}
-	unstructured.SetNestedField(unstr.Object, "qubership.org/v1alpha1", "apiVersion")
+	unstructured.SetNestedField(unstr.Object, "netcracker.com/v1alpha1", "apiVersion")
 	unstructured.SetNestedField(unstr.Object, "ExternalNamespace", "kind")
 	log.Info(fmt.Sprintf("Unstructured: %v", unstr.Object))
 	if ns.GetDeletionTimestamp() == nil {
