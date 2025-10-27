@@ -1,6 +1,5 @@
 <!-- #GFCFilterMarkerStart# -->
 # Network Policy Operator Troubleshooting Guide
-
 - [DR Authentication Errors](#dr-authentication-errors)
 <!-- #GFCFilterMarkerEnd# -->
 This guide provides information on errors troubleshooting for Network Policy Operator. 
