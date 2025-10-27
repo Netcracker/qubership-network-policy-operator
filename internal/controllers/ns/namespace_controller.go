@@ -115,6 +115,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log.Info(fmt.Sprintf("RemoteClusterConfigs list is: %v", rclList))
 	monitoring.RemoteClustersConfigTotal.Set(float64(len(rclList.Items)))
 
+	// Counting ExternalNamespaces
 	ensList := &npcv1.ExternalNamespaceList{}
 	err = r.List(context.TODO(), ensList, opts)
 	if err != nil {
