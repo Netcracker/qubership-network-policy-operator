@@ -84,6 +84,7 @@ The parameters for deployment with Helm chart are specified in the below table.
 | nodeSelector                        | object | {}                                                                                                                                         | Node labels for pod assignment                                                                     |
 | tolerations                         | array  | []                                                                                                                                         | Node tolerations for pod assignment                                                                |
 | affinity                            | object | {}                                                                                                                                         | Node affinity for pod assignment                                                                   |
+| args                                | array  |["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"]       | Operator container arguments                                                                       |
 | monitoring.enable                   | bool   | false                                                                                                                                      | GrafanaDashboard and ServiceMonitor creation                                                       |
 | networkPolicies.name                | string | "default"                                                                                                                                  | NetworkPolicyConfig name                                                                           |
 | networkPolicies.enabled             | bool   | true                                                                                                                                       | If true NetworkPolicies will be created                                                            |
@@ -107,6 +108,10 @@ The parameters for deployment with Helm chart are specified in the below table.
 | dr.tlsJob.nodeSelector              | object | {"kubernetes.io/os": "linux"}                                                                                                              | TLS cetrtificate creation Job specification                                                        |
 | dr.tlsJob.tolerations               | array  | []                                                                                                                                         | TLS cetrtificate creation Job specification                                                        |
 | dr.tlsJob.securityContext           | object | {"runAsNonRoot": true}                                                                                                                     | TLS cetrtificate creation Job specification                                                        |
+
+#### Logs Verbosity Setting
+
+The operator container logs verbosity could be set by changing `--zap-log-level` option in `args` section. It can be one of `debug`, `info`, or `error`. By default it has `error` level.
 
 ### Basic Installation
 

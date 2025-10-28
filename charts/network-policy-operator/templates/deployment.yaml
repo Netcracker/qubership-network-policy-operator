@@ -33,10 +33,7 @@ spec:
         - command:
           - /manager
           args:
-          - "--health-probe-bind-address=:8081"
-          - "--metrics-bind-address=:8443"
-          - "--metrics-secure=true"
-          - "--leader-elect"
+          {{- toYaml .Values.args | nindent 10 }}
           name: manager
           securityContext:
             {{- toYaml .Values.manager.securityContext | nindent 12 }}
