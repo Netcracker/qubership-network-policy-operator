@@ -39,7 +39,6 @@ import (
 	npcv1 "github.com/Netcracker/qubership-network-policy-operator/api/v1alpha1"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/npc"
 	"github.com/Netcracker/qubership-network-policy-operator/internal/controllers/rclc"
-	"github.com/Netcracker/qubership-network-policy-operator/monitoring"
 	calicov3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	"github.com/projectcalico/libcalico-go/lib/selector"
 )
@@ -361,7 +360,6 @@ func (r *NetworkPolicyReconciler) processRules(policy *calicov3.NetworkPolicy) (
 		log.Error(err, fmt.Sprintf("Failed to get ExternalNamespace for '%s' NetworkPolicy", policy.GetName()))
 		return ingress, egress
 	}
-	monitoring.ExternalNamespacesTotal.Set(float64(len(ensList.Items)))
 
 	// Ingress rules
 	ingressRules := policy.Spec.Ingress

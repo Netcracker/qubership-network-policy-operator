@@ -114,6 +114,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	nsAnn := make(map[string]string)
 	unstr := &unstructured.Unstructured{}
 
+	err := r.UpdateMetrics(r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	cni, err := r.CheckCNI(r.Client)
 	if err != nil {
 		log.Error(err, "The CNI cant't be identified")
@@ -699,11 +704,12 @@ func (r *RemoteClusterConfigReconciler) GetRemoteConfig(rcl *npcv1.RemoteCluster
 	return remoteConfig, nil
 }
 
-// Count number of Loose, Coupled, and Synchronized RemoteClusterConfigs
 func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 
 	var conditionType string
 	log := log.FromContext(context.TODO())
+
+	// Counting number of Loose, Coupled, and Synchronized RemoteClusterConfigs
 	rclList := &npcv1.RemoteClusterConfigList{}
 	opt := &client.ListOptions{Namespace: oprNamespace}
 	err := c.List(context.TODO(), rclList, opt)
@@ -743,6 +749,15 @@ func (r *RemoteClusterConfigReconciler) UpdateMetrics(c client.Client) error {
 	monitoring.RemoteClustersConfigLoose.Set(float64(rclsLoose))
 	monitoring.RemoteClustersConfigCoupled.Set(float64(rclsCoupled))
 	monitoring.RemoteClustersConfigSynchronized.Set(float64(rclsSynch))
+
+	// Counting ExternalNamespaces
+	ensList := &npcv1.ExternalNamespaceList{}
+	err = c.List(context.TODO(), ensList, opt)
+	if err != nil {
+		log.Error(err, "Failed to get list of ExternalNamespaces")
+		return err
+	}
+	monitoring.ExternalNamespacesTotal.Set(float64(len(ensList.Items)))
 
 	return nil
 }
