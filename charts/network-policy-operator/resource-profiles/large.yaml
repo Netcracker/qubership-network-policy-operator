@@ -1,5 +1,5 @@
-manager.resources.limits.cpu: 2000m
-manager.resources.limits.memory: 2Gi
+manager.resources.limits.cpu: 1000m
+manager.resources.limits.memory: 1Gi
 manager.resources.requests.cpu: 100m
 manager.resources.requests.memory: 128Mi
 dr.authentication: tls
