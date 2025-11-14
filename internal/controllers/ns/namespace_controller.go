@@ -157,7 +157,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		err = rc.UpdateMetrics(r.Client)
 		if err != nil {
-			return ctrl.Result{}, err
+			log.Error(err, "Failed to update metrics")
 		}
 	}
 
