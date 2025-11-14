@@ -344,6 +344,12 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
+	err = r.UpdateStatus(rcl, TypeSynchronized, metav1.ConditionTrue, "Synchronization", "ExternalNamespaces have been updated", r.Client)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
+		return ctrl.Result{}, err
+	}
+
 	err = r.UpdateMetrics(r.Client)
 	if err != nil {
 		log.Error(err, "Failed to update metrics")
