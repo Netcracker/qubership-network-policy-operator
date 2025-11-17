@@ -157,7 +157,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		err = rc.UpdateMetrics(r.Client)
 		if err != nil {
-			return ctrl.Result{}, err
+			log.Error(err, "Failed to update metrics")
 		}
 	}
 
@@ -320,21 +320,6 @@ func (r *NamespaceReconciler) processRCL(rcl *npcv1.RemoteClusterConfig, podList
 			cErr <- err
 			return
 		}
-	}
-	// Updating RemoteClusterConfig status
-	rclGet := &npcv1.RemoteClusterConfig{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: rcl.GetName(), Namespace: rcl.GetNamespace()}, rclGet)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' RemoteClusterConfig", rcl.GetName()))
-		cErr <- err
-		return
-	}
-	rcl.SetResourceVersion(rclGet.GetResourceVersion())
-	err = rc.UpdateStatus(rcl, TypeSynchronized, metav1.ConditionTrue, "Synchronization", "ExternalNamespaces have been updated", r.Client)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
-		cErr <- err
-		return
 	}
 	cErr <- nil
 	return

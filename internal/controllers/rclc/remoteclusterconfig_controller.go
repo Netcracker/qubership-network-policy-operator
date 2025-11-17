@@ -116,7 +116,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	err := r.UpdateMetrics(r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		log.Error(err, "Failed to update metrics")
 	}
 
 	cni, err := r.CheckCNI(r.Client)
@@ -151,15 +151,10 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if rcl.GetDeletionTimestamp() != nil {
 		deletion = true
 	} else {
-		if !controllerutil.ContainsFinalizer(rcl, FinalizerName) {
-			// Adding finalizer
-			log.Info(fmt.Sprintf("Adding finilizer to '%s' RemoteClusterConfig", req.NamespacedName.Name))
-			controllerutil.AddFinalizer(rcl, FinalizerName)
-			err = r.Update(ctx, rcl)
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
-				return ctrl.Result{}, err
-			}
+		err := r.manageFinalizer(rcl, true)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -179,7 +174,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Updating RemoteClusterConfig status
 	err = r.UpdateStatus(rcl, TypeInitialized, metav1.ConditionUnknown, "Initializing", "Services subnet has been identified", r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		log.Error(err, "Failed to update RemoteClusterConfig status")
 	}
 
 	// Getting credentials to connect to remote cluster
@@ -191,7 +186,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Updating RemoteClusterConfig status
 		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
-			return ctrl.Result{}, errSt
+			log.Error(errSt, "Failed to update RemoteClusterConfig status")
 		}
 		return ctrl.Result{}, err
 	}
@@ -202,7 +197,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Updating RemoteClusterConfig status
 		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
-			return ctrl.Result{}, errSt
+			log.Error(errSt, "Failed to update RemoteClusterConfig status")
 		}
 		return ctrl.Result{}, err
 	}
@@ -212,7 +207,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Updating RemoteClusterConfig status
 		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
-			return ctrl.Result{}, errSt
+			log.Error(errSt, "Failed to update RemoteClusterConfig status")
 		}
 		return ctrl.Result{}, err
 	}
@@ -224,11 +219,11 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Updating RemoteClusterConfig status
 		errSt = r.UpdateStatus(rcl, TypeLoose, metav1.ConditionFalse, "Initializing", "Couple hasn't been identified", r.Client)
 		if errSt != nil {
-			return ctrl.Result{}, errSt
+			log.Error(errSt, "Failed to update RemoteClusterConfig status")
 		}
 		errSt = r.UpdateMetrics(r.Client)
 		if errSt != nil {
-			return ctrl.Result{}, errSt
+			log.Error(errSt, "Failed to update metrics")
 		}
 		log.Info("RemoteClusterConfig Reconciler loop has been finished")
 		return ctrl.Result{}, fmt.Errorf("identification error")
@@ -242,7 +237,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	log.Info(fmt.Sprintf("The '%s' RemoteClusterConfig has '%s' as the remote Service Subnet", rcl.GetName(), rcl.Status.CoupleServiceSubnet))
 	err = r.UpdateStatus(rcl, TypeCoupled, metav1.ConditionTrue, "Initializing", "Couple is identified", r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		log.Error(err, "Failed to update RemoteClusterConfig status")
 	}
 
 	// Getting the namespaces list
@@ -348,16 +343,18 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
+	err = r.UpdateStatus(rcl, TypeSynchronized, metav1.ConditionTrue, "Synchronization", "ExternalNamespaces have been updated", r.Client)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update '%s' RemoteClusterConfig status", rcl.GetName()))
+	}
+
 	err = r.UpdateMetrics(r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		log.Error(err, "Failed to update metrics")
 	}
 
 	if deletion {
-		// Removing finalizer
-		log.Info(fmt.Sprintf("Removing finilizer from '%s' RemoteClusterConfig", req.NamespacedName.Name))
-		controllerutil.RemoveFinalizer(rcl, FinalizerName)
-		err = r.Update(ctx, rcl)
+		err := r.manageFinalizer(rcl, false)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to remove '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
 			return ctrl.Result{}, err
@@ -796,4 +793,30 @@ func (r *RemoteClusterConfigReconciler) CheckCNI(c client.Client) (string, error
 
 func (r *RemoteClusterConfigReconciler) SetExternalNamespaceName(rcl *npcv1.RemoteClusterConfig, ns *corev1.Namespace) string {
 	return fmt.Sprintf("ens-%s-%s", string(rcl.GetUID()), ns.GetUID())
+}
+
+func (r *RemoteClusterConfigReconciler) manageFinalizer(rcl *npcv1.RemoteClusterConfig, addFinalizer bool) error {
+	var err error
+	ctx := context.TODO()
+	log := log.FromContext(ctx)
+	if addFinalizer {
+		if !controllerutil.ContainsFinalizer(rcl, FinalizerName) {
+			// Adding finalizer
+			log.Info(fmt.Sprintf("Adding finilizer to '%s' RemoteClusterConfig", rcl.GetName()))
+			controllerutil.AddFinalizer(rcl, FinalizerName)
+			err = r.Update(ctx, rcl)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// Removing finalizer
+		log.Info(fmt.Sprintf("Removing finilizer from '%s' RemoteClusterConfig", rcl.GetName()))
+		controllerutil.RemoveFinalizer(rcl, FinalizerName)
+		err = r.Update(ctx, rcl)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
