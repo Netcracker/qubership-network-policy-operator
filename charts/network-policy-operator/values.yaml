@@ -39,7 +39,7 @@ leaderElection:
 
 manager:
   # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-  image: ghcr.io/netcracker/qubership-network-policy-operator:main
+  image: artifactorycn.netcracker.com:17152/netcracker/qubership-network-policy-operator:0.7.2
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
 
@@ -146,7 +146,7 @@ networkPolicies:
   # `kube-` means `kube-sytem`, `kube-public` `kube-node-lease` namespace are not resticted
   controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
   # Coma separated list of namespaces that are implicitly added to the 'allowed' namespaces
-  implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
+  implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress,monitoring"
   # Custom NetworkPolicies in Calico notation
   customPolicies: ""
   logs:
@@ -159,28 +159,26 @@ networkPolicies:
   customTier: default
 # RemoteClusterConfig section
 dr:
-  install: false
-  localCluster: {}
-#  localCluster:
-#    api: cluster-1.domain.com:6443
-#    name: cluster-1
+  install: true
+  localCluster:
+    api: alar-dr1.openshift.sdntest.netcracker.com:6443
+    name: cluster-1
 # For `tls` authentication it's a prefix. The result name will be `cluster-1-secret-tls`
-#    secret: cluster-1-secret
-  remoteClusters: []
-#  remoteClusters:
-#    - name: cluster-2
-#      api: cluster-2.domain.com:6443
+    secret: cluster-1-secret
+  remoteClusters:
+    - name: cluster-2
+      api: alar-dr2.openshift.sdntest.netcracker.com:6443
 # For `tls` authentication it's a prefix. The result name will be `cluster-2-secret-tls`
-#      secret: cluster-2-secret
+      secret: cluster-2-secret
 #    - name: cluster-3
 #      api: cluster-3.domain.com:6443
 #      secret: cluster-3-secret
   # There are two options: `token` and `tls`
-  authentication: token
+  authentication: tls
   # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
   tls: auto
   tlsJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: artifactorycn.netcracker.com:17152/netcracker/qubership-network-policy-job:0.7.2
     pullPolicy: IfNotPresent
     resources:
       requests:
@@ -198,7 +196,7 @@ dr:
       seccompProfile:
         type: RuntimeDefault
   restartJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: artifactorycn.netcracker.com:17152/netcracker/qubership-network-policy-job:0.7.2
     pullPolicy: IfNotPresent
     resources:
       requests:
@@ -215,3 +213,21 @@ dr:
           - "ALL"
       seccompProfile:
         type: RuntimeDefault
+upgradeJob:
+  image: artifactorycn.netcracker.com:17009/alar0318/npo-job:0.7.7
+  pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector:
+    kubernetes.io/os: linux
+  tolerations: []
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - "ALL"
+    seccompProfile:
+      type: RuntimeDefault
