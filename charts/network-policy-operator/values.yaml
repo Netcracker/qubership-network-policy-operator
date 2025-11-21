@@ -179,6 +179,7 @@ dr:
   authentication: token
   # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
   tls: auto
+  # TLS Job manages the TLS certifecates in automatic mode
   tlsJob:
     image: ghcr.io/netcracker/qubership-network-policy-job:main
     pullPolicy: IfNotPresent
@@ -197,6 +198,7 @@ dr:
           - "ALL"
       seccompProfile:
         type: RuntimeDefault
+  # Restart Job is needed to run the reconciliation on neighbor cluster to make ExternalNamespaces list consistant
   restartJob:
     image: ghcr.io/netcracker/qubership-network-policy-job:main
     pullPolicy: IfNotPresent
@@ -215,21 +217,22 @@ dr:
           - "ALL"
       seccompProfile:
         type: RuntimeDefault
-upgradeJob:
-  image: ghcr.io/netcracker/qubership-network-policy-job:main
-  pullPolicy: IfNotPresent
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  nodeSelector:
-    kubernetes.io/os: linux
-  tolerations: []
-  securityContext:
-    runAsNonRoot: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - "ALL"
-    seccompProfile:
-      type: RuntimeDefault
+  # Upgrade Job remove RemoteClusterConfig finalizer
+  upgradeJob:
+    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations: []
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - "ALL"
+      seccompProfile:
+        type: RuntimeDefault

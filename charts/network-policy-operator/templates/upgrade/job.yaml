@@ -1,3 +1,4 @@
+{{- if .Values.dr.install }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -24,7 +25,7 @@ spec:
       containers:
         - name: create
           image: {{ template "upgradejob.image" . }}
-          imagePullPolicy: {{ .Values.upgradeJob.pullPolicy }}
+          imagePullPolicy: {{ .Values.dr.upgradeJob.pullPolicy }}
           args:
             - /upgrade.sh
           env:
@@ -35,14 +36,14 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEPLOYMENT_NAME
               value: {{ include "network-policy-operator.fullname" . }}
-          {{- if .Values.upgradeJob.resources }}
-          resources: {{ toYaml .Values.upgradeJob.resources | nindent 12 }}
+          {{- if .Values.dr.upgradeJob.resources }}
+          resources: {{ toYaml .Values.dr.upgradeJob.resources | nindent 12 }}
           {{- end }}
           volumeMounts:
             - mountPath: /tmp/cm
               name: kubeconfig
-          {{- if .Values.upgradeJob.securityContext }}
-          securityContext: {{ toYaml .Values.upgradeJob.securityContext | nindent 12 }}
+          {{- if .Values.dr.upgradeJob.securityContext }}
+          securityContext: {{ toYaml .Values.dr.upgradeJob.securityContext | nindent 12 }}
           {{- end }}
       restartPolicy: OnFailure
       serviceAccountName: {{ include "network-policy-operator.upgrade.name" . }}
@@ -50,9 +51,10 @@ spec:
         - name: kubeconfig
           configMap:
             name: {{ include "network-policy-operator.upgrade.name" . }}
-    {{- if .Values.upgradeJob.nodeSelector }}
-      nodeSelector: {{ toYaml .Values.upgradeJob.nodeSelector | nindent 8 }}
+    {{- if .Values.dr.upgradeJob.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.dr.upgradeJob.nodeSelector | nindent 8 }}
     {{- end }}
-    {{- if .Values.upgradeJob.tolerations }}
-      tolerations: {{ toYaml .Values.upgradeJob.tolerations | nindent 8 }}
+    {{- if .Values.dr.upgradeJob.tolerations }}
+      tolerations: {{ toYaml .Values.dr.upgradeJob.tolerations | nindent 8 }}
     {{- end }}
+{{- end }}

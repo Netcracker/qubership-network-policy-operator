@@ -139,5 +139,5 @@ Upgrade Job name.
 Upgrade Job image.
 */}}
 {{- define "upgradejob.image" -}}
-    {{ .Values.upgradeJob.image }}
+    {{ .Values.dr.upgradeJob.image }}
 {{- end -}}

@@ -367,3 +367,5 @@ metadata:
 ```
 
 If the `RemoteClusterConfig` has been delete the operator at first deletes the `ExternalNamespaces` on the neighbor cluster and only after that removes the finalizer.
+
+**Notice**: During the upgrade procedure the RemoteClusterConfig finalazer is being removed by the upgrade Job that runs on `pre-upgrade` stage. The finalizer is being applied again during the regular reconciliation loop.
