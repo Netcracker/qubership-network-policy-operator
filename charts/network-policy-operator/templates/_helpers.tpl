@@ -127,3 +127,17 @@ Mertics reader Rolebinding
 {{- define "network-policy-operator.metricsRolebinding" -}}
 {{- printf "%s-%s-rb" (include "network-policy-operator.namespace" .) .Values.manager.rbac.metrics | trunc 63 | trimSuffix "-" -}}
 {{- end }}
+
+{{/*
+Upgrade Job name.
+*/}}
+{{- define "network-policy-operator.upgrade.name" -}}
+{{- printf "%s-%s" (include "network-policy-operator.name" .) "upgrade" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Upgrade Job image.
+*/}}
+{{- define "upgradejob.image" -}}
+    {{ .Values.dr.upgradeJob.image }}
+{{- end -}}
