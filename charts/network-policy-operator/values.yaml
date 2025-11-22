@@ -39,7 +39,7 @@ leaderElection:
 
 manager:
   # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-  image: ghcr.io/netcracker/qubership-network-policy-operator:main
+  image: ghcr.io/netcracker/qubership-network-policy-operator:0.7.3
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
 
@@ -181,7 +181,7 @@ dr:
   tls: auto
   # TLS Job manages the TLS certifecates in automatic mode
   tlsJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: ghcr.io/netcracker/qubership-network-policy-job:0.7.3
     pullPolicy: IfNotPresent
     resources:
       requests:
@@ -200,7 +200,7 @@ dr:
         type: RuntimeDefault
   # Restart Job is needed to run the reconciliation on neighbor cluster to make ExternalNamespaces list consistant
   restartJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: ghcr.io/netcracker/qubership-network-policy-job:0.7.3
     pullPolicy: IfNotPresent
     resources:
       requests:
@@ -219,7 +219,7 @@ dr:
         type: RuntimeDefault
   # Upgrade Job remove RemoteClusterConfig finalizer
   upgradeJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: ghcr.io/netcracker/qubership-network-policy-job:0.7.3
     pullPolicy: IfNotPresent
     resources:
       requests:
