@@ -147,16 +147,6 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 	deletion := false
-	// Checking the deletion
-	if rcl.GetDeletionTimestamp() != nil {
-		deletion = true
-	} else {
-		err := r.manageFinalizer(rcl, true)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
-			return ctrl.Result{}, err
-		}
-	}
 
 	// Setting ServiceSubnet
 	svcCFG, err = r.getServiceSubnet()
@@ -238,6 +228,18 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	err = r.UpdateStatus(rcl, TypeCoupled, metav1.ConditionTrue, "Initializing", "Couple is identified", r.Client)
 	if err != nil {
 		log.Error(err, "Failed to update RemoteClusterConfig status")
+	}
+
+	// Checking the deletion
+	if rcl.GetDeletionTimestamp() != nil {
+		deletion = true
+	} else {
+		// Adding finalizer
+		err := r.manageFinalizer(rcl, true)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to add '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Getting the namespaces list
@@ -354,6 +356,7 @@ func (r *RemoteClusterConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	if deletion {
+		// Removing finalizer
 		err := r.manageFinalizer(rcl, false)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to remove '%s' RemoteClusterConfig finalizer", req.NamespacedName.Name))
@@ -812,10 +815,12 @@ func (r *RemoteClusterConfigReconciler) manageFinalizer(rcl *npcv1.RemoteCluster
 	} else {
 		// Removing finalizer
 		log.Info(fmt.Sprintf("Removing finilizer from '%s' RemoteClusterConfig", rcl.GetName()))
-		controllerutil.RemoveFinalizer(rcl, FinalizerName)
-		err = r.Update(ctx, rcl)
-		if err != nil {
-			return err
+		upd := controllerutil.RemoveFinalizer(rcl, FinalizerName)
+		if upd {
+			err = r.Update(ctx, rcl)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
