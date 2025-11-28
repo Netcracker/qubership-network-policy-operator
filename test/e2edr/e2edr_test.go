@@ -35,7 +35,7 @@ const (
 	testns2 = "testns2"
 )
 
-var img, rbacImg, curlImg, chart, namespace, key, user string
+var img, curlImg, chart, namespace, key, user string
 var conf1, conf2, values1, values2 string
 var rclcName1, rclcName2, secret1, secret2 string
 var rclcName, conf, testns string
@@ -46,10 +46,6 @@ var _ = Describe("controller", Ordered, func() {
 		img = os.Getenv("OP_IMG")
 		if len(img) == 0 {
 			img = "ghcr.io/netcracker/qubership-network-policy-operator:main"
-		}
-		rbacImg = os.Getenv("RP_IMG")
-		if len(rbacImg) == 0 {
-			rbacImg = "bitnami/kube-rbac-proxy"
 		}
 		curlImg = os.Getenv("CURL_IMG")
 		if len(curlImg) == 0 {
