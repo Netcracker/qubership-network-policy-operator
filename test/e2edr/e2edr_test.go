@@ -130,6 +130,8 @@ var _ = Describe("controller", Ordered, func() {
 		By("Installing operator with Helm on cluster #1")
 		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
 			"--set", "networkPolicies.enabled=false",
+			"--set", fmt.Sprintf("manager.image=%s", img),
+			"--set", "args={\"--health-probe-bind-address=:8081\", \"--metrics-bind-address=:8443\", \"--metrics-secure=true\", \"--leader-elect\", \"--zap-log-level=info\"}",
 			"--values", values1, fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -137,6 +139,8 @@ var _ = Describe("controller", Ordered, func() {
 		By("Installing operator with Helm on cluster #2")
 		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
 			"--set", "networkPolicies.enabled=false",
+			"--set", fmt.Sprintf("manager.image=%s", img),
+			"--set", "args={\"--health-probe-bind-address=:8081\", \"--metrics-bind-address=:8443\", \"--metrics-secure=true\", \"--leader-elect\", \"--zap-log-level=info\"}",
 			"--values", values2, fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -224,7 +228,7 @@ var _ = Describe("controller", Ordered, func() {
 				podOutput, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				podNames := utils.GetNonEmptyLines(string(podOutput))
-				ExpectWithOffset(2, podName).Should(ContainSubstring("network-policy-operator"))
+				ExpectWithOffset(2, podNames[0]).Should(ContainSubstring("network-policy-operator"))
 
 				// Validating pod status
 				cmd = exec.Command("kubectl", "get",
@@ -245,8 +249,10 @@ var _ = Describe("controller", Ordered, func() {
 				return nil
 			}
 			conf = conf1
+			num = 1
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 			conf = conf2
+			num = 2
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
 			By("Getting RemoteClusterConfig names")
@@ -332,6 +338,9 @@ var _ = Describe("controller", Ordered, func() {
 				statusOutput, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				status := utils.GetNonEmptyLines(string(statusOutput))
+				if len(status) == 0 {
+					return fmt.Errorf("'%s' hasn't coupled yet; Output: %v", rclcName, status)
+				}
 				if !slices.Contains(strings.Split(status[0], " "), "Coupled") {
 					return fmt.Errorf("'%s' hasn't coupled yet; Output: %v", rclcName, status)
 				}
@@ -536,16 +545,17 @@ var _ = Describe("controller", Ordered, func() {
 			output, err = utils.Run(cmd)
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
-			} else {
+			if len(resp) != 0 {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
+			By(fmt.Sprintf("Pod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
 
 			// TODO:
 			// Add pod to `test` namespace
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
+			// Check pod-to-svc connectivity between namespaces (`test1`, `test1`)
+			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
 
 		})
 	})
