@@ -83,32 +83,17 @@ func GetProjectDir() (string, error) {
 func CreateCurlPod(param map[string]string) error {
 	var cmd *exec.Cmd
 	_, ok := param["conf"]
-	if len(param["ip"]) == 0 {
-		if !ok {
-			cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
-				fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-				"-s", "-w", "%{http_code}",
-				fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", param["ns1"]))
-		} else {
-			cmd = exec.Command("kubectl", "-n", param["ns2"],
-				fmt.Sprintf("--kubeconfig=%s", param["conf"]), "run", param["name"],
-				fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-				"-s", "-w", "%{http_code}",
-				fmt.Sprintf("http://echoserver.%s.svc.cluster.local:8080", param["ns1"]))
-		}
+	if !ok {
+		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}",
+			fmt.Sprintf("http://%s:%s", param["ip"], param["port"]))
 	} else {
-		if !ok {
-			cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
-				fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-				"-s", "-w", "%{http_code}",
-				fmt.Sprintf("http://%s:5678", param["ip"]))
-		} else {
-			cmd = exec.Command("kubectl", "-n", param["ns2"],
-				fmt.Sprintf("--kubeconfig=%s", param["conf"]), "run", param["name"],
-				fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
-				"-s", "-w", "%{http_code}",
-				fmt.Sprintf("http://%s:5678", param["ip"]))
-		}
+		cmd = exec.Command("kubectl", "-n", param["ns2"],
+			fmt.Sprintf("--kubeconfig=%s", param["conf"]), "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}",
+			fmt.Sprintf("http://%s:%s", param["ip"], param["port"]))
 	}
 	_, err := Run(cmd)
 	return err
