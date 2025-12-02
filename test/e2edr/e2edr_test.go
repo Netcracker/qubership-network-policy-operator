@@ -78,19 +78,19 @@ var _ = Describe("controller", Ordered, func() {
 			values2 = "./values2.yaml"
 		}
 
-		By("\033[35m Creating manager namespace on cluster #1")
+		By("\033[35mCreating manager namespace on cluster #1")
 		cmd := exec.Command("kubectl", "create", "ns", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err := utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Creating manager namespace on cluster #1")
+		By("\033[35mCreating manager namespace on cluster #1")
 		cmd = exec.Command("kubectl", "create", "ns", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Creating test namespaces on cluster #1")
+		By("\033[35mCreating test namespaces on cluster #1")
 		cmd = exec.Command("kubectl", "create", "ns", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
@@ -100,34 +100,34 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Creating test namespaces on cluster #2")
+		By("\033[35mCreating test namespaces on cluster #2")
 		cmd = exec.Command("kubectl", "create", "ns", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By(fmt.Sprintf("\033[35m Creating echo pod in `%s` namespace on cluster #1", testns1))
+		By(fmt.Sprintf("\033[35mCreating echo pod in `%s` namespace on cluster #1", testns1))
 		cmd = exec.Command("kubectl", "apply", "-f", "./test/yamls/echo.yaml", "-n", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		By(fmt.Sprintf("\033[35m Creating echo pod in `%s` namespace on cluster #1", testns2))
+		By(fmt.Sprintf("\033[35mCreating echo pod in `%s` namespace on cluster #1", testns2))
 		cmd = exec.Command("kubectl", "apply", "-f", "./test/yamls/echo.yaml", "-n", testns2,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Installing CRDs on cluster #1")
+		By("\033[35mInstalling CRDs on cluster #1")
 		cmd = exec.Command("kubectl", "apply", "-f", fmt.Sprintf("%s/crds/", chart),
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 
-		By("\033[35m Installing CRDs on cluster #2")
+		By("\033[35mInstalling CRDs on cluster #2")
 		cmd = exec.Command("kubectl", "apply", "-f", fmt.Sprintf("%s/crds/", chart),
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 
-		By("\033[35m Installing operator with Helm on cluster #1")
+		By("\033[35mInstalling operator with Helm on cluster #1")
 		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
 			"--set", "networkPolicies.enabled=false",
 			"--set", fmt.Sprintf("manager.image=%s", img),
@@ -136,7 +136,7 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Installing operator with Helm on cluster #2")
+		By("\033[35mInstalling operator with Helm on cluster #2")
 		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace,
 			"--set", "networkPolicies.enabled=false",
 			"--set", fmt.Sprintf("manager.image=%s", img),
@@ -147,51 +147,51 @@ var _ = Describe("controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		By("\033[35m Uninstalling operator with Helm cluster #1")
+		By("\033[35mUninstalling operator with Helm cluster #1")
 		cmd := exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err := utils.Run(cmd)
 
-		By("\033[35m Uninstalling operator with Helm cluster #2")
+		By("\033[35mUninstalling operator with Helm cluster #2")
 		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 
-		By("\033[35m Deleting finalizer from RemoteClusterConfig on cluster #1")
+		By("\033[35mDeleting finalizer from RemoteClusterConfig on cluster #1")
 		cmd = exec.Command("kubectl", "patch", "rclc", rclcName1, "--type", "json",
 			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 
-		By("\033[35m Deleting finalizer from RemoteClusterConfig on cluster #2")
+		By("\033[35mDeleting finalizer from RemoteClusterConfig on cluster #2")
 		cmd = exec.Command("kubectl", "patch", "rclc", rclcName2, "--type", "json",
 			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 
-		By("\033[35m Deleting CRDs on cluster #1")
+		By("\033[35mDeleting CRDs on cluster #1")
 		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart),
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Deleting CRDs on cluster #2")
+		By("\033[35mDeleting CRDs on cluster #2")
 		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart),
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Removing manager namespace on cluster #1")
+		By("\033[35mRemoving manager namespace on cluster #1")
 		cmd = exec.Command("kubectl", "delete", "ns", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, _ = utils.Run(cmd)
 
-		By("\033[35m Removing manager namespace on cluster #2")
+		By("\033[35mRemoving manager namespace on cluster #2")
 		cmd = exec.Command("kubectl", "delete", "ns", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, _ = utils.Run(cmd)
 
-		By("\033[35m Removing test namespaces on cluster #1")
+		By("\033[35mRemoving test namespaces on cluster #1")
 		cmd = exec.Command("kubectl", "delete", "ns", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
@@ -201,7 +201,7 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("\033[35m Removing test namespaces on cluster #2")
+		By("\033[35mRemoving test namespaces on cluster #2")
 		cmd = exec.Command("kubectl", "delete", "ns", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
@@ -215,7 +215,8 @@ var _ = Describe("controller", Ordered, func() {
 			var echoSvcName, echoSvcIP1, echoSvcIP2 string
 			curlParam := make(map[string]string)
 
-			By("\033[32m Validating that the controller-manager pod is running as expected")
+			// Validating installation
+			By("\033[32mValidating that the controller-manager pod is running as expected")
 			verifyControllerUp := func() error {
 				// Get pod name
 				cmd := exec.Command("kubectl", "get",
@@ -256,7 +257,8 @@ var _ = Describe("controller", Ordered, func() {
 			num = 2
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
-			By("\033[32m Getting RemoteClusterConfig names")
+			// Getting RCLC names
+			By("\033[32mGetting RemoteClusterConfig names")
 			cmd := exec.Command("kubectl", "get",
 				"rclc", "-o", "go-template={{ range .items }}"+
 					"{{ if not .metadata.deletionTimestamp }}"+
@@ -279,7 +281,8 @@ var _ = Describe("controller", Ordered, func() {
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			rclcName2 = utils.GetNonEmptyLines(string(output))[0]
 
-			By("\033[32m Getting Secrets names")
+			// Getting Secrets names to connect to the neighbor
+			By("\033[32mGetting Secrets names")
 			cmd = exec.Command("kubectl", "get",
 				"secret", "-o", "go-template={{ range .items }}"+
 					"{{ if not .metadata.deletionTimestamp }}"+
@@ -290,7 +293,7 @@ var _ = Describe("controller", Ordered, func() {
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			secret1 = utils.GetNonEmptyLines(string(output))[0]
-			By(fmt.Sprintf("\033[33m Secret name: '%s'", secret1))
+			By(fmt.Sprintf("\033[33mSecret name: '%s'", secret1))
 
 			cmd = exec.Command("kubectl", "get",
 				"secret", "-o", "go-template={{ range .items }}"+
@@ -302,9 +305,10 @@ var _ = Describe("controller", Ordered, func() {
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			secret2 = utils.GetNonEmptyLines(string(output))[0]
-			By(fmt.Sprintf("\033[33m Secret name: '%s'", secret2))
+			By(fmt.Sprintf("\033[33mSecret name: '%s'", secret2))
 
-			By("\033[32m Copy Secret from cluster #1 to cluster #2")
+			// Copy Secret from cluster #1 to cluster #2")
+			By("\033[32mCopy Secret from cluster #1 to cluster #2")
 			cmd = exec.Command("kubectl", "get", "secret", secret1, "-o", "yaml",
 				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
@@ -317,7 +321,8 @@ var _ = Describe("controller", Ordered, func() {
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
-			By("\033[32m Copy Secret from cluster #2 to cluster #1")
+			// Copy Secret from cluster #2 to cluster #1")
+			By("\033[32mCopy Secret from cluster #2 to cluster #1")
 			cmd = exec.Command("kubectl", "get", "secret", secret2, "-o", "yaml",
 				"-n", namespace, fmt.Sprintf("--kubeconfig=%s", conf2))
 			output, err = utils.Run(cmd)
@@ -347,17 +352,17 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			By("\033[32m Verifing the RemoteClusterConfig status on cluster #1")
+			By("\033[32mVerifing the RemoteClusterConfig status on cluster #1")
 			EventuallyWithOffset(1, verifyClusterCoupled, time.Minute*10, time.Second).Should(Succeed())
-			By("\033[32m The cluster #1 is coupled")
+			By("\033[32mThe cluster #1 is coupled")
 
 			rclcName = rclcName2
 			conf = conf2
-			By("\033[32m Verifing the RemoteClusterConfig status on cluster #2")
+			By("\033[32mVerifing the RemoteClusterConfig status on cluster #2")
 			EventuallyWithOffset(1, verifyClusterCoupled, time.Minute*10, time.Second).Should(Succeed())
-			By("\033[32m The cluster #2 is coupled")
+			By("\033[32mThe cluster #2 is coupled")
 
-			By("\033[32m Validating that the echo pod is running as expected")
+			By("\033[32mValidating that the echo pod is running as expected")
 			testns = testns1
 			num = 1
 			verifyEchoUp := func() error {
@@ -399,43 +404,43 @@ var _ = Describe("controller", Ordered, func() {
 			num = 2
 			EventuallyWithOffset(1, verifyEchoUp, time.Minute, time.Second).Should(Succeed())
 
-			By("\033[32m Getting echo pods IPs")
+			By("\033[32mGetting echo pods IPs")
 			cmd = exec.Command("kubectl", "get",
 				"pods", echoPodName1, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
 				"-n", testns1, fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			echoPodIP1 = utils.GetNonEmptyLines(string(output))[0]
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			By(fmt.Sprintf("\033[33m Echo pod IP: `%s`", echoPodIP1))
-			By("\033[32m Getting echo pods IPs")
+			By(fmt.Sprintf("\033[33mEcho pod IP: `%s`", echoPodIP1))
+			By("\033[32mGetting echo pods IPs")
 			cmd = exec.Command("kubectl", "get",
 				"pods", echoPodName2, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
 				"-n", testns2, fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			echoPodIP2 = utils.GetNonEmptyLines(string(output))[0]
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			By(fmt.Sprintf("\033[33m Echo pod IP: `%s`", echoPodIP2))
+			By(fmt.Sprintf("\033[33mEcho pod IP: `%s`", echoPodIP2))
 
 			echoSvcName = "echoserver"
-			By("\033[32m Getting echo service IPs")
+			By("\033[32mGetting echo service IPs")
 			cmd = exec.Command("kubectl", "get",
 				"service", echoSvcName, "-o", "jsonpath={.spec.clusterIP}{\"\\n\"}",
 				"-n", testns1, fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			echoSvcIP1 = utils.GetNonEmptyLines(string(output))[0]
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			By(fmt.Sprintf("\033[33m Echo service IP: `%s`", echoSvcIP1))
-			By("\033[32m Getting echo service IPs")
+			By(fmt.Sprintf("\033[33mEcho service IP: `%s`", echoSvcIP1))
+			By("\033[32mGetting echo service IPs")
 			cmd = exec.Command("kubectl", "get",
 				"service", echoSvcName, "-o", "jsonpath={.spec.clusterIP}{\"\\n\"}",
 				"-n", testns2, fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			echoSvcIP2 = utils.GetNonEmptyLines(string(output))[0]
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			By(fmt.Sprintf("\033[33m Echo service IP: `%s`", echoSvcIP2))
+			By(fmt.Sprintf("\033[33mEcho service IP: `%s`", echoSvcIP2))
 
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
-			By(fmt.Sprintf("\033[32m NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be \033[31m ALLOWED", testns1, testns1))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns1, testns1))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be \033[31mALLOWED", testns1, testns1))
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			curlParam["ns1"] = testns1
 			curlParam["ns2"] = testns1
@@ -466,12 +471,12 @@ var _ = Describe("controller", Ordered, func() {
 			resp := utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
-				Fail(fmt.Sprintf("\033[31m %s has invalid response: %v", curlParam["name"], resp))
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns2, testns1))
-			By(fmt.Sprintf("\033[32m NetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be \033[31m ALLOWED", testns2, testns1))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` namespace on cluster #1 and `%s` namespace on cluster #2", testns2, testns1))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be \033[31mALLOWED", testns2, testns1))
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			curlParam["ns1"] = testns2
 			curlParam["ns2"] = testns1
@@ -488,7 +493,7 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
@@ -509,7 +514,7 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
@@ -530,12 +535,12 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
-			By("\033[32m Enabling NetworkPolicyConfig on cluster #1")
+			By("\033[32mEnabling NetworkPolicyConfig on cluster #1")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
 				"--patch-file", "./test/yamls/patch.json",
 				fmt.Sprintf("--kubeconfig=%s", conf1))
@@ -564,7 +569,7 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
 
-			By("\033[32m Enabling NetworkPolicyConfig on cluster #2")
+			By("\033[32mEnabling NetworkPolicyConfig on cluster #2")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
 				"--patch-file", "./test/yamls/patch.json",
 				fmt.Sprintf("--kubeconfig=%s", conf2))
@@ -575,8 +580,8 @@ var _ = Describe("controller", Ordered, func() {
 			podName = controllerPodName2
 			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
 
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` and `%s` namespaces", testns1, testns1))
-			By(fmt.Sprintf("\033[32m Even though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31m ALLOWED \033[32m , because they have the same name", testns1, testns1))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns1))
+			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because they have the same name", testns1, testns1))
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test1`)
 			curlParam["ns1"] = testns1
 			curlParam["ns2"] = testns1
@@ -593,7 +598,7 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
@@ -614,13 +619,13 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` and `%s` namespaces", testns2, testns1))
-			By(fmt.Sprintf("\033[32m NetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be \033[31m REJECTED", testns2, testns1))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be \033[31m REJECTED", testns2, testns1))
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			curlParam["ns1"] = testns2
 			curlParam["ns2"] = testns1
@@ -639,7 +644,7 @@ var _ = Describe("controller", Ordered, func() {
 			if len(resp) != 0 {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
-			By(fmt.Sprintf("\033[33m Pod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
+			By(fmt.Sprintf("\033[33mPod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
 
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
 			curlParam["ns1"] = testns2
@@ -659,18 +664,22 @@ var _ = Describe("controller", Ordered, func() {
 			if len(resp) != 0 {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
-			By(fmt.Sprintf("\033[33m Pod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
+			By(fmt.Sprintf("\033[33mPod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
 
 			// Add testns1 to implicit namespaces
+			By("\033[32mChanging implicitNamespaces in NetworkPolicyConfig on cluster #1")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
-				fmt.Sprintf("'[{\"op\":\"replace\",\"path\":\"/spec/implicitNamespaces\",\"value\":\"%s\"}]'", testns1),
-				fmt.Sprintf("--kubeconfig=%s", conf2))
+				fmt.Sprintf(`[{"op":"replace","path":"/spec/implicitNamespaces","value":"%s"}]`, testns1),
+				fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			conf = conf1
+			podName = controllerPodName1
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
 
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` and `%s` namespaces", testns2, testns1))
-			By(fmt.Sprintf("\033[32m Even though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31m ALLOWED \033[32m , because the `%s` is an implicit namespace", testns2, testns1, testns2))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
+			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because the `%s` is an implicit namespace", testns1, testns2, testns1))
 			curlParam["ns1"] = testns2
 			curlParam["ns2"] = testns1
 			curlParam["img"] = curlImg
@@ -679,6 +688,7 @@ var _ = Describe("controller", Ordered, func() {
 			curlParam["conf"] = conf2
 			curlParam["port"] = "5678"
 			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			conf = conf2
 			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
 			cmd = exec.Command("kubectl", "-n", testns1, "logs", curlParam["name"],
 				fmt.Sprintf("--kubeconfig=%s", conf2))
@@ -686,14 +696,14 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
 
 			// Check pod-to-svc connectivity between namespaces (`test1`, `test2`)
-			By(fmt.Sprintf("\033[32m Checking connectivity between `%s` and `%s` namespaces", testns2, testns1))
-			By(fmt.Sprintf("\033[32m Even though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31m ALLOWED \033[32m , because the `%s` is an implicit namespace", testns2, testns1, testns2))
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
+			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because the `%s` is an implicit namespace", testns1, testns2, testns1))
 			curlParam["ns1"] = testns2
 			curlParam["ns2"] = testns1
 			curlParam["img"] = curlImg
@@ -709,7 +719,7 @@ var _ = Describe("controller", Ordered, func() {
 			resp = utils.GetNonEmptyLines(string(output))
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			if len(resp) > 0 && resp[0] == "200" {
-				By(fmt.Sprintf("\033[33m Pod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
 			} else {
 				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
 			}
