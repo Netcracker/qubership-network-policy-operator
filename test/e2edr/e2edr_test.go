@@ -553,7 +553,7 @@ var _ = Describe("controller", Ordered, func() {
 			verifyNPOLog := func() error {
 				cmd := exec.Command("kubectl", "-n", namespace,
 					fmt.Sprintf("--kubeconfig=%s", conf),
-					"logs", podName, "-c", "manager", "--tail=30",
+					"logs", podName, "-c", "manager", "--tail=50",
 				)
 
 				logOutput, err := utils.Run(cmd)
@@ -567,7 +567,7 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return fmt.Errorf("Reconciliation hasn't been finished")
 			}
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
 
 			By("\033[32mEnabling NetworkPolicyConfig on cluster #2")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
@@ -578,7 +578,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			conf = conf2
 			podName = controllerPodName2
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
 
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns1))
 			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because they have the same name", testns1, testns1))
@@ -675,7 +675,17 @@ var _ = Describe("controller", Ordered, func() {
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			conf = conf1
 			podName = controllerPodName1
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*5, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
+
+			By("\033[32mChanging implicitNamespaces in NetworkPolicyConfig on cluster #2")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				fmt.Sprintf(`[{"op":"replace","path":"/spec/implicitNamespaces","value":"%s"}]`, testns1),
+				fmt.Sprintf("--kubeconfig=%s", conf2))
+			output, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			conf = conf2
+			podName = controllerPodName2
+			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
 
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
