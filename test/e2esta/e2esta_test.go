@@ -101,8 +101,7 @@ var _ = Describe("Controller", Ordered, func() {
 		By("\033[35mUninstalling operator with Helm")
 		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace)
 		_, err = utils.Run(cmd)
-		// Uninstallation could fail
-		//ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("\033[35mDeleting CRDs")
 		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart))
@@ -125,7 +124,7 @@ var _ = Describe("Controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
-			var controllerPodName, echoPodName, echoPodIP string
+			var echoPodName, echoPodIP string
 			var echoSvcName, echoSvcIP string
 			curlParam := make(map[string]string)
 
@@ -144,12 +143,11 @@ var _ = Describe("Controller", Ordered, func() {
 				podOutput, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				podNames := utils.GetNonEmptyLines(string(podOutput))
-				controllerPodName = podNames[0]
-				ExpectWithOffset(2, controllerPodName).Should(ContainSubstring("network-policy-operator"))
+				ExpectWithOffset(2, podNames[0]).Should(ContainSubstring("network-policy-operator"))
 
 				// Validating pod status
 				cmd = exec.Command("kubectl", "get",
-					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
+					"pods", podNames[0], "-o", "jsonpath={.status.phase}",
 					"-n", namespace,
 				)
 				statusOutput, err := utils.Run(cmd)

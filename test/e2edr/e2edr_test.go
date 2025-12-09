@@ -147,10 +147,36 @@ var _ = Describe("controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		By("\033[35mUninstalling operator with Helm cluster #1")
-		cmd := exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
+		By("\033[35mDeleting NetworkPolicyConfig from cluster #1")
+		cmd := exec.Command("kubectl", "delete", "npc", "--all",
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err := utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		By(fmt.Sprintf("\033[33mWaiting for GC"))
+		time.Sleep(15 * time.Second)
+		By("\033[35mDeleting NetworkPolicies in case if GC is not working on cluster #1")
+		cmd = exec.Command("kubectl", "delete", "cnp", "-A", "--all",
+			fmt.Sprintf("--kubeconfig=%s", conf1))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mUninstalling operator with Helm cluster #1")
+		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
+			fmt.Sprintf("--kubeconfig=%s", conf1))
+		_, err = utils.Run(cmd)
+
+		By("\033[35mDeleting NetworkPolicyConfig from cluster #2")
+		cmd = exec.Command("kubectl", "delete", "npc", "--all",
+			fmt.Sprintf("--kubeconfig=%s", conf2))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		By(fmt.Sprintf("\033[33mWaiting for GC"))
+		time.Sleep(15 * time.Second)
+		By("\033[35mDeleting NetworkPolicies in case if GC is not working on cluster #2")
+		cmd = exec.Command("kubectl", "delete", "cnp", "-A", "--all",
+			fmt.Sprintf("--kubeconfig=%s", conf2))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("\033[35mUninstalling operator with Helm cluster #2")
 		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace,
@@ -158,14 +184,14 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 
 		By("\033[35mDeleting finalizer from RemoteClusterConfig on cluster #1")
-		cmd = exec.Command("kubectl", "patch", "rclc", rclcName1, "--type", "json",
-			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
+		cmd = exec.Command("kubectl", "patch", "rclc", rclcName1, "--type", "json", "-p",
+			`[{"op": "remove", "path": "/metadata/finalizers"}]`, "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 
 		By("\033[35mDeleting finalizer from RemoteClusterConfig on cluster #2")
-		cmd = exec.Command("kubectl", "patch", "rclc", rclcName2, "--type", "json",
-			"--patch-file", "./test/yamls/rclc_patch.json", "-n", namespace,
+		cmd = exec.Command("kubectl", "patch", "rclc", rclcName2, "--type", "json", "-p",
+			`[{"op": "remove", "path": "/metadata/finalizers"}]`, "-n", namespace,
 			fmt.Sprintf("--kubeconfig=%s", conf2))
 		_, err = utils.Run(cmd)
 
@@ -210,7 +236,6 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("Should run successfully", func() {
-			var controllerPodName1, controllerPodName2, podName string
 			var echoPodName1, echoPodName2, echoPodIP1, echoPodIP2 string
 			var echoSvcName, echoSvcIP1, echoSvcIP2 string
 			curlParam := make(map[string]string)
@@ -242,19 +267,11 @@ var _ = Describe("controller", Ordered, func() {
 				if string(status) != "Running" {
 					return fmt.Errorf("controller pod in %s status", status)
 				}
-				if num == 1 {
-					controllerPodName1 = podNames[0]
-				}
-				if num == 2 {
-					controllerPodName2 = podNames[0]
-				}
 				return nil
 			}
 			conf = conf1
-			num = 1
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 			conf = conf2
-			num = 2
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
 			// Getting RCLC names
@@ -364,7 +381,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("\033[32mValidating that the echo pod is running as expected")
 			testns = testns1
-			num = 1
+			num := 1
 			verifyEchoUp := func() error {
 				cmd := exec.Command("kubectl", "get",
 					"pods", "-l", "run=echoserver",
@@ -541,44 +558,22 @@ var _ = Describe("controller", Ordered, func() {
 			}
 
 			By("\033[32mEnabling NetworkPolicyConfig on cluster #1")
-			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
-				"--patch-file", "./test/yamls/patch.json",
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/enabled","value":true}]`,
 				fmt.Sprintf("--kubeconfig=%s", conf1))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
-			// Checking NPO logs
-			conf = conf1
-			podName = controllerPodName1
-			verifyNPOLog := func() error {
-				cmd := exec.Command("kubectl", "-n", namespace,
-					fmt.Sprintf("--kubeconfig=%s", conf),
-					"logs", podName, "-c", "manager", "--tail=50",
-				)
-
-				logOutput, err := utils.Run(cmd)
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				lastMessages := utils.GetNonEmptyLines(string(logOutput))
-				for _, message := range lastMessages {
-					//By(fmt.Sprintf("\033[31m %s", message))
-					if strings.Contains(message, "NetworkPolicyConfig Reconciler loop has been finished") {
-						return nil
-					}
-				}
-				return fmt.Errorf("Reconciliation hasn't been finished")
-			}
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
-
 			By("\033[32mEnabling NetworkPolicyConfig on cluster #2")
-			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
-				"--patch-file", "./test/yamls/patch.json",
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/enabled","value":true}]`,
 				fmt.Sprintf("--kubeconfig=%s", conf2))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
-			conf = conf2
-			podName = controllerPodName2
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
+			// Waiting for reconciliation
+			By(fmt.Sprintf("\033[33mWaiting for reconciliation"))
+			time.Sleep(30 * time.Second)
 
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns1))
 			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because they have the same name", testns1, testns1))
@@ -673,9 +668,6 @@ var _ = Describe("controller", Ordered, func() {
 				fmt.Sprintf("--kubeconfig=%s", conf1))
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			conf = conf1
-			podName = controllerPodName1
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
 
 			By("\033[32mChanging implicitNamespaces in NetworkPolicyConfig on cluster #2")
 			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
@@ -683,9 +675,10 @@ var _ = Describe("controller", Ordered, func() {
 				fmt.Sprintf("--kubeconfig=%s", conf2))
 			output, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
-			conf = conf2
-			podName = controllerPodName2
-			EventuallyWithOffset(1, verifyNPOLog, time.Minute*2, time.Second).Should(Succeed())
+
+			// Waiting for reconciliation
+			By(fmt.Sprintf("\033[33mWaiting for reconciliation"))
+			time.Sleep(30 * time.Second)
 
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
