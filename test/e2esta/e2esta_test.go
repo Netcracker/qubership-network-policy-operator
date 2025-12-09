@@ -96,7 +96,7 @@ var _ = Describe("Controller", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "npc", "--all")
 		_, err := utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		time.Sleep(15 * time.Second)
+		time.Sleep(30 * time.Second)
 
 		By("\033[35mUninstalling operator with Helm")
 		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace)
@@ -259,8 +259,8 @@ var _ = Describe("Controller", Ordered, func() {
 			}
 
 			By("\033[32mEnabling NetworkPolicyConfig")
-			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
-				"--patch-file", "./test/yamls/patch.json")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/enabled","value":true}]`)
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 
@@ -334,8 +334,8 @@ var _ = Describe("Controller", Ordered, func() {
 
 			/* TODO: Check connection logs
 			By("\033[32mEnabling logs for rejected connection")
-			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json",
-				"--patch-file", "./test/yamls/log_patch.json")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/logs/collectingAll","value":false},{"op":"replace","path":"/spec/logs/enabled","value":true}]`)
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			time.Sleep(15 * time.Second)
