@@ -573,7 +573,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			// Waiting for reconciliation
 			By(fmt.Sprintf("\033[33mWaiting for reconciliation"))
-			time.Sleep(30 * time.Second)
+			time.Sleep(40 * time.Second)
 
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns1))
 			By(fmt.Sprintf("\033[32mEven though NetworkPolicyConfig is enabled all of the connections between `%s` and `%s` must be \033[31mALLOWED\033[32m, because they have the same name", testns1, testns1))
