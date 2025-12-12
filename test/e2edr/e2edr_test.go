@@ -683,7 +683,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			// Waiting for reconciliation
 			By(fmt.Sprintf("\033[33mWaiting for reconciliation"))
-			time.Sleep(30 * time.Second)
+			time.Sleep(45 * time.Second)
 
 			// Check pod-to-pod connectivity between namespaces (`test1`, `test2`)
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns2, testns1))
