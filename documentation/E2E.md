@@ -4,7 +4,7 @@
 
 The deployment scheme is the following:
 
-![Stand-alone](documentation/images/E2E_SA.png)
+![Stand-alone](/documentation/images/E2E_SA.png)
 
 This part consists of the following steps:
 
@@ -38,7 +38,7 @@ export ECHO="./test/yamls/echo.yaml"
 
 The deployment scheme is the following:
 
-![DR](documentation/images/E2E_DR.png)
+![DR](/documentation/images/E2E_DR.png)
 
 This part consists of the following steps:
 1. Installation through Helm
