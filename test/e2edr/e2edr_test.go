@@ -35,7 +35,7 @@ const (
 	testns2 = "testns2"
 )
 
-var img, curlImg, chart, namespace, key, user string
+var img, curlImg, chart, namespace, echo string
 var conf1, conf2, values1, values2 string
 var rclcName1, rclcName2, secret1, secret2 string
 var rclcName, conf, testns string
@@ -58,6 +58,11 @@ var _ = Describe("controller", Ordered, func() {
 		namespace = os.Getenv("NS")
 		if len(namespace) == 0 {
 			namespace = "network-policy-operator"
+		}
+
+		echo = os.Getenv("ECHO")
+		if len(echo) == 0 {
+			echo = "./test/yamls/echo.yaml"
 		}
 
 		conf1 = os.Getenv("KUBECONF1")
@@ -107,12 +112,12 @@ var _ = Describe("controller", Ordered, func() {
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By(fmt.Sprintf("\033[35mCreating echo pod in `%s` namespace on cluster #1", testns1))
-		cmd = exec.Command("kubectl", "apply", "-f", "./test/yamls/echo.yaml", "-n", testns1,
+		cmd = exec.Command("kubectl", "apply", "-f", echo, "-n", testns1,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		By(fmt.Sprintf("\033[35mCreating echo pod in `%s` namespace on cluster #1", testns2))
-		cmd = exec.Command("kubectl", "apply", "-f", "./test/yamls/echo.yaml", "-n", testns2,
+		cmd = exec.Command("kubectl", "apply", "-f", echo, "-n", testns2,
 			fmt.Sprintf("--kubeconfig=%s", conf1))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -274,7 +279,7 @@ var _ = Describe("controller", Ordered, func() {
 			conf = conf2
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
-			// Getting RCLC names
+			// Getting RemoteClusterConfigs names
 			By("\033[32mGetting RemoteClusterConfig names")
 			cmd := exec.Command("kubectl", "get",
 				"rclc", "-o", "go-template={{ range .items }}"+

@@ -323,7 +323,7 @@ var _ = Describe("Controller", Ordered, func() {
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			time.Sleep(30 * time.Second)
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
-			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s`", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s` so all of the connections must be \033[31mALLOWED", testns1, testns2))
 			curlParam["name"] = "curl5"
 			curlParam["ip"] = echoSvcIP
 			curlParam["port"] = "8080"
@@ -367,6 +367,7 @@ var _ = Describe("Controller", Ordered, func() {
 			ExpectWithOffset(2, err).NotTo(HaveOccurred())
 			time.Sleep(15 * time.Second)
 			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be \033[31mREJECTED", testns1, testns2))
 			curlParam["name"] = "curl7"
 			curlParam["ip"] = echoSvcIP
 			curlParam["port"] = "8080"
