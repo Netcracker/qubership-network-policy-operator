@@ -1,4 +1,4 @@
-FROM bash:5.0.18-alpine3.22
+FROM bash:5.3.9-alpine3.23
 
 LABEL maintainer=""
 
