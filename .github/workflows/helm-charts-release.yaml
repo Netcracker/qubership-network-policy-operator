@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Check if tag exists
         id: check_tag
-        uses: netcracker/qubership-workflow-hub/actions/tag-action@main
+        uses: netcracker/qubership-workflow-hub/actions/tag-action@396774180000abdb825cbf150b56cc59c6913db8  # v2.0.5
         with:
           tag-name: '${{ inputs.release }}'
           ref: ${{ github.ref }}
@@ -79,7 +79,7 @@ jobs:
         run: |
           echo "IMAGE=${{ matrix.component.name }}" >> $GITHUB_ENV
       - name: Docker build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8  # v2.0.5
         with:
           ref: ${{ github.ref }}
           download-artifact: false
@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 0
       - name: "Update versions in values"
         id: update-versions
-        uses: netcracker/qubership-workflow-hub/actions/charts-values-update-action@main
+        uses: netcracker/qubership-workflow-hub/actions/charts-values-update-action@b6d2198c722564e250d985a99990230d85b0d686  # v2.0.3
         with:
           release-version: ${{ inputs.release }}
           config-file: .github/helm-charts-release-config.yaml
@@ -126,7 +126,7 @@ jobs:
           echo "IMAGE_VERSION=${{ fromJson(needs.chart-release-prepare.outputs.images-versions)[matrix.component.name] || inputs.release }}" >> $GITHUB_ENV
 
       - name: Docker build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8  # v2.0.5
         with:
           ref: release-${{ inputs.release }}
           download-artifact: false
@@ -165,7 +165,7 @@ jobs:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: "Release-drafter"
-        uses: netcracker/release-drafter@master
+        uses: netcracker/release-drafter@86f4276a3894b5af70480e826c32fe3648ac6a70  # v1.0.0
         with:
           config-name: release-drafter-config.yml
           publish: true
@@ -175,7 +175,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Assets
-        uses: netcracker/qubership-workflow-hub/actions/assets-action@main
+        uses: netcracker/qubership-workflow-hub/actions/assets-action@396774180000abdb825cbf150b56cc59c6913db8  # v2.0.5
         with:
           tag: ${{ inputs.release }}
           item-path: .cr-release-packages/*.tgz
