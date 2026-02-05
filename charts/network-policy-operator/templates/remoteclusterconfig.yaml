@@ -6,8 +6,6 @@
 apiVersion: netcracker.com/v1alpha1
 kind: RemoteClusterConfig
 metadata:
-  annotations:
-    "helm.sh/hook": post-install, post-upgrade
   labels:
     {{- include "network-policy-operator.labels" . | nindent 4 }}
   name: remoteclusterconfig-{{ $value.name }}
