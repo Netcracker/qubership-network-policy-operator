@@ -173,7 +173,7 @@ The monitoring section enables GrafanaDashboard and ServiceMonitor resources cre
 * Number of RemoteClustersConfigs with particular types (initialized, loose, coupled, synchronized)
 * Number of processed Namespaces
 * Number of ExternalNamespaces
-* Number of created NetworkPolicies
+* Number of created NetworkPolicies (policies only with `network-policy.netcracker.com/generated=true` label)
 * Operator pods CPU and Memory consumptions
 
 In case of DR scheme, check the [DR Preparation](#dr-preparation) section below.
