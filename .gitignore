@@ -26,3 +26,5 @@ go.work
 *.swp
 *.swo
 *~
+charts/network-policy-operator/run.yaml
+tmpl.yaml
