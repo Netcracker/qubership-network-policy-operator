@@ -8,8 +8,6 @@ RUN set -x \
 	&& chmod 0755 /usr/local/bin/kubectl
 
 COPY	--chmod=755 job/tls.sh /
-COPY	--chmod=755 job/restart.sh /
-COPY	--chmod=755 job/upgrade.sh /
 
 RUN adduser -h /home/job -s /bin/sh -u 1001 -D job
 
