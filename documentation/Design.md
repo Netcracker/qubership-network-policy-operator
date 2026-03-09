@@ -9,10 +9,10 @@
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [Test Plan](#test-plan)
-      - [Prerequisite testing updates](#prerequisite-testing-updates)
-      - [Unit tests](#unit-tests)
-      - [Integration tests](#integration-tests)
-      - [e2e tests](#e2e-tests)
+    - [Prerequisite testing updates](#prerequisite-testing-updates)
+    - [Unit tests](#unit-tests)
+    - [Integration tests](#integration-tests)
+    - [e2e tests](#e2e-tests)
   - [Graduation Criteria](#graduation-criteria)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
   - [Version Skew Strategy](#version-skew-strategy)
@@ -43,7 +43,7 @@ Platform solution that is based on Kubernetes or OpenShift cluster must have OOB
 
 ### Non-Goals
 
-* NetworkPolicy visualization 
+* NetworkPolicy visualization
 * UI NetworkPolicy configuration
 * Allowed/Denied connections logs
 
@@ -52,7 +52,7 @@ Platform solution that is based on Kubernetes or OpenShift cluster must have OOB
 Since typical Kubernetes or OpenShift cluster works with Calico CNI, the solution should use Calico CNI functionality to cover current requirements. OOB NetworkPolicies are based on [Calico NetworkPolicy](https://docs.tigera.io/calico/latest/reference/resources/networkpolicy) specification and include the following parts:
 
 * Namespaced NetworkPolicies. The ingress rules in that policies explicitly allow incoming traffic from other namespaces. Namespaces that are allowed to connect to particular namespace listed in special annotation. Traffic from monitoring namespace is allowed implicitly by default. The egress rule allowes all outgoing traffic from all of the pods in the namespace
-* Kubernetes system namespaces such as 'kube-system', 'calico-apiserver' are not restricted by NetworkPolicies 
+* Kubernetes system namespaces such as 'kube-system', 'calico-apiserver' are not restricted by NetworkPolicies
 * Arbitrary NetworkPolicies. That part allows to create any policies for any services in the cluster
 * Dynamic NetworkPolicies to cover DR scheme
 
@@ -70,7 +70,7 @@ The operator request/limits need to be assessed during special tests
 
 Namespaced NetworkPolicies example
 
-```
+```yaml
 ---
 apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
@@ -138,7 +138,7 @@ The main part of operator needs NetworkPolicyConfig custom resource that describ
 
 `NetworkPolicyConfig` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
@@ -225,7 +225,7 @@ Let's call the NetworkPolicy that must be extended to cover remote cluster pods 
 
 `RemoteClusterConfig` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: RemoteClusterConfig
 metadata:
@@ -243,7 +243,7 @@ spec:
 
 `ExternalNamespace` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: ExternalNamespace
 metadata:
@@ -282,7 +282,7 @@ spec:
 
 The `values.yaml` draft is the following:
 
-```
+```yaml
 networkPolicies:
   install: true
   name: "default"
@@ -337,22 +337,22 @@ The preinstallation procedure gets list of `values.yaml` and `kubeconfig` for al
 
 ### Test Plan
 
-##### Prerequisite testing updates
+#### Prerequisite testing updates
 
 <!--
 Based on reviewers feedback describe what additional tests need to be added prior
 implementing this enhancement to ensure the enhancements have also solid foundations.
 -->
 
-##### Unit tests
+#### Unit tests
 
 Creation, update, and deletion operations for Namespace, Pod, ExternalNamespace, and RemoteClusterConfig
 
-##### Integration tests
+#### Integration tests
 
 The same unit tests but for different Calico versions
 
-##### e2e tests
+#### e2e tests
 
 Installation and upgrade OOB NetworkPolicicies on Kubernetes and OpenShift with and without operator
 
