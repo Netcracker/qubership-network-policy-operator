@@ -381,23 +381,23 @@ TODO
 
 TODO
 
-###### How can this feature be enabled / disabled in a live cluster?
+#### How can this feature be enabled / disabled in a live cluster?
 
 Helm Chart installation / uninstallation
 
-###### Does enabling the feature change any default behavior?
+#### Does enabling the feature change any default behavior?
 
 OOB NetworkPolicies affect only new network connections, the established connection are not affected
 
-###### Can the feature be disabled once it has been enabled (i.e. can we roll back the enablement)?
+#### Can the feature be disabled once it has been enabled (i.e. can we roll back the enablement)?
 
 Yes
 
-###### What happens if we reenable the feature if it was previously rolled back?
+#### What happens if we reenable the feature if it was previously rolled back?
 
 The same as the enabling from the scratch
 
-###### Are there any tests for feature enablement/disablement?
+#### Are there any tests for feature enablement/disablement?
 
 e2e tests
 
@@ -405,14 +405,14 @@ e2e tests
 
 It's an independant feature
 
-###### How can a rollout or rollback fail? Can it impact already running workloads?
+#### How can a rollout or rollback fail? Can it impact already running workloads?
 
 
-###### What specific metrics should inform a rollback?
+#### What specific metrics should inform a rollback?
 
-###### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
+#### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
 
-###### Is the rollout accompanied by any deprecations and/or removals of features, APIs, fields of API types, flags, etc.?
+#### Is the rollout accompanied by any deprecations and/or removals of features, APIs, fields of API types, flags, etc.?
 
 ### Monitoring Requirements
 
@@ -427,7 +427,7 @@ Monitoring metrics:
 
 ### Dependencies
 
-###### Does this feature depend on any specific services running in the cluster?
+#### Does this feature depend on any specific services running in the cluster?
 
 Calico CNI, Calico APIServer:
 * [Calico](https://docs.tigera.io/calico/latest/getting-started/)
@@ -436,29 +436,29 @@ Calico CNI, Calico APIServer:
 
 TODO
 
-###### Will enabling / using this feature result in any new API calls?
+#### Will enabling / using this feature result in any new API calls?
 
-###### Will enabling / using this feature result in introducing new API types?
+#### Will enabling / using this feature result in introducing new API types?
 
-###### Will enabling / using this feature result in any new calls to the cloud provider?
+#### Will enabling / using this feature result in any new calls to the cloud provider?
 
-###### Will enabling / using this feature result in increasing size or count of the existing API objects?
+#### Will enabling / using this feature result in increasing size or count of the existing API objects?
 
-###### Will enabling / using this feature result in increasing time taken by any operations covered by existing SLIs/SLOs?
+#### Will enabling / using this feature result in increasing time taken by any operations covered by existing SLIs/SLOs?
 
-###### Will enabling / using this feature result in non-negligible increase of resource usage (CPU, RAM, disk, IO, ...) in any components?
+#### Will enabling / using this feature result in non-negligible increase of resource usage (CPU, RAM, disk, IO, ...) in any components?
 
-###### Can enabling / using this feature result in resource exhaustion of some node resources (PIDs, sockets, inodes, etc.)?
+#### Can enabling / using this feature result in resource exhaustion of some node resources (PIDs, sockets, inodes, etc.)?
 
 ### Troubleshooting
 
 TODO
 
-###### How does this feature react if the API server and/or etcd is unavailable?
+#### How does this feature react if the API server and/or etcd is unavailable?
 
-###### What are other known failure modes?
+#### What are other known failure modes?
 
-###### What steps should be taken if SLOs are not being met to determine the problem?
+#### What steps should be taken if SLOs are not being met to determine the problem?
 
 ## Implementation History
 
