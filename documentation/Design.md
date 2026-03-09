@@ -206,7 +206,8 @@ spec:
         - Egress
 ```
 
-For DR scheme the information about remote cluster pods must be presented and actualized on local cluster to create NetworkPolicy for that pods. The operator needs IP of a pod and pod labels. Pod labels are matched with the existing NetworkPolicy rules and as the result operator create/update a NetworkPolicy with the same logic as the exiting one but applicable for remote cluster pods because selectors are replaced by the exact pods IPs. For pod to service interactions should be covered by egress rules
+For DR scheme the information about remote cluster pods must be presented and actualized on local cluster to create NetworkPolicy for that pods. The operator needs IP of a pod and pod labels.
+Pod labels are matched with the existing NetworkPolicy rules and as the result operator create/update a NetworkPolicy with the same logic as the exiting one but applicable for remote cluster pods because selectors are replaced by the exact pods IPs. For pod to service interactions should be covered by egress rules
 
 The DR part of operator needs two custom resources:
 
@@ -219,9 +220,12 @@ The DR part of operator consists of the following controllers:
 * Controller #2 watches the Pods and updates ExternalNamespace It's needed to process Pod creation or Pod description change
 * Controller #3 watches the NetworkPolicies and creates or updates additional NetworkPolicy to cover the traffic for Pods from remote cluster
 * Controller #4 watches RemoteClusterConfig and creates ExternalNamespace. It's needed for initial creation of ExternalNamespace
-* Controller #5 watches the Service and updates ExternalNamespace. It's needed to process Service creation and Services description changes 
+* Controller #5 watches the Service and updates ExternalNamespace. It's needed to process Service creation and Services description changes
 
-Let's call the NetworkPolicy that must be extended to cover remote cluster pods an `origin` policy. The Networkpolicy that will be created during reconciliation loop of operator is a `target` policy. During reconsiliation loop operator creates/updates/delete the ExternalNamespaces on remote cluster. It makes possible to use the ExternalNamespaces on remote cluster to create/update the `target` NetworkPolicy. The `target` policy is labeled to be indicated as `target` policy. The `RemoteClusterConfig` resources must be created on both clusters to start the pods specification swap. In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different maner. It explicitly allowes outgoing connections to particular services from allowed namespaces in neighbor cluster and denies connections to other service. The outgoing traffic to any endpoints out of the service subnet of neighbor cluster must be allowed
+Let's call the NetworkPolicy that must be extended to cover remote cluster pods an `origin` policy. The Networkpolicy that will be created during reconciliation loop of operator is a `target` policy. During reconsiliation loop operator creates/updates/delete the ExternalNamespaces on remote cluster.
+It makes possible to use the ExternalNamespaces on remote cluster to create/update the `target` NetworkPolicy. The `target` policy is labeled to be indicated as `target` policy. The `RemoteClusterConfig` resources must be created on both clusters to start the pods specification swap.
+In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different maner.
+It explicitly allowes outgoing connections to particular services from allowed namespaces in neighbor cluster and denies connections to other service. The outgoing traffic to any endpoints out of the service subnet of neighbor cluster must be allowed
 
 `RemoteClusterConfig` spec example:
 
