@@ -132,7 +132,7 @@ spec:
 
 ### Dynamic NetworkPolicies and Operator
 
-![Operator scheme](/documentation/images/NP_Operator.png)
+![Operator scheme](./documentation/images/NP_Operator.png)
 
 The main part of operator needs NetworkPolicyConfig custom resource that describes templates for NetworkPolicies above. It consists of the one controller that watches NetworkPolicyConfig and Namespaces. The controller creates or deletes NetworkPolicies in particular Namespace
 
