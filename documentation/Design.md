@@ -275,7 +275,7 @@ spec:
       nodeName: ubuntu-2
       podIP: 10.128.128.129
     services:
-	  selectors: 
+      selectors: 
         app: target
       labels: {}
       name: test-svc
