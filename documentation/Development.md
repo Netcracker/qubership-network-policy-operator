@@ -4,7 +4,7 @@
 - kubectl version v1.11.3+
 - Calico CNI with API server version v3.28.1+
 - Kubernetes v1.27+ or OCP4.14+ cluster
-- In case of DR, the following scheme must be configured: [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation/DRScheme.md)
+- In case of DR, the following scheme must be configured: [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation)
 
 ## To Deploy on the cluster
 

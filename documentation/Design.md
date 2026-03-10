@@ -39,7 +39,7 @@ Platform solution that is based on Kubernetes or OpenShift cluster must have OOB
 * Restrict incoming traffic to particular namespace
 * Restrict outgoing traffic to Kubernetes system services
 * Set arbitrary NetworkPolicy
-* Work in [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation/DRScheme.md)
+* Work in [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation)
 
 ### Non-Goals
 
@@ -132,7 +132,7 @@ spec:
 
 ### Dynamic NetworkPolicies and Operator
 
-![Operator scheme](./documentation/images/NP_Operator.png)
+![Operator scheme](./images/NP_Operator.png)
 
 The main part of operator needs NetworkPolicyConfig custom resource that describes templates for NetworkPolicies above. It consists of the one controller that watches NetworkPolicyConfig and Namespaces. The controller creates or deletes NetworkPolicies in particular Namespace
 
