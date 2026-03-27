@@ -20,30 +20,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
 )
 
-const (
-	prometheusOperatorVersion = "v0.68.0"
-	prometheusOperatorURL     = "https://github.com/prometheus-operator/prometheus-operator/" +
-		"releases/download/%s/bundle.yaml"
-
-	certmanagerVersion = "v1.5.3"
-	certmanagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
-)
-
 func warnError(err error) {
 	fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
-}
-
-// InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
-func InstallPrometheusOperator() error {
-	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
-	cmd := exec.Command("kubectl", "create", "-f", url)
-	_, err := Run(cmd)
-	return err
 }
 
 // Run executes the provided command within this context
@@ -66,62 +50,13 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 	return output, nil
 }
 
-// UninstallPrometheusOperator uninstalls the prometheus
-func UninstallPrometheusOperator() {
-	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
-	cmd := exec.Command("kubectl", "delete", "-f", url)
-	if _, err := Run(cmd); err != nil {
-		warnError(err)
-	}
-}
-
-// UninstallCertManager uninstalls the cert manager
-func UninstallCertManager() {
-	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
-	cmd := exec.Command("kubectl", "delete", "-f", url)
-	if _, err := Run(cmd); err != nil {
-		warnError(err)
-	}
-}
-
-// InstallCertManager installs the cert manager bundle.
-func InstallCertManager() error {
-	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
-	cmd := exec.Command("kubectl", "apply", "-f", url)
-	if _, err := Run(cmd); err != nil {
-		return err
-	}
-	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
-	// was re-installed after uninstalling on a cluster.
-	cmd = exec.Command("kubectl", "wait", "deployment.apps/cert-manager-webhook",
-		"--for", "condition=Available",
-		"--namespace", "cert-manager",
-		"--timeout", "5m",
-	)
-
-	_, err := Run(cmd)
-	return err
-}
-
-// LoadImageToKindCluster loads a local docker image to the kind cluster
-func LoadImageToKindClusterWithName(name string) error {
-	cluster := "kind"
-	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
-		cluster = v
-	}
-	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
-	cmd := exec.Command("kind", kindOptions...)
-	_, err := Run(cmd)
-	return err
-}
-
 // GetNonEmptyLines converts given command output string into individual objects
 // according to line breakers, and ignores the empty elements in it.
 func GetNonEmptyLines(output string) []string {
 	var res []string
 	elements := strings.Split(output, "\n")
 	for _, element := range elements {
-		if element != "" {
+		if element != "" && !strings.HasPrefix(element, "Warning") && !strings.Contains(element, "NAME") {
 			res = append(res, element)
 		}
 	}
@@ -135,6 +70,31 @@ func GetProjectDir() (string, error) {
 	if err != nil {
 		return wd, err
 	}
-	wd = strings.Replace(wd, "/test/e2e", "", -1)
+	ex, err := os.Executable()
+	if filepath.Base(ex) == "e2esta.test" {
+		wd = strings.Replace(wd, "/test/e2esta", "", -1)
+	}
+	if filepath.Base(ex) == "e2edr.test" {
+		wd = strings.Replace(wd, "/test/e2edr", "", -1)
+	}
 	return wd, nil
+}
+
+func CreateCurlPod(param map[string]string) error {
+	var cmd *exec.Cmd
+	_, ok := param["conf"]
+	if !ok {
+		cmd = exec.Command("kubectl", "-n", param["ns2"], "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}",
+			fmt.Sprintf("http://%s:%s", param["ip"], param["port"]))
+	} else {
+		cmd = exec.Command("kubectl", "-n", param["ns2"],
+			fmt.Sprintf("--kubeconfig=%s", param["conf"]), "run", param["name"],
+			fmt.Sprintf("--image=%s", param["img"]), "--", "-o", "/dev/null",
+			"-s", "-w", "%{http_code}",
+			fmt.Sprintf("http://%s:%s", param["ip"], param["port"]))
+	}
+	_, err := Run(cmd)
+	return err
 }

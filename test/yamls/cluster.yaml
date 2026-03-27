@@ -1,0 +1,17 @@
+node_defaults:
+  keyfile: "/home/user/.ssh/id_rsa"
+  username: "ubuntu"
+
+nodes:
+- name: "cp-1"
+  address: "10.10.0.1"
+  internal_address: "192.168.0.1"
+  roles: ["control-plane"]
+- name: "worker-2"
+  address: "10.10.0.2"
+  internal_address: "192.168.0.2"
+  roles: ["worker"]
+- name: "worker-3"
+  address: "10.10.0.3"
+  internal_address: "192.168.0.3"
+  roles: ["worker"]

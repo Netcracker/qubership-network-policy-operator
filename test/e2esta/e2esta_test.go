@@ -1,0 +1,435 @@
+/*
+Copyright NetCracker Technology Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package e2esta
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
+
+	"github.com/Netcracker/qubership-network-policy-operator/test/utils"
+)
+
+const (
+	testns1 = "testns1"
+	testns2 = "testns2"
+)
+
+var img, curlImg, chart, namespace, echo, cluster string
+
+type Cluster struct {
+	NodeDefaults NodeConfig `yaml:"node_defaults"`
+	Nodes        []Node     `yaml:"nodes"`
+}
+
+type NodeConfig struct {
+	Key      string `yaml:"keyfile"`
+	UserName string `yaml:"username"`
+}
+
+type Node struct {
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
+}
+
+var _ = Describe("Controller", Ordered, func() {
+	BeforeAll(func() {
+		img = os.Getenv("OP_IMG")
+		if len(img) == 0 {
+			img = "ghcr.io/netcracker/qubership-network-policy-operator:main"
+		}
+		curlImg = os.Getenv("CURL_IMG")
+		if len(curlImg) == 0 {
+			curlImg = "alpine/curl"
+		}
+		chart = os.Getenv("CHART")
+		if len(chart) == 0 {
+			chart = "./charts/network-policy-operator/"
+		}
+		namespace = os.Getenv("NS")
+		if len(namespace) == 0 {
+			namespace = "network-policy-operator"
+		}
+		cluster = os.Getenv("CLUSTER")
+		if len(cluster) == 0 {
+			cluster = "./test/yamls/cluster.yaml"
+		}
+		echo = os.Getenv("ECHO")
+		if len(echo) == 0 {
+			echo = "./test/yamls/echo.yaml"
+		}
+
+		By("\033[35mCreating manager namespace")
+		cmd := exec.Command("kubectl", "create", "ns", namespace)
+		_, err := utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mCreating test namespaces")
+		cmd = exec.Command("kubectl", "create", "ns", testns1)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		cmd = exec.Command("kubectl", "create", "ns", testns2)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By(fmt.Sprintf("\033[35mCreating echo pod in `%s` namespace", testns1))
+		cmd = exec.Command("kubectl", "apply", "-f", echo, "-n", testns1)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mInstalling CRDs")
+		cmd = exec.Command("kubectl", "apply", "-f", fmt.Sprintf("%s/crds/", chart))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mInstalling operator with Helm")
+		cmd = exec.Command("helm", "install", "network-policy-operator", chart, "-n", namespace, "--set", "networkPolicies.enabled=false", "--set", fmt.Sprintf("manager.image=%s", img))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	})
+
+	AfterAll(func() {
+		By("\033[35mDeleting NetworkPolicyConfig")
+		cmd := exec.Command("kubectl", "delete", "npc", "--all")
+		_, err := utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		time.Sleep(30 * time.Second)
+		By("\033[35mDeleting NetworkPolicies in case if GC is not working")
+		cmd = exec.Command("kubectl", "delete", "cnp", "-A", "--all")
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mUninstalling operator with Helm")
+		cmd = exec.Command("helm", "uninstall", "network-policy-operator", "-n", namespace)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mDeleting CRDs")
+		cmd = exec.Command("kubectl", "delete", "-f", fmt.Sprintf("%s/crds/", chart))
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mRemoving manager namespace")
+		cmd = exec.Command("kubectl", "delete", "ns", namespace)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("\033[35mRemoving test namespaces")
+		cmd = exec.Command("kubectl", "delete", "ns", testns1)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		cmd = exec.Command("kubectl", "delete", "ns", testns2)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	})
+
+	Context("Operator", func() {
+		It("Should run successfully", func() {
+			var nodeIP string
+			var echoPodName, echoPodIP string
+			var echoSvcName, echoSvcIP string
+			curlParam := make(map[string]string)
+
+			By("\033[32mValidating that the controller-manager pod is running as expected")
+			verifyControllerUp := func() error {
+				// Get pod name
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-l", "app.kubernetes.io/name=network-policy-operator",
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+					"-n", namespace,
+				)
+
+				podOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				podNames := utils.GetNonEmptyLines(string(podOutput))
+				ExpectWithOffset(2, podNames[0]).Should(ContainSubstring("network-policy-operator"))
+
+				// Validating pod status
+				cmd = exec.Command("kubectl", "get",
+					"pods", podNames[0], "-o", "jsonpath={.status.phase}",
+					"-n", namespace,
+				)
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("controller pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
+
+			By("\033[32mValidating that the echo pod is running as expected")
+			verifyEchoUp := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-l", "run=echoserver",
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+					"-n", testns1,
+				)
+
+				podOutput, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				podNames := utils.GetNonEmptyLines(string(podOutput))
+				echoPodName = podNames[0]
+				ExpectWithOffset(2, echoPodName).Should(ContainSubstring("echoserver"))
+
+				// Validating pod status
+				cmd = exec.Command("kubectl", "get",
+					"pods", echoPodName, "-o", "jsonpath={.status.phase}",
+					"-n", testns1,
+				)
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("echo pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyEchoUp, time.Minute, time.Second).Should(Succeed())
+
+			By("\033[32mGetting echo pod IP")
+			cmd := exec.Command("kubectl", "get",
+				"pods", echoPodName, "-o", "jsonpath={.status.podIP}{\"\\n\"}",
+				"-n", testns1,
+			)
+			ipOutput, err := utils.Run(cmd)
+			echoPodIP = utils.GetNonEmptyLines(string(ipOutput))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("\033[33mEcho pod IP: `%s`", echoPodIP))
+
+			echoSvcName = "echoserver"
+			By("\033[32mGetting echo service IPs")
+			cmd = exec.Command("kubectl", "get",
+				"service", echoSvcName, "-o", "jsonpath={.spec.clusterIP}{\"\\n\"}",
+				"-n", testns1)
+			ipOutput, err = utils.Run(cmd)
+			echoSvcIP = utils.GetNonEmptyLines(string(ipOutput))[0]
+			By(fmt.Sprintf("\033[33mEcho service IP: `%s`", echoSvcIP))
+
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is disabled, so all of the connections between `%s` and `%s` must be \033[31mALLOWED", testns1, testns2))
+			curlParam["ns1"] = testns1
+			curlParam["ns2"] = testns2
+			curlParam["img"] = curlImg
+			curlParam["name"] = "curl1"
+			curlParam["ip"] = echoSvcIP
+			curlParam["port"] = "8080"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			verifyCurlUp := func() error {
+				cmd = exec.Command("kubectl", "get",
+					"pods", curlParam["name"], "-o", "jsonpath={.status.phase}",
+					"-n", testns2,
+				)
+				statusOutput, err := utils.Run(cmd)
+				status := utils.GetNonEmptyLines(string(statusOutput))[0]
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(status) != "Running" {
+					return fmt.Errorf("curl pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err := utils.Run(cmd)
+			resp := utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			curlParam["name"] = "curl2"
+			curlParam["ip"] = echoPodIP
+			curlParam["port"] = "5678"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
+			By("\033[32mEnabling NetworkPolicyConfig")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/enabled","value":true}]`)
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+			// Waiting for reconciliation
+			time.Sleep(15 * time.Second)
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be \033[31mREJECTED", testns1, testns2))
+			curlParam["name"] = "curl3"
+			curlParam["ip"] = echoSvcIP
+			curlParam["port"] = "8080"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("\033[33mPod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
+			curlParam["name"] = "curl4"
+			curlParam["ip"] = echoPodIP
+			curlParam["port"] = "5678"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("\033[33mPod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
+
+			By(fmt.Sprintf("\033[32mChanging `%s` namespace annotation", testns1))
+			cmd = exec.Command("kubectl", "annotate", "ns", testns1,
+				fmt.Sprintf("network-policy.netcracker.com/allowed-from=%s", testns2))
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			time.Sleep(30 * time.Second)
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled and `%s` namespace has been annotated to allow the traffic from `%s` so all of the connections must be \033[31mALLOWED", testns1, testns2))
+			curlParam["name"] = "curl5"
+			curlParam["ip"] = echoSvcIP
+			curlParam["port"] = "8080"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("\033[33mPod-to-Service is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			curlParam["name"] = "curl6"
+			curlParam["ip"] = echoPodIP
+			curlParam["port"] = "5678"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) > 0 && resp[0] == "200" {
+				By(fmt.Sprintf("\033[33mPod-to-Pod is allowed; %s response: `%s`", curlParam["name"], resp[0]))
+			} else {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+
+			By("\033[32mEnabling logs for rejected connection")
+			cmd = exec.Command("kubectl", "patch", "npc", "default", "--type", "json", "-p",
+				`[{"op":"replace","path":"/spec/logs/collectingAll","value":false},{"op":"replace","path":"/spec/logs/enabled","value":true}]`)
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			time.Sleep(15 * time.Second)
+
+			By(fmt.Sprintf("\033[32mChanging `%s` namespace annotation", testns1))
+			cmd = exec.Command("kubectl", "annotate", "ns", testns1,
+				"network-policy.netcracker.com/allowed-from-")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			time.Sleep(15 * time.Second)
+			By(fmt.Sprintf("\033[32mChecking connectivity between `%s` and `%s` namespaces", testns1, testns2))
+			By(fmt.Sprintf("\033[32mNetworkPolicyConfig is enabled, so all of the connections between `%s` and `%s` must be \033[31mREJECTED", testns1, testns2))
+			curlParam["name"] = "curl7"
+			curlParam["ip"] = echoSvcIP
+			curlParam["port"] = "8080"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("\033[33mPod-to-Service is rejected; %s response: `%v`", curlParam["name"], resp))
+			curlParam["name"] = "curl8"
+			curlParam["ip"] = echoPodIP
+			curlParam["port"] = "5678"
+			Expect(utils.CreateCurlPod(curlParam)).To(Succeed())
+			EventuallyWithOffset(1, verifyCurlUp, time.Minute, time.Second).Should(Succeed())
+			cmd = exec.Command("kubectl", "-n", testns2, "logs", curlParam["name"])
+			curlOutput, err = utils.Run(cmd)
+			resp = utils.GetNonEmptyLines(string(curlOutput))
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if len(resp) != 0 {
+				Fail(fmt.Sprintf("%s has invalid response: %v", curlParam["name"], resp))
+			}
+			By(fmt.Sprintf("\033[33mPod-to-Pod is rejected; %s response: `%v`", curlParam["name"], resp))
+			By("\033[32mGetting node name where the echo pod is running")
+			cmd = exec.Command("kubectl", "-n", testns1, "get", "pod", echoPodName, "-o",
+				"jsonpath={.spec.nodeName}")
+			nodeOutput, err := utils.Run(cmd)
+			nodeName := utils.GetNonEmptyLines(string(nodeOutput))[0]
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("\033[33mNode name: `%s`", nodeName))
+
+			// Reading cluster.yaml
+			var cl Cluster
+			data, err := os.ReadFile(cluster)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			err = yaml.Unmarshal(data, &cl)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("\033[33mYAML:\n%v\n", cl))
+			for _, node := range cl.Nodes {
+				if node.Name == nodeName {
+					nodeIP = node.Address
+				}
+			}
+			if len(nodeIP) > 0 {
+				By(fmt.Sprintf("\033[33mNode IP: %s", nodeIP))
+			} else {
+				Fail(fmt.Sprintf("Failed to identify the node IP in the list: %v", cl.Nodes))
+			}
+			key := cl.NodeDefaults.Key
+			user := cl.NodeDefaults.UserName
+
+			// Checking connection logs
+			By("\033[32mChecking the logs")
+			cmd = exec.Command("ssh", "-i", key, "-o", "StrictHostKeyChecking=no",
+				fmt.Sprintf("%s@%s", user, nodeIP), "journalctl", "--all",
+				"--grep", "'calico-packet'")
+			logOutput, err := utils.Run(cmd)
+			logs := utils.GetNonEmptyLines(string(logOutput))
+			By(fmt.Sprintf("\033[33mLogs:\n%v\n", logs))
+		})
+	})
+})
