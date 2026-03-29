@@ -30,6 +30,8 @@ spec:
           command: ["/bin/sh","-c"]
           args:
             - |
+              set -euo pipefail
+
               create_secret() {
                       openssl genrsa -out ./tls.key 4096 \
                               && echo "$(date +%FT%H:%M:%S%:z) The private key has been created"
@@ -99,7 +101,7 @@ spec:
               if !(kubectl -n ${POD_NAMESPACE} get secret ${SECRET} -o jsonpath='{.data.tls\.crt}' 2> /dev/null | base64 -d | openssl x509 -noout -checkend 1209600 > /dev/null 2>&1)
               then
                       echo "$(date +%FT%H:%M:%S%:z) The TLS Secret should be created or renewed"
-                      kubectl -n ${POD_NAMESPACE} delete secret ${SECRET} > /dev/null 2>&1
+                      kubectl -n ${POD_NAMESPACE} delete secret ${SECRET} --ignore-not-found=true > /dev/null 2>&1
                       create_secret
               else
                       echo "$(date +%FT%H:%M:%S%:z) The TLS Secret is acceptable"
