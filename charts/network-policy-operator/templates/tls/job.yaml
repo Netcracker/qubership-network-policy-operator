@@ -30,7 +30,6 @@ spec:
           command: ["/bin/sh","-c"]
           args:
             - |
-              set -euo pipefail
               create_secret() {
                       openssl genrsa -out ./tls.key 4096 \
                               && echo "$(date +%FT%H:%M:%S%:z) The private key has been created"
