@@ -9,10 +9,10 @@
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [Test Plan](#test-plan)
-      - [Prerequisite testing updates](#prerequisite-testing-updates)
-      - [Unit tests](#unit-tests)
-      - [Integration tests](#integration-tests)
-      - [e2e tests](#e2e-tests)
+    - [Prerequisite testing updates](#prerequisite-testing-updates)
+    - [Unit tests](#unit-tests)
+    - [Integration tests](#integration-tests)
+    - [e2e tests](#e2e-tests)
   - [Graduation Criteria](#graduation-criteria)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
   - [Version Skew Strategy](#version-skew-strategy)
@@ -39,11 +39,11 @@ Platform solution that is based on Kubernetes or OpenShift cluster must have OOB
 * Restrict incoming traffic to particular namespace
 * Restrict outgoing traffic to Kubernetes system services
 * Set arbitrary NetworkPolicy
-* Work in [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation/DRScheme.md)
+* Work in [DR Scheme](https://github.com/Netcracker/DRNavigator/tree/main/documentation)
 
 ### Non-Goals
 
-* NetworkPolicy visualization 
+* NetworkPolicy visualization
 * UI NetworkPolicy configuration
 * Allowed/Denied connections logs
 
@@ -52,7 +52,7 @@ Platform solution that is based on Kubernetes or OpenShift cluster must have OOB
 Since typical Kubernetes or OpenShift cluster works with Calico CNI, the solution should use Calico CNI functionality to cover current requirements. OOB NetworkPolicies are based on [Calico NetworkPolicy](https://docs.tigera.io/calico/latest/reference/resources/networkpolicy) specification and include the following parts:
 
 * Namespaced NetworkPolicies. The ingress rules in that policies explicitly allow incoming traffic from other namespaces. Namespaces that are allowed to connect to particular namespace listed in special annotation. Traffic from monitoring namespace is allowed implicitly by default. The egress rule allowes all outgoing traffic from all of the pods in the namespace
-* Kubernetes system namespaces such as 'kube-system', 'calico-apiserver' are not restricted by NetworkPolicies 
+* Kubernetes system namespaces such as 'kube-system', 'calico-apiserver' are not restricted by NetworkPolicies
 * Arbitrary NetworkPolicies. That part allows to create any policies for any services in the cluster
 * Dynamic NetworkPolicies to cover DR scheme
 
@@ -70,7 +70,7 @@ The operator request/limits need to be assessed during special tests
 
 Namespaced NetworkPolicies example
 
-```
+```yaml
 ---
 apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
@@ -132,13 +132,13 @@ spec:
 
 ### Dynamic NetworkPolicies and Operator
 
-![Operator scheme](/documentation/images/NP_Operator.png)
+![Operator scheme](./images/NP_Operator.png)
 
 The main part of operator needs NetworkPolicyConfig custom resource that describes templates for NetworkPolicies above. It consists of the one controller that watches NetworkPolicyConfig and Namespaces. The controller creates or deletes NetworkPolicies in particular Namespace
 
 `NetworkPolicyConfig` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: NetworkPolicyConfig
 metadata:
@@ -206,7 +206,8 @@ spec:
         - Egress
 ```
 
-For DR scheme the information about remote cluster pods must be presented and actualized on local cluster to create NetworkPolicy for that pods. The operator needs IP of a pod and pod labels. Pod labels are matched with the existing NetworkPolicy rules and as the result operator create/update a NetworkPolicy with the same logic as the exiting one but applicable for remote cluster pods because selectors are replaced by the exact pods IPs. For pod to service interactions should be covered by egress rules
+For DR scheme the information about remote cluster pods must be presented and actualized on local cluster to create NetworkPolicy for that pods. The operator needs IP of a pod and pod labels.
+Pod labels are matched with the existing NetworkPolicy rules and as the result operator create/update a NetworkPolicy with the same logic as the exiting one but applicable for remote cluster pods because selectors are replaced by the exact pods IPs. For pod to service interactions should be covered by egress rules
 
 The DR part of operator needs two custom resources:
 
@@ -219,13 +220,16 @@ The DR part of operator consists of the following controllers:
 * Controller #2 watches the Pods and updates ExternalNamespace It's needed to process Pod creation or Pod description change
 * Controller #3 watches the NetworkPolicies and creates or updates additional NetworkPolicy to cover the traffic for Pods from remote cluster
 * Controller #4 watches RemoteClusterConfig and creates ExternalNamespace. It's needed for initial creation of ExternalNamespace
-* Controller #5 watches the Service and updates ExternalNamespace. It's needed to process Service creation and Services description changes 
+* Controller #5 watches the Service and updates ExternalNamespace. It's needed to process Service creation and Services description changes
 
-Let's call the NetworkPolicy that must be extended to cover remote cluster pods an `origin` policy. The Networkpolicy that will be created during reconciliation loop of operator is a `target` policy. During reconsiliation loop operator creates/updates/delete the ExternalNamespaces on remote cluster. It makes possible to use the ExternalNamespaces on remote cluster to create/update the `target` NetworkPolicy. The `target` policy is labeled to be indicated as `target` policy. The `RemoteClusterConfig` resources must be created on both clusters to start the pods specification swap. In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different maner. It explicitly allowes outgoing connections to particular services from allowed namespaces in neighbor cluster and denies connections to other service. The outgoing traffic to any endpoints out of the service subnet of neighbor cluster must be allowed
+Let's call the NetworkPolicy that must be extended to cover remote cluster pods an `origin` policy. The Networkpolicy that will be created during reconciliation loop of operator is a `target` policy. During reconsiliation loop operator creates/updates/delete the ExternalNamespaces on remote cluster.
+It makes possible to use the ExternalNamespaces on remote cluster to create/update the `target` NetworkPolicy. The `target` policy is labeled to be indicated as `target` policy. The `RemoteClusterConfig` resources must be created on both clusters to start the pods specification swap.
+In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different maner.
+It explicitly allowes outgoing connections to particular services from allowed namespaces in neighbor cluster and denies connections to other service. The outgoing traffic to any endpoints out of the service subnet of neighbor cluster must be allowed
 
 `RemoteClusterConfig` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: RemoteClusterConfig
 metadata:
@@ -243,7 +247,7 @@ spec:
 
 `ExternalNamespace` spec example:
 
-```
+```yaml
 apiVersion: netcracker.com/v1alpha1
 kind: ExternalNamespace
 metadata:
@@ -271,7 +275,7 @@ spec:
       nodeName: ubuntu-2
       podIP: 10.128.128.129
     services:
-	  selectors: 
+      selectors: 
         app: target
       labels: {}
       name: test-svc
@@ -282,7 +286,7 @@ spec:
 
 The `values.yaml` draft is the following:
 
-```
+```yaml
 networkPolicies:
   install: true
   name: "default"
@@ -337,22 +341,22 @@ The preinstallation procedure gets list of `values.yaml` and `kubeconfig` for al
 
 ### Test Plan
 
-##### Prerequisite testing updates
+#### Prerequisite testing updates
 
 <!--
 Based on reviewers feedback describe what additional tests need to be added prior
 implementing this enhancement to ensure the enhancements have also solid foundations.
 -->
 
-##### Unit tests
+#### Unit tests
 
 Creation, update, and deletion operations for Namespace, Pod, ExternalNamespace, and RemoteClusterConfig
 
-##### Integration tests
+#### Integration tests
 
 The same unit tests but for different Calico versions
 
-##### e2e tests
+#### e2e tests
 
 Installation and upgrade OOB NetworkPolicicies on Kubernetes and OpenShift with and without operator
 
@@ -381,23 +385,23 @@ TODO
 
 TODO
 
-###### How can this feature be enabled / disabled in a live cluster?
+#### How can this feature be enabled / disabled in a live cluster?
 
 Helm Chart installation / uninstallation
 
-###### Does enabling the feature change any default behavior?
+#### Does enabling the feature change any default behavior?
 
 OOB NetworkPolicies affect only new network connections, the established connection are not affected
 
-###### Can the feature be disabled once it has been enabled (i.e. can we roll back the enablement)?
+#### Can the feature be disabled once it has been enabled (i.e. can we roll back the enablement)?
 
 Yes
 
-###### What happens if we reenable the feature if it was previously rolled back?
+#### What happens if we reenable the feature if it was previously rolled back?
 
 The same as the enabling from the scratch
 
-###### Are there any tests for feature enablement/disablement?
+#### Are there any tests for feature enablement/disablement?
 
 e2e tests
 
@@ -405,14 +409,14 @@ e2e tests
 
 It's an independant feature
 
-###### How can a rollout or rollback fail? Can it impact already running workloads?
+#### How can a rollout or rollback fail? Can it impact already running workloads?
 
 
-###### What specific metrics should inform a rollback?
+#### What specific metrics should inform a rollback?
 
-###### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
+#### Were upgrade and rollback tested? Was the upgrade->downgrade->upgrade path tested?
 
-###### Is the rollout accompanied by any deprecations and/or removals of features, APIs, fields of API types, flags, etc.?
+#### Is the rollout accompanied by any deprecations and/or removals of features, APIs, fields of API types, flags, etc.?
 
 ### Monitoring Requirements
 
@@ -427,7 +431,7 @@ Monitoring metrics:
 
 ### Dependencies
 
-###### Does this feature depend on any specific services running in the cluster?
+#### Does this feature depend on any specific services running in the cluster?
 
 Calico CNI, Calico APIServer:
 * [Calico](https://docs.tigera.io/calico/latest/getting-started/)
@@ -436,29 +440,29 @@ Calico CNI, Calico APIServer:
 
 TODO
 
-###### Will enabling / using this feature result in any new API calls?
+#### Will enabling / using this feature result in any new API calls?
 
-###### Will enabling / using this feature result in introducing new API types?
+#### Will enabling / using this feature result in introducing new API types?
 
-###### Will enabling / using this feature result in any new calls to the cloud provider?
+#### Will enabling / using this feature result in any new calls to the cloud provider?
 
-###### Will enabling / using this feature result in increasing size or count of the existing API objects?
+#### Will enabling / using this feature result in increasing size or count of the existing API objects?
 
-###### Will enabling / using this feature result in increasing time taken by any operations covered by existing SLIs/SLOs?
+#### Will enabling / using this feature result in increasing time taken by any operations covered by existing SLIs/SLOs?
 
-###### Will enabling / using this feature result in non-negligible increase of resource usage (CPU, RAM, disk, IO, ...) in any components?
+#### Will enabling / using this feature result in non-negligible increase of resource usage (CPU, RAM, disk, IO, ...) in any components?
 
-###### Can enabling / using this feature result in resource exhaustion of some node resources (PIDs, sockets, inodes, etc.)?
+#### Can enabling / using this feature result in resource exhaustion of some node resources (PIDs, sockets, inodes, etc.)?
 
 ### Troubleshooting
 
 TODO
 
-###### How does this feature react if the API server and/or etcd is unavailable?
+#### How does this feature react if the API server and/or etcd is unavailable?
 
-###### What are other known failure modes?
+#### What are other known failure modes?
 
-###### What steps should be taken if SLOs are not being met to determine the problem?
+#### What steps should be taken if SLOs are not being met to determine the problem?
 
 ## Implementation History
 
