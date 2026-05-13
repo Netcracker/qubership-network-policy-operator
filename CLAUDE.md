@@ -40,18 +40,18 @@ Four reconcilers, each in its own package:
 
 | Package | Reconciler | Watches |
 |---------|-----------|---------|
-| `npc/` | `NetworkPolicyConfigReconciler` | `NetworkPolicyConfig` (cluster-scoped CR) — the central config that drives policy generation across namespaces |
-| `ns/` | `NamespaceReconciler` | `Namespace` — triggers policy reconciliation when namespace labels/annotations change |
-| `cnp/` | `NetworkPolicyReconciler` | Calico `NetworkPolicy` (projectcalico.org/v1) — ensures generated policies stay in sync |
+| `npc/` | `NetworkPolicyConfigReconciler` | `NetworkPolicyConfig` (cluster-scoped CR) — the central config that drives local policy generation across namespaces |
+| `ns/` | `NamespaceReconciler` | `Namespace` — triggers `ExternalNamespace` creation/update when namespace resources(pods, service) change |
+| `cnp/` | `NetworkPolicyReconciler` | Calico `NetworkPolicy` (projectcalico.org/v1) — drives cross-cluster (DR) policies stay in sync |
 | `rclc/` | `RemoteClusterConfigReconciler` | `RemoteClusterConfig` — manages cross-cluster connectivity for DR scenarios, syncing `ExternalNamespace` objects |
 
-The `npc` controller is the primary orchestrator. It reads `NetworkPolicyConfig`, iterates over namespaces, and creates/updates/deletes Calico `NetworkPolicy` objects. The `ns` and `cnp` controllers enqueue `NetworkPolicyConfig` reconciliations when owned resources change.
+The `npc` controller is the primary orchestrator. It reads `NetworkPolicyConfig`, iterates over namespaces, and creates/updates/deletes Calico `NetworkPolicy` objects. The `ns`, `cnp`, and `rclc` controllers manage cross-cluster `NetworkPolies`.
 
 ### Custom Resources (`api/v1alpha1/`)
 
 - **`NetworkPolicyConfig`** (cluster-scoped) — main configuration: `enabled` flag, `scope` (namespace label selector), `policies` map, annotation names, Calico tier names, and logging settings.
-- **`RemoteClusterConfig`** (cluster-scoped) — defines a remote cluster connection: API URL, auth secret reference, and tunnel address annotation.
-- **`ExternalNamespace`** — synced from remote clusters by the `rclc` controller; represents a remote namespace with its pod/service IP data so the `npc` controller can generate egress rules to reach them.
+- **`RemoteClusterConfig`** — defines a remote cluster connection: API URL, auth secret reference, and tunnel address annotation.
+- **`ExternalNamespace`** — synced from remote clusters by the `rclc` controller; represents a remote namespace with its pod/service IP data so the `cnp` controller can generate egress and enrich ingress rules.
 
 ### Key Labels / Annotations
 
