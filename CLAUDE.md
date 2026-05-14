@@ -39,7 +39,7 @@ The operator uses [controller-runtime](https://github.com/kubernetes-sigs/contro
 Four reconcilers, each in its own package:
 
 | Package | Reconciler | Watches |
-|---------|-----------|---------|
+| ------- | ---------- | ------- |
 | `npc/` | `NetworkPolicyConfigReconciler` | `NetworkPolicyConfig` (cluster-scoped CR) — the central config that drives local policy generation across namespaces |
 | `ns/` | `NamespaceReconciler` | `Namespace` — triggers `ExternalNamespace` creation/update when namespace resources(pods, service) change |
 | `cnp/` | `NetworkPolicyReconciler` | Calico `NetworkPolicy` (projectcalico.org/v1) — drives cross-cluster (DR) policies stay in sync |
