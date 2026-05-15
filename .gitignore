@@ -28,3 +28,6 @@ go.work
 *~
 charts/network-policy-operator/run.yaml
 tmpl.yaml
+
+# Claude
+.claude/*

@@ -102,6 +102,17 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Name:      cmTier,
 			Namespace: "",
 		}
+		namespacesRules := []npcv1.NamespacesRule{
+			{
+				Namespace: "default",
+				AllowedTo: []string{"npo", "test"},
+			},
+			{
+				Namespace: "envoy-gateway",
+				AllowedTo: []string{"npo", "test"},
+			},
+		}
+
 		act := calicov3.Pass
 		WNS := `
     apiVersion: projectcalico.org/v3
@@ -246,6 +257,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 							Enabled:       true,
 							CollectingAll: true,
 						},
+						NamespacesRules: namespacesRules,
 					},
 				}
 				Eventually(func() error {

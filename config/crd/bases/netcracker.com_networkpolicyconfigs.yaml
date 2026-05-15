@@ -56,6 +56,20 @@ spec:
                   namespaceScope:
                     type: string
                 type: object
+              namespacesRules:
+                items:
+                  properties:
+                    allowedTo:
+                      items:
+                        type: string
+                      type: array
+                    namespace:
+                      type: string
+                  required:
+                  - allowedTo
+                  - namespace
+                  type: object
+                type: array
               policies:
                 additionalProperties:
                   type: string

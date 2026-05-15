@@ -523,6 +523,13 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		allowNS = fmt.Sprintf("%s,%s", nsAnn[AllowAnnotation], impNS)
 	}
 
+	// Reading the NamespacesRules and put the namespaces to allowed list
+	nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
+	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), allowNS))
+	if len(nsRules) > 0 {
+		allowNS = fmt.Sprintf("%s,%s", allowNS, nsRules)
+	}
+
 	// Deleting log rule if logs disabled or it's needed to collect only denied connection
 	deleteLog := false
 	if !LogsEnabled {
@@ -826,4 +833,16 @@ func (r *NetworkPolicyConfigReconciler) deleteRule(rules []calicov3.Rule, ruleTy
 // Returns the default policies list
 func getDefaultPolicies() []string {
 	return []string{"DefaultLog", "AllowFromNamespace", "AllowWithinNamespace", "DefaultDeny", "RestrictService"}
+}
+
+// Returns the allowed namespace from `NamespaceRule`
+func getAllowedNamespace(nsRules []npcv1.NamespacesRule, ns string) string {
+	var allowedNamespaces []string
+
+	for _, nsItem := range nsRules {
+		if slices.Contains(nsItem.AllowedTo, ns) {
+			allowedNamespaces = append(allowedNamespaces, nsItem.Namespace)
+		}
+	}
+	return strings.Join(allowedNamespaces, ",")
 }
