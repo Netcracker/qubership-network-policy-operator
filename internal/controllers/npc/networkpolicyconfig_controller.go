@@ -525,7 +525,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 
 	// Reading the NamespacesRules and put the namespaces to allowed list
 	nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
-	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), allowNS))
+	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), nsRules))
 	if len(nsRules) > 0 {
 		allowNS = fmt.Sprintf("%s,%s", allowNS, nsRules)
 	}
