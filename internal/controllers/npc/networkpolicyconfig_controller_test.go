@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,6 +43,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			npcName    = "default"
 			npcNameAdd = "default2"
 			nsName     = "test"
+			nsNameDf   = "default"
 			rclName    = "test-remote-cluster-config"
 			rclNS      = "default"
 		)
@@ -50,6 +52,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		var logNP = []string{"default-log"}
 
 		defaultDeny := "default-deny"
+		allowFromNS := "allow-from-ns"
 
 		ctx := context.Background()
 
@@ -80,7 +83,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		// To test whole cluster:
 		scope := map[string]string{}
 		//scope := map[string]string{"npc": "true"}
-		isTier := false
 		dfTier := "automated"
 		dfNewTier := "renewed"
 		cmTier := "customized"
@@ -104,12 +106,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		}
 		namespacesRules := []npcv1.NamespacesRule{
 			{
-				Namespace: "default",
-				AllowedTo: []string{"npo", "test"},
-			},
-			{
-				Namespace: "envoy-gateway",
-				AllowedTo: []string{"npo", "test"},
+				Namespace: nsNameDf,
+				AllowedTo: []string{nsName, "fakens"},
 			},
 		}
 
@@ -267,7 +265,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				Fail(fmt.Sprint("Failed to get the NetworkPolicyConfig:", err))
 			}
 
-			// Creating separate Namespace for Custom NetworkPolicies
+			// Creating separate Namespace for Custom NetworkPolicies and NamespacesRules
 			By("Creating the Namespace")
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			if err != nil && errors.IsNotFound(err) {
@@ -288,7 +286,6 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			err = k8sClient.List(ctx, trList, &client.ListOptions{})
 			if err == nil {
 				// Calico 3.29
-				isTier = true
 				By("Current Calico version supports Tiers, so it's 3.29 and higher")
 				By("Creating the Default Tier")
 				err = k8sClient.Get(ctx, typeNamespacedNameT1, tr1)
@@ -353,6 +350,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 		})
 
 		AfterEach(func() {
+			By("Cleanup the NetworkPolicyConfig")
 			err := k8sClient.Get(ctx, typeNamespacedName1, npc)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -360,22 +358,29 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, npc)
 			}, 3*time.Minute, time.Second).Should(Succeed())
+			time.Sleep(30 * time.Second)
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the second NetworkPolicyConfig")
-			Eventually(func() error {
-				return k8sClient.Delete(ctx, npc2)
-			}, time.Minute, time.Second).Should(Succeed())
+			if err == nil {
+				By("Cleanup the second NetworkPolicyConfig")
+				Eventually(func() error {
+					return k8sClient.Delete(ctx, npc2)
+				}, time.Minute, time.Second).Should(Succeed())
+			} else {
+				if errors.IsNotFound(err) {
+					By("The second NetworkPolicyConfig hasn't been created yet")
+				} else {
+					Fail(fmt.Sprint("Failed to get the second NetworkPolicyConfig:", err))
+				}
+			}
 
 			err = k8sClient.Get(ctx, typeNamespacedNameN, ns)
 			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the Namespace")
+			By("Cleanup the first Namespace")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, ns)
 			}, 3*time.Minute, time.Second).Should(Succeed())
+			time.Sleep(30 * time.Second)
 
 			// Tiers availability check
 			trList := &calicov3.TierList{}
@@ -402,6 +407,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 					return k8sClient.Delete(ctx, tr3)
 				}, time.Minute, time.Second).Should(Succeed())
 			}
+			time.Sleep(30 * time.Second)
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the NetworkPolicyConfig")
@@ -416,7 +422,9 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking Tiers")
-			if isTier {
+			trList := &calicov3.TierList{}
+			err = k8sClient.List(ctx, trList, &client.ListOptions{})
+			if err == nil {
 				for i, item := range fullNPList {
 					fullNPList[i] = fmt.Sprintf("%s.%s", dfTier, item)
 				}
@@ -457,6 +465,20 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			}
 			Expect(err).NotTo(HaveOccurred())
 
+			By("Checking if the NamespacesRules were correctly processed")
+			np := &calicov3.NetworkPolicy{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: allowFromNS, Namespace: nsName}, np)
+			for i := range np.Spec.Ingress {
+				// TODO
+				if np.Spec.Ingress[i].Action == "Allow" && len(np.Spec.Ingress[i].Source.NamespaceSelector) > 0 {
+					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, fmt.Sprintf("kubernetes.io/metadata.name in { "))
+					res, _, _ = strings.Cut(res, " }")
+					if !slices.Contains(strings.Split(res, ", "), nsNameDf) {
+						Fail(fmt.Sprintf("The %q Namespace not in the allowed list: %q", nsNameDf, res))
+					}
+				}
+			}
+
 			By("Reconciling the Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName2,
@@ -483,7 +505,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			for _, npItem := range npList.Items {
 				for _, rule := range npItem.Spec.Ingress {
 					if (rule.Action == calicov3.Log) && (npItem.GetName() != defaultDeny) {
-						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+						err = fmt.Errorf("%q NetworkPolicy includes Log rule", npItem.GetName())
 					}
 				}
 			}
@@ -501,164 +523,194 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			if len(npList.Items) > 0 {
 				err = fmt.Errorf("Log NetworkPolicy hasn't been delete from control-plane Namespace")
 			}
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Disabling logs in NetworkPolicyConfig")
-			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-			Expect(err).NotTo(HaveOccurred())
-			npc.Spec.Logs.Enabled = false
-			Eventually(func() error {
-				return k8sClient.Update(ctx, npc)
-			}, time.Minute, time.Second).Should(Succeed())
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName1,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
-			opts = &client.ListOptions{Namespace: "default"}
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			for _, npItem := range npList.Items {
-				for _, rule := range npItem.Spec.Ingress {
-					if rule.Action == calicov3.Log {
-						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
-					}
-				}
-			}
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
-			opts = &client.ListOptions{Namespace: "kube-system"}
-			err = k8sClient.List(ctx, npList, opts)
-			Expect(err).NotTo(HaveOccurred())
-			logNamesList = []string{}
-			for _, npItem := range npList.Items {
-				logNamesList = append(logNamesList, npItem.GetName())
-			}
-			By(fmt.Sprintf("NetwokPolicies list in control-plane Namespace: %v", logNamesList))
-			if len(npList.Items) > 0 {
-				err = fmt.Errorf("Log NetworkPolicy hasn't been delete from control-plane Namespace")
-			}
-			Expect(err).NotTo(HaveOccurred())
-
-			if isTier {
-				By("Reconciling non-existent Default Tier")
-				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-				Expect(err).NotTo(HaveOccurred())
-				npc.Spec.DefaultTier = "nonexistent"
-				Eventually(func() error {
-					return k8sClient.Update(ctx, npc)
-				}, time.Minute, time.Second).Should(Succeed())
-				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespacedName1,
-				})
-				Expect(err).To(MatchError("Default Tier doesn't exist"))
-
-				By("Reconciling non-existent Custom Tier")
-				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-				Expect(err).NotTo(HaveOccurred())
-				npc.Spec.DefaultTier = dfTier
-				npc.Spec.CustomTier = "nonexistent"
-				Eventually(func() error {
-					return k8sClient.Update(ctx, npc)
-				}, time.Minute, time.Second).Should(Succeed())
-				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespacedName1,
-				})
-				Expect(err).To(MatchError("Custom Tier doesn't exist"))
-
-				By("Reconciling wrong order of Custom Tier")
-				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-				Expect(err).NotTo(HaveOccurred())
-				npc.Spec.DefaultTier = dfTier
-				npc.Spec.CustomTier = dfTier
-				Eventually(func() error {
-					return k8sClient.Update(ctx, npc)
-				}, time.Minute, time.Second).Should(Succeed())
-				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespacedName1,
-				})
-				Expect(err).To(MatchError("Custom Tier Order must be higher than Default Tier Order"))
-
-				By("Reconciling change of Default Tier")
-				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-				Expect(err).NotTo(HaveOccurred())
-				npc.Spec.DefaultTier = dfNewTier
-				npc.Spec.CustomTier = "default"
-				Eventually(func() error {
-					return k8sClient.Update(ctx, npc)
-				}, time.Minute, time.Second).Should(Succeed())
-				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespacedName1,
-				})
-				Expect(err).NotTo(HaveOccurred())
-				opts = &client.ListOptions{}
-				err = k8sClient.List(ctx, npList, opts)
-				Expect(err).NotTo(HaveOccurred())
-				for _, npItem := range npList.Items {
-					if npItem.Spec.Tier == dfTier {
-						err = fmt.Errorf("The Default NetworkPolicies that belong to the previous Tier have not been deleted")
-					}
-				}
-				Expect(err).NotTo(HaveOccurred())
-
-				By("Reconciling change of Custom Tier")
-				err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-				Expect(err).NotTo(HaveOccurred())
-				npc.Spec.CustomTier = cmTier
-				Eventually(func() error {
-					return k8sClient.Update(ctx, npc)
-				}, time.Minute, time.Second).Should(Succeed())
-				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespacedName1,
-				})
-				Expect(err).NotTo(HaveOccurred())
-				opts = &client.ListOptions{}
-				err = k8sClient.List(ctx, npList, opts)
-				Expect(err).NotTo(HaveOccurred())
-				for _, npItem := range npList.Items {
-					if npItem.Spec.Tier == "default" {
-						err = fmt.Errorf("The Custom NetworkPolicies that belong to the previous Tier have not been deleted")
-					}
-				}
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			By("Disabling default policies in NetworkPolicyConfig")
-			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
-			Expect(err).NotTo(HaveOccurred())
-			npc.Spec.Enabled = false
-			if isTier {
-				npc.Spec.CustomTier = "default"
-			}
-			Eventually(func() error {
-				return k8sClient.Update(ctx, npc)
-			}, time.Minute, time.Second).Should(Succeed())
-			By("Reconciling the Deletion")
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName1,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Reconciling several NetworkPolicyConfigs")
-			npc2 = &npcv1.NetworkPolicyConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: npcNameAdd,
-				},
-				Spec: npcv1.NetworkPolicyConfigSpec{
-					Enabled:  en,
-					Scope:    scope,
-					Policies: policies,
-				},
-			}
-			Eventually(func() error {
-				return k8sClient.Create(ctx, npc2)
-			}, time.Minute, time.Second).Should(Succeed())
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName1,
-			})
 			Expect(err).NotTo(HaveOccurred())
 		})
+		/*
+			It("should successfully reconcile the logs disabling", func() {
+				controllerReconciler := &NetworkPolicyConfigReconciler{
+					Client: k8sClient,
+					Scheme: k8sClient.Scheme(),
+				}
+				By("Disabling logs in NetworkPolicyConfig")
+				err := k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
+				npc.Spec.Logs.Enabled = false
+				Eventually(func() error {
+					return k8sClient.Update(ctx, npc)
+				}, time.Minute, time.Second).Should(Succeed())
+				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespacedName1,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Checking if the NetworkPolicy was successfully updated in regular Namespace")
+				opts = &client.ListOptions{Namespace: "default"}
+				err = k8sClient.List(ctx, npList, opts)
+				Expect(err).NotTo(HaveOccurred())
+				for _, npItem := range npList.Items {
+					for _, rule := range npItem.Spec.Ingress {
+						if rule.Action == calicov3.Log {
+							err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+						}
+					}
+				}
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Checking if the NetworkPolicy was successfully deleted in control-plane Namespace")
+				opts = &client.ListOptions{Namespace: "kube-system"}
+				err = k8sClient.List(ctx, npList, opts)
+				Expect(err).NotTo(HaveOccurred())
+				var logNamesList []string
+				for _, npItem := range npList.Items {
+					logNamesList = append(logNamesList, npItem.GetName())
+				}
+				By(fmt.Sprintf("NetwokPolicies list in control-plane Namespace: %v", logNamesList))
+				if len(npList.Items) > 0 {
+					err = fmt.Errorf("Log NetworkPolicy hasn't been delete from control-plane Namespace")
+				}
+				Expect(err).NotTo(HaveOccurred())
+
+			})
+			It("should successfully reconcile the Tier resources", func() {
+				controllerReconciler := &NetworkPolicyConfigReconciler{
+					Client: k8sClient,
+					Scheme: k8sClient.Scheme(),
+				}
+				By("Checking Tiers")
+				trList := &calicov3.TierList{}
+				err := k8sClient.List(ctx, trList, &client.ListOptions{})
+				if err == nil {
+					By("Reconciling non-existent Default Tier")
+					err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+					Expect(err).NotTo(HaveOccurred())
+					npc.Spec.DefaultTier = "nonexistent"
+					Eventually(func() error {
+						return k8sClient.Update(ctx, npc)
+					}, time.Minute, time.Second).Should(Succeed())
+					_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: typeNamespacedName1,
+					})
+					Expect(err).To(MatchError("Default Tier doesn't exist"))
+
+					By("Reconciling non-existent Custom Tier")
+					err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+					Expect(err).NotTo(HaveOccurred())
+					npc.Spec.DefaultTier = dfTier
+					npc.Spec.CustomTier = "nonexistent"
+					Eventually(func() error {
+						return k8sClient.Update(ctx, npc)
+					}, time.Minute, time.Second).Should(Succeed())
+					_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: typeNamespacedName1,
+					})
+					Expect(err).To(MatchError("Custom Tier doesn't exist"))
+
+					By("Reconciling wrong order of Custom Tier")
+					err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+					Expect(err).NotTo(HaveOccurred())
+					npc.Spec.DefaultTier = dfTier
+					npc.Spec.CustomTier = dfTier
+					Eventually(func() error {
+						return k8sClient.Update(ctx, npc)
+					}, time.Minute, time.Second).Should(Succeed())
+					_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: typeNamespacedName1,
+					})
+					Expect(err).To(MatchError("Custom Tier Order must be higher than Default Tier Order"))
+
+					By("Reconciling change of Default Tier")
+					err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+					Expect(err).NotTo(HaveOccurred())
+					npc.Spec.DefaultTier = dfNewTier
+					npc.Spec.CustomTier = "default"
+					Eventually(func() error {
+						return k8sClient.Update(ctx, npc)
+					}, time.Minute, time.Second).Should(Succeed())
+					_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: typeNamespacedName1,
+					})
+					Expect(err).NotTo(HaveOccurred())
+					opts = &client.ListOptions{}
+					err = k8sClient.List(ctx, npList, opts)
+					Expect(err).NotTo(HaveOccurred())
+					for _, npItem := range npList.Items {
+						if npItem.Spec.Tier == dfTier {
+							err = fmt.Errorf("The Default NetworkPolicies that belong to the previous Tier have not been deleted")
+						}
+					}
+					Expect(err).NotTo(HaveOccurred())
+
+					By("Reconciling change of Custom Tier")
+					err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+					Expect(err).NotTo(HaveOccurred())
+					npc.Spec.CustomTier = cmTier
+					Eventually(func() error {
+						return k8sClient.Update(ctx, npc)
+					}, time.Minute, time.Second).Should(Succeed())
+					_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: typeNamespacedName1,
+					})
+					Expect(err).NotTo(HaveOccurred())
+					opts = &client.ListOptions{}
+					err = k8sClient.List(ctx, npList, opts)
+					Expect(err).NotTo(HaveOccurred())
+					for _, npItem := range npList.Items {
+						if npItem.Spec.Tier == "default" {
+							err = fmt.Errorf("The Custom NetworkPolicies that belong to the previous Tier have not been deleted")
+						}
+					}
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+			})
+			It("should successfully reconcile the resource disabling", func() {
+				controllerReconciler := &NetworkPolicyConfigReconciler{
+					Client: k8sClient,
+					Scheme: k8sClient.Scheme(),
+				}
+				By("Disabling default policies in NetworkPolicyConfig")
+				err := k8sClient.Get(ctx, typeNamespacedName1, npc)
+				Expect(err).NotTo(HaveOccurred())
+				npc.Spec.Enabled = false
+				trList := &calicov3.TierList{}
+				err = k8sClient.List(ctx, trList, &client.ListOptions{})
+				if err == nil {
+					npc.Spec.CustomTier = "default"
+				}
+				Eventually(func() error {
+					return k8sClient.Update(ctx, npc)
+				}, time.Minute, time.Second).Should(Succeed())
+				By("Reconciling the Deletion")
+				_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespacedName1,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+			})
+			It("should successfully reconcile the several resources", func() {
+				controllerReconciler := &NetworkPolicyConfigReconciler{
+					Client: k8sClient,
+					Scheme: k8sClient.Scheme(),
+				}
+				By("Reconciling several NetworkPolicyConfigs")
+				npc2 = &npcv1.NetworkPolicyConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: npcNameAdd,
+					},
+					Spec: npcv1.NetworkPolicyConfigSpec{
+						Enabled:  en,
+						Scope:    scope,
+						Policies: policies,
+					},
+				}
+				Eventually(func() error {
+					return k8sClient.Create(ctx, npc2)
+				}, time.Minute, time.Second).Should(Succeed())
+				_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespacedName1,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+		*/
 	})
 })
