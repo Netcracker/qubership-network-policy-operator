@@ -128,7 +128,6 @@ kubectl create ns network-policy-operator
 Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
-* `allowAnnotation` annotation must be set on each namespace preliminary according to solution internal interaction.
 * All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`. That access extends to the neighbor clusters in case of DR scheme.
 * The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
 
@@ -142,8 +141,21 @@ networkPolicies:
 ...
 ```
 
+* The allowed traffic should be decribed in the `namespacesRules` section, e.g.:
+
+```
+...
+networkPolicies:
+  namespacesRules:
+    - namespace: web-app-1
+      allowedTo: ['postgres-1', 'postgres-2']
+...
+```
+
+the rule above allows a traffic from the `web-app-1` namespace to the `postgres-1` and `postgres-2` namespaces.
+* `allowAnnotation` annotation could be used as ad-hoc solution to allow the traffic to the particular namespace as an addition to the `namespacesRules` but from the perspective of destination namespace.
 * `customPolicies` option includes the custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
-* `enabled` option switches on and off NetworkPolicies globally
+* `enabled` option switches on and off NetworkPolicies globally.
 
 The `logs` section manages the connections logs. There are several options to configure it:
 
