@@ -94,12 +94,12 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	npc := &npcv1.NetworkPolicyConfig{}
 	err := r.Get(ctx, req.NamespacedName, npc)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("There is no '%s' NetworkPolicyConfig", req.Name))
+		log.Error(err, fmt.Sprintf("There is no %q NetworkPolicyConfig", req.Name))
 		return ctrl.Result{}, err
 	}
 	// Checking if NetworkPolicyConfig is deleting
 	if npc.GetDeletionTimestamp() != nil {
-		log.Info(fmt.Sprintf("NetworkPolicyConfig '%s' is deleting, there is nothing to do", npc.GetName()))
+		log.Info(fmt.Sprintf("NetworkPolicyConfig %q is deleting, there is nothing to do", npc.GetName()))
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
@@ -112,20 +112,20 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
 		err = r.Get(ctx, req.NamespacedName, npcGet)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.Name))
+			log.Error(err, fmt.Sprintf("Failed to get %q NetworkPolicyConfig", req.Name))
 			return ctrl.Result{}, err
 		}
 		npc.SetResourceVersion(npcGet.GetResourceVersion())
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicyConfig status", npc.GetName()))
 			return ctrl.Result{}, err
 		}
 		// Setting condition
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeStarted, Status: metav1.ConditionUnknown, Reason: "Reconciliation", Message: "NetworkPolicyConfig reconciliation has been started"})
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicyConfig status", npc.GetName()))
 			return ctrl.Result{}, err
 		}
 	}
@@ -153,7 +153,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDuplicated, Status: metav1.ConditionFalse, Reason: "Reconciliation", Message: "NetworkPoliciesConfig duplication"})
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicyConfig status", npc.GetName()))
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -161,23 +161,23 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Default setings
 	for _, templateName := range getDefaultPolicies() {
 		if len(npc.Spec.Policies[templateName]) != 0 {
-			log.Info(fmt.Sprintf("'%s' NetworkPolicy template: %s", templateName, npc.Spec.Policies[templateName]))
+			log.Info(fmt.Sprintf("%q NetworkPolicy template: %s", templateName, npc.Spec.Policies[templateName]))
 		} else {
-			log.Info(fmt.Sprintf("'%s' NetworkPolicy template is empty", templateName))
+			log.Info(fmt.Sprintf("%q NetworkPolicy template is empty", templateName))
 		}
 	}
 	if len(npc.Spec.AllowAnnotation) == 0 {
-		log.Info(fmt.Sprintf("The '%s' NetworkPolicyConfig doesn't include 'allowAnnotation', let's set it to '%s'", npc.GetName(), AllowAnnotation))
+		log.Info(fmt.Sprintf("The %q NetworkPolicyConfig doesn't include 'allowAnnotation', let's set it to %q", npc.GetName(), AllowAnnotation))
 	} else {
 		AllowAnnotation = npc.Spec.AllowAnnotation
 	}
 	if len(npc.Spec.ControlPlane) == 0 {
-		log.Info(fmt.Sprintf("The '%s' NetworkPolicyConfig doesn't include 'controlPlane', let's set it to '%s'", npc.GetName(), ControlPlane))
+		log.Info(fmt.Sprintf("The %q NetworkPolicyConfig doesn't include 'controlPlane', let's set it to %q", npc.GetName(), ControlPlane))
 	} else {
 		ControlPlane = npc.Spec.ControlPlane
 	}
 	if len(npc.Spec.ImplicitNamespaces) == 0 {
-		log.Info(fmt.Sprintln(fmt.Sprintf("The '%s' NetworkPolicyConfig doesn't include 'implicitNamespaces', let's set it to", npc.GetName()), ImplicitNamespaces))
+		log.Info(fmt.Sprintln(fmt.Sprintf("The %q NetworkPolicyConfig doesn't include 'implicitNamespaces', let's set it to", npc.GetName()), ImplicitNamespaces))
 	} else {
 		ImplicitNamespaces = npc.Spec.ImplicitNamespaces
 	}
@@ -185,14 +185,14 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	if !npc.Spec.Logs.Enabled {
 		monitoring.ConnectionsLogStatus.Set(float64(-1))
 		LogsEnabled = false
-		log.Info(fmt.Sprintf("Audit logs are disabled in the '%s' NetworkPolicyConfig", npc.GetName()))
+		log.Info(fmt.Sprintf("Audit logs are disabled in the %q NetworkPolicyConfig", npc.GetName()))
 	} else {
 		LogsEnabled = true
 		if len(npc.Spec.Logs.NamespaceLabel) > 0 {
 			NetworkPolicyLogLabel = npc.Spec.Logs.NamespaceLabel
 		} else {
 			NetworkPolicyLogLabel = "network-policy.netcracker.com/collecting-logs"
-			log.Info(fmt.Sprintf("The '%s' NetworkPolicyConfig doesn't include 'namespaceLabel', let's set it to '%s'", npc.GetName(), NetworkPolicyLogLabel))
+			log.Info(fmt.Sprintf("The %q NetworkPolicyConfig doesn't include 'namespaceLabel', let's set it to %q", npc.GetName(), NetworkPolicyLogLabel))
 		}
 		if !npc.Spec.Logs.CollectingAll {
 			CollectAllLogs = false
@@ -217,7 +217,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		if len(npc.Spec.CustomTier) > 0 {
 			CustomTier = npc.Spec.CustomTier
 		}
-		log.Info(fmt.Sprintf("The DefaultTier is '%s'; The CustomTier is '%s'", DefaultTier, CustomTier))
+		log.Info(fmt.Sprintf("The DefaultTier is %q; The CustomTier is %q", DefaultTier, CustomTier))
 		// Checking the default and custom Tiers
 		for _, tierItem := range trList.Items {
 			if tierItem.GetName() == DefaultTier {
@@ -266,7 +266,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	log.Info(fmt.Sprintln("Control plane Namespaces:", cpNSList))
 	nsList := &corev1.NamespaceList{}
-	log.Info(fmt.Sprintf("Requested in Namespace: '%s'", req.Namespace))
+	log.Info(fmt.Sprintf("Requested in Namespace: %q", req.Namespace))
 	// Getting Namespaces by labels
 	opts := []client.ListOption{
 		client.MatchingLabels(npc.Spec.Scope),
@@ -278,7 +278,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	monitoring.NamespacesTotal.Set(float64(len(nsList.Items)))
 	if len(nsList.Items) == 0 {
-		log.Info(fmt.Sprintf("There are no Namespaces for the '%s' NetworkPolicyConfig", npc.GetName()))
+		log.Info(fmt.Sprintf("There are no Namespaces for the %q NetworkPolicyConfig", npc.GetName()))
 		log.Info("NetworkPolicyConfig Reconciler loop has been finished")
 		return ctrl.Result{}, nil
 	}
@@ -296,7 +296,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				monitoring.NetworkPolicyConfigStatus.Set(float64(1))
 			}
 			if slices.Contains(cpNSList, nsItem.GetName()) {
-				log.Info(fmt.Sprintf("'%s' Namespace is skipped, since it's a part of the control plane, checking log rules", nsItem.GetName()))
+				log.Info(fmt.Sprintf("%q Namespace is skipped, since it's a part of the control plane, checking log rules", nsItem.GetName()))
 				// Processing only request namespace if it's applicable
 				if len(req.Namespace) > 0 &&
 					nsItem.GetName() != req.Namespace {
@@ -329,25 +329,25 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Setting condition
 	err = r.Get(ctx, req.NamespacedName, npcGet)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.Name))
+		log.Error(err, fmt.Sprintf("Failed to get %q NetworkPolicyConfig", req.Name))
 		return ctrl.Result{}, err
 	}
 	npc.SetResourceVersion(npcGet.GetResourceVersion())
 	if len(req.Namespace) == 0 {
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
 	} else {
-		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeNamespaceUpdated, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: fmt.Sprintf("Default NetworkPolicies have been updated in '%s' Namespace", req.Namespace)})
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeNamespaceUpdated, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: fmt.Sprintf("Default NetworkPolicies have been updated in %q Namespace", req.Namespace)})
 	}
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+		log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicyConfig status", npc.GetName()))
 		return ctrl.Result{}, err
 	}
 
 	// Custom NetworkPolicies is not applyed is the loop is triggred by Namespace changes
 	templateName = "CustomPolicies"
 	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 && len(req.Namespace) == 0 {
-		log.Info(fmt.Sprintf("'%s' NetworkPolicies: %s", templateName, npc.Spec.Policies[templateName]))
+		log.Info(fmt.Sprintf("%q NetworkPolicies: %s", templateName, npc.Spec.Policies[templateName]))
 		customPolicyList := r.getCustomPolicies(npc.Spec.Policies[templateName])
 		for _, policyItem := range customPolicyList.Items {
 			err = r.processCustom(&policyItem, npc)
@@ -359,7 +359,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeCustomApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Custom NetworkPolicies have been applied"})
 		err = r.Status().Update(ctx, npc)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicyConfig status", npc.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicyConfig status", npc.GetName()))
 			return ctrl.Result{}, err
 		}
 	}
@@ -475,7 +475,7 @@ func setSelector(str string) string {
 	j := 0
 	for i := range list {
 		if len(list[i]) > 0 {
-			selector[j] = fmt.Sprintf("'%s'", list[i])
+			selector[j] = fmt.Sprintf("%q", list[i])
 			j++
 		}
 	}
@@ -504,21 +504,21 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 	_ = nsLabels
 
 	if ns.GetDeletionTimestamp() != nil {
-		log.Info(fmt.Sprintf("'%s' Namespace is being deleting, stop processing it", ns.GetName()))
+		log.Info(fmt.Sprintf("%q Namespace is being deleting, stop processing it", ns.GetName()))
 		return nil
 	}
-	log.Info(fmt.Sprintf("Creating NetworkPolicies in '%s' Namespace", ns.GetName()))
+	log.Info(fmt.Sprintf("Creating NetworkPolicies in %q Namespace", ns.GetName()))
 	// Getting Namespace annotations
 	accessor, err := meta.Accessor(ns)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace metadata", ns.GetName()))
+		log.Error(err, fmt.Sprintf("Failed to get %q Namespace metadata", ns.GetName()))
 		return err
 	}
 
 	nsAnn = accessor.GetAnnotations()
 	_, ok = nsAnn[AllowAnnotation]
 	if !ok {
-		log.Info(fmt.Sprintf("'%s' Namespace is not explicitly annotated to allow incoming traffic", ns.GetName()))
+		log.Info(fmt.Sprintf("%q Namespace is not explicitly annotated to allow incoming traffic", ns.GetName()))
 		// There is no annotation, so only traffic from namespaces that is set implicitly must be allowed
 		allowNS = impNS
 	} else {
@@ -528,7 +528,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 
 	// Reading the NamespacesRules and put the namespaces to allowed list
 	nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
-	log.Info(fmt.Sprintf("NamespacesRule list for '%s' Namespace: '%s'", ns.GetName(), nsRules))
+	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), nsRules))
 	if len(nsRules) > 0 {
 		allowNS = fmt.Sprintf("%s,%s", allowNS, nsRules)
 	}
@@ -536,7 +536,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 	// Deleting log rule if logs disabled or it's needed to collect only denied connection
 	deleteLog := false
 	if !LogsEnabled {
-		log.Info(fmt.Sprintf("The NetworkPolicies in '%s' Namespace must not inclde log rules, due to log disabling in NetworkPolicyConfig", ns.GetName()))
+		log.Info(fmt.Sprintf("The NetworkPolicies in %q Namespace must not inclde log rules, due to log disabling in NetworkPolicyConfig", ns.GetName()))
 		deleteLog = true
 	} else {
 		// Checking Namespace labels
@@ -545,7 +545,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		_, ok = nsLabels[NetworkPolicyLogLabel]
 		if ok {
 			if nsLabels[NetworkPolicyLogLabel] == "false" || nsLabels[NetworkPolicyLogLabel] == "none" {
-				log.Info(fmt.Sprintf("The NetworkPolicies in '%s' Namespace must not inclde log rules, due to label", ns.GetName()))
+				log.Info(fmt.Sprintf("The NetworkPolicies in %q Namespace must not inclde log rules, due to label", ns.GetName()))
 				deleteLog = true
 			}
 		}
@@ -566,7 +566,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 	if len(DefaultTier) != 0 {
 		err = r.processDeletion(ns, true)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to process deletion in '%s' Namespace", ns.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to process deletion in %q Namespace", ns.GetName()))
 			return err
 		}
 	}
@@ -587,7 +587,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			policy.SetName(fmt.Sprintf("%s.%s", DefaultTier, policy.GetName()))
 		}
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to decode '%s' NetworkPolicy template", templateName))
+			log.Error(err, fmt.Sprintf("Failed to decode %q NetworkPolicy template", templateName))
 			return err
 		}
 
@@ -601,11 +601,11 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 				if err == nil {
 					err = r.Delete(context.TODO(), policy)
 					if err != nil {
-						log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
+						log.Error(err, fmt.Sprintf("Failed to delete %q NetworkPolicy in %q Namespace", templateName, ns.GetName()))
 						return err
 					}
 					monitoring.NetworkPoliciesTotal.Dec()
-					log.Info(fmt.Sprintf("'%s' NetworkPolicy has been deleted from '%s' Namespace", policy.GetName(), ns.GetName()))
+					log.Info(fmt.Sprintf("%q NetworkPolicy has been deleted from %q Namespace", policy.GetName(), ns.GetName()))
 				}
 				continue
 			}
@@ -613,7 +613,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			// Processing log rules
 			if deleteLog || !CollectAllLogs {
 				policy.Spec.Ingress = r.deleteRule(policy.Spec.Ingress, calicov3.Log)
-				log.Info(fmt.Sprintf("Log rules are deleted from '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), ns.GetName()))
+				log.Info(fmt.Sprintf("Log rules are deleted from %q NetworkPolicy in %q Namespace", policy.GetName(), ns.GetName()))
 			}
 			// Setting Namespace selectors
 			for i := range policy.Spec.Ingress {
@@ -641,13 +641,13 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		case "DefaultDeny":
 			if (templateName == "DefaultDeny") && (deleteLog || CollectAllLogs) {
 				policy.Spec.Ingress = r.deleteRule(policy.Spec.Ingress, calicov3.Log)
-				log.Info(fmt.Sprintf("Log rules are deleted from '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), ns.GetName()))
+				log.Info(fmt.Sprintf("Log rules are deleted from %q NetworkPolicy in %q Namespace", policy.GetName(), ns.GetName()))
 			}
 		case "AllowWithinNamespace":
 		case "RestrictService":
 			if deleteLog || !CollectAllLogs {
 				policy.Spec.Ingress = r.deleteRule(policy.Spec.Ingress, calicov3.Log)
-				log.Info(fmt.Sprintf("Log rules are deleted from '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), ns.GetName()))
+				log.Info(fmt.Sprintf("Log rules are deleted from %q NetworkPolicy in %q Namespace", policy.GetName(), ns.GetName()))
 			}
 			// Setting egress NetworkPolicy label
 			labels[EgressServiceLabel] = "true"
@@ -656,7 +656,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		// Getting NetworkPolicy labels
 		accessor, err = meta.Accessor(policy)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicy labels", policy.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to get %q NetworkPolicy labels", policy.GetName()))
 			return err
 		}
 		getLabels = accessor.GetLabels()
@@ -668,7 +668,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		// Setting NetworkPolicy owner
 		err = ctrl.SetControllerReference(npc, policy, r.Scheme)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to set owner of '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to set owner of %q NetworkPolicy in %q Namespace", templateName, ns.GetName()))
 			return err
 		}
 		// Creating or updating NetworkPolicy in Namespace
@@ -676,19 +676,19 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		if err != nil {
 			err = r.Create(context.TODO(), policy)
 			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
+				log.Error(err, fmt.Sprintf("Failed to create %q NetworkPolicy in %q Namespace", templateName, ns.GetName()))
 				return err
 			}
 			monitoring.NetworkPoliciesTotal.Inc()
-			log.Info(fmt.Sprintf("'%s' NetworkPolicy has been created in '%s' Namespace", policy.GetName(), ns.GetName()))
+			log.Info(fmt.Sprintf("%q NetworkPolicy has been created in %q Namespace", policy.GetName(), ns.GetName()))
 		} else {
 			policy.SetResourceVersion(getPolicy.GetResourceVersion())
 			err = r.Update(context.TODO(), policy)
 			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicy in '%s' Namespace", templateName, ns.GetName()))
+				log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicy in %q Namespace", templateName, ns.GetName()))
 				return err
 			}
-			log.Info(fmt.Sprintf("'%s' NetworkPolicy has been updated in '%s' Namespace", policy.GetName(), ns.GetName()))
+			log.Info(fmt.Sprintf("%q NetworkPolicy has been updated in %q Namespace", policy.GetName(), ns.GetName()))
 		}
 	}
 
@@ -711,13 +711,13 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 	// Setting NetworkPolicy owner
 	err := ctrl.SetControllerReference(npc, policy, r.Scheme)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to set owner of '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
+		log.Error(err, fmt.Sprintf("Failed to set owner of %q NetworkPolicy in %q Namespace", policy.GetName(), policy.GetNamespace()))
 		return err
 	}
 	// Getting NetworkPolicy labels
 	accessor, err = meta.Accessor(policy)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicy labels", policy.GetName()))
+		log.Error(err, fmt.Sprintf("Failed to get %q NetworkPolicy labels", policy.GetName()))
 		return err
 	}
 	getLabels = accessor.GetLabels()
@@ -730,12 +730,12 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 		ns := &corev1.Namespace{}
 		err = r.Get(context.TODO(), types.NamespacedName{Name: policy.GetNamespace(), Namespace: ""}, ns)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace", policy.GetNamespace()))
+			log.Error(err, fmt.Sprintf("Failed to get %q Namespace", policy.GetNamespace()))
 			return err
 		}
 		err = r.processDeletion(ns, true)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to process deletion in '%s' Namespace", ns.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to process deletion in %q Namespace", ns.GetName()))
 			return err
 		}
 		policy.Spec.Tier = CustomTier
@@ -747,20 +747,20 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 		// Creating NetworkPolicy
 		err = r.Create(context.TODO(), policy)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to create '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetNamespace()))
+			log.Error(err, fmt.Sprintf("Failed to create %q NetworkPolicy in %q Namespace", policy.GetName(), policy.GetNamespace()))
 			return err
 		}
 		monitoring.NetworkPoliciesTotal.Inc()
-		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been created", policy.GetName(), policy.GetNamespace()))
+		log.Info(fmt.Sprintf("%q NetworkPolicy in %q Namespace has been created", policy.GetName(), policy.GetNamespace()))
 	} else {
 		// Updating NetworkPolicy
 		policy.SetResourceVersion(getPolicy.GetResourceVersion())
 		err = r.Update(context.TODO(), policy)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update '%s' NetworkPolicy in '%s' Namespace", policy.GetName(), policy.GetName()))
+			log.Error(err, fmt.Sprintf("Failed to update %q NetworkPolicy in %q Namespace", policy.GetName(), policy.GetName()))
 			return err
 		}
-		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been updated", policy.GetName(), policy.GetNamespace()))
+		log.Info(fmt.Sprintf("%q NetworkPolicy in %q Namespace has been updated", policy.GetName(), policy.GetNamespace()))
 	}
 
 	return nil
@@ -771,7 +771,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 
 	log := log.FromContext(context.TODO())
 
-	log.Info(fmt.Sprintf("Getting NetworkPolicies in '%s' Namespace for deletion", ns.GetName()))
+	log.Info(fmt.Sprintf("Getting NetworkPolicies in %q Namespace for deletion", ns.GetName()))
 	// Getting labeled NetworkPolicies in Namespace
 	policyList := &calicov3.NetworkPolicyList{}
 	opts := []client.ListOption{
@@ -780,7 +780,7 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 	}
 	err := r.List(context.TODO(), policyList, opts...)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicy in '%s' Namespace", ns.GetName()))
+		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicy in %q Namespace", ns.GetName()))
 		return err
 	}
 	// Deleting NetworkPolicies in Namespace
@@ -791,11 +791,11 @@ func (r *NetworkPolicyConfigReconciler) processDeletion(ns *corev1.Namespace, ti
 		}
 		err = r.Delete(context.TODO(), &policyItem)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to delete '%s' NetworkPolicy in '%s' Namespace", policyItem.GetName(), policyItem.GetNamespace()))
+			log.Error(err, fmt.Sprintf("Failed to delete %q NetworkPolicy in %q Namespace", policyItem.GetName(), policyItem.GetNamespace()))
 			return err
 		}
 		monitoring.NetworkPoliciesTotal.Dec()
-		log.Info(fmt.Sprintf("'%s' NetworkPolicy in '%s' Namespace has been deleted", policyItem.GetName(), policyItem.GetNamespace()))
+		log.Info(fmt.Sprintf("%q NetworkPolicy in %q Namespace has been deleted", policyItem.GetName(), policyItem.GetNamespace()))
 
 	}
 	return nil
@@ -825,7 +825,7 @@ func (r *NetworkPolicyConfigReconciler) getTunnelIPs() ([]string, error) {
 		nodeAnn = accessor.GetAnnotations()
 		_, ok := nodeAnn[TunnelAddressAnnotation]
 		if !ok {
-			log.Info(fmt.Sprintf("The '%s' node hasn't had tunnel interface address yet, or the operator is running on limited Calico configuration", nodeItem.GetName()))
+			log.Info(fmt.Sprintf("The %q node hasn't had tunnel interface address yet, or the operator is running on limited Calico configuration", nodeItem.GetName()))
 			continue
 		}
 		// Adding IP in annotation into list
