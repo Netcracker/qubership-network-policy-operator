@@ -309,8 +309,8 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 				continue
 			}
 			// Processing only requested namespace if it's applicable
-			if len(req.NamespacedName.Namespace) > 0 &&
-				nsItem.GetName() != req.NamespacedName.Namespace {
+			if len(req.Namespace) > 0 &&
+				nsItem.GetName() != req.Namespace {
 				continue
 			}
 			err = r.processNamespace(&nsItem, npc, cpNSList, ImplicitNamespaces, tunnelIPs, false)
@@ -329,14 +329,14 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Setting condition
 	err = r.Get(ctx, req.NamespacedName, npcGet)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.Name))
 		return ctrl.Result{}, err
 	}
 	npc.SetResourceVersion(npcGet.GetResourceVersion())
-	if len(req.NamespacedName.Namespace) == 0 {
+	if len(req.Namespace) == 0 {
 		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeDefaultApplied, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: "Default NetworkPolicies have been applied"})
 	} else {
-		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeNamespaceUpdated, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: fmt.Sprintf("Default NetworkPolicies have been updated in '%s' Namespace", req.NamespacedName.Namespace)})
+		meta.SetStatusCondition(&npc.Status.Conditions, metav1.Condition{Type: TypeNamespaceUpdated, Status: metav1.ConditionTrue, Reason: "Reconciliation", Message: fmt.Sprintf("Default NetworkPolicies have been updated in '%s' Namespace", req.Namespace)})
 	}
 	err = r.Status().Update(ctx, npc)
 	if err != nil {
@@ -346,7 +346,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Custom NetworkPolicies is not applyed is the loop is triggred by Namespace changes
 	templateName = "CustomPolicies"
-	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 && len(req.NamespacedName.Namespace) == 0 {
+	if npc.Spec.Enabled && len(npc.Spec.Policies[templateName]) > 0 && len(req.Namespace) == 0 {
 		log.Info(fmt.Sprintf("'%s' NetworkPolicies: %s", templateName, npc.Spec.Policies[templateName]))
 		customPolicyList := r.getCustomPolicies(npc.Spec.Policies[templateName])
 		for _, policyItem := range customPolicyList.Items {
@@ -497,8 +497,11 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 	policy := &calicov3.NetworkPolicy{}
 	getPolicy := &calicov3.NetworkPolicy{}
 	getLabels := make(map[string]string)
+	_ = getLabels
 	nsAnn := make(map[string]string)
+	_ = nsAnn
 	nsLabels := make(map[string]string)
+	_ = nsLabels
 
 	if ns.GetDeletionTimestamp() != nil {
 		log.Info(fmt.Sprintf("'%s' Namespace is being deleting, stop processing it", ns.GetName()))
@@ -622,6 +625,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 			// Adding tunnel interface IPs in additional rule
 			if len(tunnelIPs) > 0 {
 				ingress := []calicov3.Rule{}
+				_ = ingress
 				tunnelSource := calicov3.EntityRule{
 					Nets: tunnelIPs,
 				}
@@ -700,6 +704,7 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 
 	getPolicy := &calicov3.NetworkPolicy{}
 	getLabels := make(map[string]string)
+	_ = getLabels
 	labels := make(map[string]string)
 
 	log.Info(fmt.Sprintf("Process Custom NetworkPolicy: %v", *policy))
@@ -801,7 +806,9 @@ func (r *NetworkPolicyConfigReconciler) getTunnelIPs() ([]string, error) {
 	log := log.FromContext(context.TODO())
 	var IPList []string
 	var accessor metav1.Object
+	_ = accessor
 	nodeAnn := make(map[string]string)
+	_ = nodeAnn
 	// Getting Nodes list
 	nodesList := &corev1.NodeList{}
 	opts := []client.ListOption{}
