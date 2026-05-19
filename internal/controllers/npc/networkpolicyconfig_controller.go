@@ -266,7 +266,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	log.Info(fmt.Sprintln("Control plane Namespaces:", cpNSList))
 	nsList := &corev1.NamespaceList{}
-	log.Info(fmt.Sprintf("Requested in Namespace: '%s'", req.NamespacedName.Namespace))
+	log.Info(fmt.Sprintf("Requested in Namespace: '%s'", req.Namespace))
 	// Getting Namespaces by labels
 	opts := []client.ListOption{
 		client.MatchingLabels(npc.Spec.Scope),
@@ -298,8 +298,8 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			if slices.Contains(cpNSList, nsItem.GetName()) {
 				log.Info(fmt.Sprintf("'%s' Namespace is skipped, since it's a part of the control plane, checking log rules", nsItem.GetName()))
 				// Processing only request namespace if it's applicable
-				if len(req.NamespacedName.Namespace) > 0 &&
-					nsItem.GetName() != req.NamespacedName.Namespace {
+				if len(req.Namespace) > 0 &&
+					nsItem.GetName() != req.Namespace {
 					continue
 				}
 				err = r.processNamespace(&nsItem, npc, cpNSList, ImplicitNamespaces, tunnelIPs, true)

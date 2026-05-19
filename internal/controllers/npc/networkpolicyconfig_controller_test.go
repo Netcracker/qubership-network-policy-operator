@@ -470,7 +470,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			for i := range np.Spec.Ingress {
 				if np.Spec.Ingress[i].Action == "Allow" && len(np.Spec.Ingress[i].Source.NamespaceSelector) > 0 {
-					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, fmt.Sprintf("kubernetes.io/metadata.name in { "))
+					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, "kubernetes.io/metadata.name in { ")
 					res, _, _ = strings.Cut(res, " }")
 					if !slices.Contains(strings.Split(res, ", "), fmt.Sprintf("'%s'", nsNameDf)) {
 						Fail(fmt.Sprintf("The '%s' Namespace not in the allowed list: '%s'", nsNameDf, res))
