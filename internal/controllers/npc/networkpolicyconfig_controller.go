@@ -94,7 +94,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	npc := &npcv1.NetworkPolicyConfig{}
 	err := r.Get(ctx, req.NamespacedName, npc)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("There is no '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+		log.Error(err, fmt.Sprintf("There is no '%s' NetworkPolicyConfig", req.Name))
 		return ctrl.Result{}, err
 	}
 	// Checking if NetworkPolicyConfig is deleting
@@ -105,14 +105,14 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	npcGet := &npcv1.NetworkPolicyConfig{}
 	// Removing all previous conditions if the loop is not trigged by the Namespace change
-	if len(req.NamespacedName.Namespace) == 0 {
+	if len(req.Namespace) == 0 {
 		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeStarted)
 		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDuplicated)
 		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeDefaultApplied)
 		meta.RemoveStatusCondition(&npc.Status.Conditions, TypeCustomApplied)
 		err = r.Get(ctx, req.NamespacedName, npcGet)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.NamespacedName.Name))
+			log.Error(err, fmt.Sprintf("Failed to get '%s' NetworkPolicyConfig", req.Name))
 			return ctrl.Result{}, err
 		}
 		npc.SetResourceVersion(npcGet.GetResourceVersion())
@@ -138,7 +138,7 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	err = r.List(ctx, policyList, npOpts)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to list NetworkPolicies"))
+		log.Error(err, "Failed to list NetworkPolicies")
 		return ctrl.Result{}, err
 	}
 	monitoring.NetworkPoliciesTotal.Set(float64(len(policyList.Items)))
@@ -228,17 +228,17 @@ func (r *NetworkPolicyConfigReconciler) Reconcile(ctx context.Context, req ctrl.
 			}
 		}
 		if DefaultTierOrder == 0 {
-			err = fmt.Errorf("Default Tier doesn't exist")
+			err = fmt.Errorf("default Tier doesn't exist")
 			log.Error(err, "Tiers check Failed")
 			return ctrl.Result{}, err
 		}
 		if CustomTierOrder == 0 {
-			err = fmt.Errorf("Custom Tier doesn't exist")
+			err = fmt.Errorf("custom Tier doesn't exist")
 			log.Error(err, "Tiers check Failed")
 			return ctrl.Result{}, err
 		}
 		if DefaultTierOrder >= CustomTierOrder {
-			err = fmt.Errorf("Custom Tier Order must be higher than Default Tier Order")
+			err = fmt.Errorf("custom Tier Order must be higher than Default Tier Order")
 			log.Error(err, "Tiers check Failed")
 			return ctrl.Result{}, err
 		}
@@ -525,7 +525,7 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 
 	// Reading the NamespacesRules and put the namespaces to allowed list
 	nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
-	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), nsRules))
+	log.Info(fmt.Sprintf("NamespacesRule list for '%s' Namespace: '%s'", ns.GetName(), nsRules))
 	if len(nsRules) > 0 {
 		allowNS = fmt.Sprintf("%s,%s", allowNS, nsRules)
 	}
@@ -561,7 +561,11 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 	// Checking the annotated NetworkPolicies in the Namespace
 	// That mesasure prevents creating duplication NetworkPolicies after DefaultTier change
 	if len(DefaultTier) != 0 {
-		r.processDeletion(ns, true)
+		err = r.processDeletion(ns, true)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to process deletion in '%s' Namespace", ns.GetName()))
+			return err
+		}
 	}
 	// Appling Kubernetes Default NetworkPolicies
 	for _, templateName := range defaultPolicies {
@@ -724,7 +728,11 @@ func (r *NetworkPolicyConfigReconciler) processCustom(policy *calicov3.NetworkPo
 			log.Error(err, fmt.Sprintf("Failed to get '%s' Namespace", policy.GetNamespace()))
 			return err
 		}
-		r.processDeletion(ns, true)
+		err = r.processDeletion(ns, true)
+		if err != nil {
+			log.Error(err, fmt.Sprintf("Failed to process deletion in '%s' Namespace", ns.GetName()))
+			return err
+		}
 		policy.Spec.Tier = CustomTier
 		policy.SetName(fmt.Sprintf("%s.%s", CustomTier, policy.GetName()))
 	}
