@@ -502,9 +502,14 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				NamespacedName: typeNamespacedName2,
 			})
 			Expect(err).NotTo(HaveOccurred())
-
+		})
+		It("should successfully reconcile the changes in the resource", func() {
+			controllerReconciler := &NetworkPolicyConfigReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
 			By("Changing NetworkPolicyConfig to collect only denied connections")
-			err = k8sClient.Get(ctx, typeNamespacedName1, npc)
+			err := k8sClient.Get(ctx, typeNamespacedName1, npc)
 			Expect(err).NotTo(HaveOccurred())
 			npc.Spec.Logs.CollectingAll = false
 			Eventually(func() error {
@@ -533,7 +538,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			opts = &client.ListOptions{Namespace: "kube-system"}
 			err = k8sClient.List(ctx, npList, opts)
 			Expect(err).NotTo(HaveOccurred())
-			logNamesList = []string{}
+			var logNamesList []string
 			for _, npItem := range npList.Items {
 				logNamesList = append(logNamesList, npItem.GetName())
 			}
