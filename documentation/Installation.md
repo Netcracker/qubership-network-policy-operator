@@ -1,3 +1,5 @@
+# Installation guide
+
 This manual provides information on the installation procedure of Network Policy Operator.
 
 ## Prerequisites
@@ -84,7 +86,7 @@ The parameters for deployment with Helm chart are specified in the below table.
 | nodeSelector | object | {} | Node labels for pod assignment |
 | tolerations | array | [] | Node tolerations for pod assignment |
 | affinity | object | {} | Node affinity for pod assignment |
-| args | array |["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"] | Operator container arguments |
+| args | array | ["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"] | Operator container arguments |
 | monitoring.enable | bool | false | GrafanaDashboard and ServiceMonitor creation |
 | networkPolicies.name | string | "default" | NetworkPolicyConfig name |
 | networkPolicies.enabled | bool | true | If true NetworkPolicies will be created |
@@ -125,7 +127,7 @@ kubectl create ns network-policy-operator
 
 **values.yaml Configuration**
 
-Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters 
+Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters
 names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
@@ -205,7 +207,7 @@ The `dr` section includes options to configure the interation between clusters i
 Cluster settings:
 
 * `name` option is a cluster name, it must be uniq in clusters list
-* `api` option is a particular Kubernetes API endopint, FQDN and port 
+* `api` option is a particular Kubernetes API endopint, FQDN and port
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
