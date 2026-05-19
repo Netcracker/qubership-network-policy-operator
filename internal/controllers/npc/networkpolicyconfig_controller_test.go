@@ -279,6 +279,10 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				}, time.Minute, time.Second).Should(Succeed())
 			} else if err != nil {
 				Fail(fmt.Sprint("Failed to get the Namespace:", err))
+			} else if ns.DeletionTimestamp != nil {
+				Eventually(func() error {
+					return k8sClient.Create(ctx, ns)
+				}, time.Minute, time.Second).Should(Succeed())
 			}
 
 			// Tiers availability check
@@ -356,15 +360,25 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, npc)
-			}, 3*time.Minute, time.Second).Should(Succeed())
-			time.Sleep(30 * time.Second)
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("Waiting for the NetworkPolicies to be deleted")
+			Eventually(func() bool {
+				chkNP := &calicov3.NetworkPolicyList{}
+				_ = k8sClient.List(ctx, chkNP, opts)
+				if len(chkNP.Items) != 0 {
+					return false
+				} else {
+					return true
+				}
+			}, 3*time.Minute, time.Second).Should(BeTrue(), "NetworkPolicies should be deleted to delete the Tiers")
 
 			err = k8sClient.Get(ctx, typeNamespacedNameAdd, npc2)
 			if err == nil {
 				By("Cleanup the second NetworkPolicyConfig")
 				Eventually(func() error {
 					return k8sClient.Delete(ctx, npc2)
-				}, time.Minute, time.Second).Should(Succeed())
+				}, 3*time.Minute, 5*time.Second).Should(Succeed())
 			} else {
 				if errors.IsNotFound(err) {
 					By("The second NetworkPolicyConfig hasn't been created yet")
@@ -378,8 +392,13 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			By("Cleanup the test Namespace")
 			Eventually(func() error {
 				return k8sClient.Delete(ctx, ns)
-			}, 3*time.Minute, time.Second).Should(Succeed())
-			time.Sleep(30 * time.Second)
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+			By("Waiting for the Namespace to be fully deleted")
+			Eventually(func() bool {
+				chkNs := &corev1.Namespace{}
+				err := k8sClient.Get(ctx, typeNamespacedNameN, chkNs)
+				return errors.IsNotFound(err)
+			}, 3*time.Minute, time.Second).Should(BeTrue(), "Namespace %q should be fully deleted", ns.GetName())
 
 			// Tiers availability check
 			trList := &calicov3.TierList{}
@@ -472,8 +491,8 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				if np.Spec.Ingress[i].Action == "Allow" && len(np.Spec.Ingress[i].Source.NamespaceSelector) > 0 {
 					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, "kubernetes.io/metadata.name in { ")
 					res, _, _ = strings.Cut(res, " }")
-					if !slices.Contains(strings.Split(res, ", "), fmt.Sprintf("'%s'", nsNameDf)) {
-						Fail(fmt.Sprintf("The '%s' Namespace not in the allowed list: '%s'", nsNameDf, res))
+					if !slices.Contains(strings.Split(res, ", "), fmt.Sprintf("%q", nsNameDf)) {
+						Fail(fmt.Sprintf("The %q Namespace not in the allowed list: %q", nsNameDf, res))
 					}
 				}
 			}
@@ -504,7 +523,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			for _, npItem := range npList.Items {
 				for _, rule := range npItem.Spec.Ingress {
 					if (rule.Action == calicov3.Log) && (npItem.GetName() != defaultDeny) {
-						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+						err = fmt.Errorf("%q NetworkPolicy includes Log rule", npItem.GetName())
 					}
 				}
 			}
@@ -548,7 +567,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 			for _, npItem := range npList.Items {
 				for _, rule := range npItem.Spec.Ingress {
 					if rule.Action == calicov3.Log {
-						err = fmt.Errorf("'%s' NetworkPolicy includes Log rule", npItem.GetName())
+						err = fmt.Errorf("%q NetworkPolicy includes Log rule", npItem.GetName())
 					}
 				}
 			}
