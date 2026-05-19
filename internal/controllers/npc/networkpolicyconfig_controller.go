@@ -839,6 +839,7 @@ func getDefaultPolicies() []string {
 func getAllowedNamespace(nsRules []npcv1.NamespacesRule, ns string) string {
 	var allowedNamespaces []string
 
+	// Checking if the current Namespace in the `allowedTo` list and add the source Namespace to the list of allowed
 	for _, nsItem := range nsRules {
 		if slices.Contains(nsItem.AllowedTo, ns) {
 			allowedNamespaces = append(allowedNamespaces, nsItem.Namespace)

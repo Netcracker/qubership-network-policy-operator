@@ -12,7 +12,7 @@ The prerequisites for the overall Calico CNI configuration are as follwos:
 - Calico CNI with API server version v3.28.1+
 - Kubernetes v1.27+ or OCP4.14+ cluster
 - Cluster admin access to the cluster
-- In case of DR, make sure that you have configured DR clusters correctly with cross-cluster Calico CNI pod-to-pod/pod-to-service connectivity and cross-cluster CoreDNS service names resolving 
+- In case of DR, make sure that you have configured DR clusters correctly with cross-cluster Calico CNI pod-to-pod/pod-to-service connectivity and cross-cluster CoreDNS service names resolving
 
 Allow IPIP traffic between nodes on IaaS layer. Set `ipipMode: Always` in pod network `IPPool`, for example:
 
@@ -54,60 +54,60 @@ The deployment with Helm chart is specified below.
 
 The parameters for deployment with Helm chart are specified in the below table.
 
-| Parameter                           |	Type   |	Default value                                                                                                                           |	Description                                                                                      |
-|-------------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| nameOverride                        | string | ""                                                                                                                                         | Override chart name                                                                                |
-| fullnameOverride                    | string | ""                                                                                                                                         | Override FQDN                                                                                      |
-| replicaCount                        | int    | 1                                                                                                                                          | Number of operator replicas                                                                        |
-| podAnnotations                      | object | {}                                                                                                                                         | Custom operator Pod annotations                                                                    |
-| podLabels                           | object | {}                                                                                                                                         | Custom operator Pod labels                                                                         |
-| podSecurityContext                  | object | {"runAsNonRoot": true}                                                                                                                     | Pod level Security Context                                                                         |
-| serviceAccount.create               | bool   | true                                                                                                                                       | If true Service Account will be created                                                            |
-| serviceAccount.automount            | bool   | true                                                                                                                                       | Automount API credentials for the Service Account                                                  |
-| serviceAccount.annotations          | object | {}                                                                                                                                         | Custom Service Account annotations                                                                 |
-| serviceAccount.name                 | string | "network-policy-operator"                                                                                                                  | Service Account name                                                                               |
-| leaderElection.role                 | string | leader-election-role                                                                                                                       | Name of the Leader election Role                                                                   |
-| leaderElection.rolebinding          | string | leader-election-rolebinding                                                                                                                | Name of the Leader election Rolebinding                                                            |
-| manager.image.repository            | string | ghcr.io/netcracker/qubership-network-policy-operator                                                                                       | Registry of manager container image                                                                |
-| manager.image.pullPolicy            | string | IfNotPresent                                                                                                                               | Pulling policy of manager container image                                                          |
-| manager.image.tag                   | string | ""                                                                                                                                         | Manager container image tag                                                                        |
-| manager.imagePullSecrets            | array  | []                                                                                                                                         | Secret to connect to the registry                                                                  |
-| manager.rbac.create                 | bool   | true                                                                                                                                       | If true Cluster Role and Rolebindigs will be created for operator                                  |
-| manager.rbac.role                   | string | network-policy-operator-role                                                                                                               | Name of the operator Cluster Role                                                                  |
-| manager.rbac.rolebinding            | string | network-policy-operator-rolebinding                                                                                                        | Name of the operator Cluster Rolebinding                                                           |
-| manager.securityContext             | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} | Manager container Security Context                                                                 |
-| manager.resources                   | object | {"limits": {"cpu": "500m", "memory": "512Mi"}, "requests": {"cpu": "100m", "memory": "128Mi"}}                                             | Manager container CPU/memory resource                                                              |
-| manager.livenessProbe               | object | {"httpGet": {"path": "/healthz", "port": 8081}, "initialDelaySeconds": 15, "periodSeconds": 20}                                            | Manager container liveness probe                                                                   |
-| manager.readinessProbe              | object | {"httpGet": {"path": "/readyz", "port": 8081}, "initialDelaySeconds": 5, "periodSeconds": 10}                                              | Manager container readiness probe                                                                  |
-| manager.volumes                     | array  | []                                                                                                                                         | Volumes to add to the pod                                                                          |
-| manager.volumeMounts                | array  | []                                                                                                                                         | Volumes mounts                                                                                     |
-| nodeSelector                        | object | {}                                                                                                                                         | Node labels for pod assignment                                                                     |
-| tolerations                         | array  | []                                                                                                                                         | Node tolerations for pod assignment                                                                |
-| affinity                            | object | {}                                                                                                                                         | Node affinity for pod assignment                                                                   |
-| args                                | array  |["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"]       | Operator container arguments                                                                       |
-| monitoring.enable                   | bool   | false                                                                                                                                      | GrafanaDashboard and ServiceMonitor creation                                                       |
-| networkPolicies.name                | string | "default"                                                                                                                                  | NetworkPolicyConfig name                                                                           |
-| networkPolicies.enabled             | bool   | true                                                                                                                                       | If true NetworkPolicies will be created                                                            |
-| networkPolicies.scope               | object | {}                                                                                                                                         | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
-| networkPolicies.allowAnnotation     | string | "network-policy.netcracker.com/allowed-from"                                                                                                | Annotation key to identify the allowed namespaces                                                  |
-| networkPolicies.controlPlane        | string | "kube-,openshift,calico,tigera,ingress-nginx"                                                                                              | Comma-separated list of namespaces that must not be restricted, processed as `start with`          |
-| networkPolicies.implicitNamespaces  | string | "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"                                                                 | Comma-separated list of namespaces that are allowed by default                                     |
-| networkPolicies.customPolicies      | string | ""                                                                                                                                         | Custom NetworkPolicies in raw YAML (only Calico notation)                                          |
-| networkPolicies.logs.enabled        | bool   | false                                                                                                                                      | If true the `Log` action will be added into NetworkPolicies                                        |
-| networkPolicies.logs.collectingAll  | bool   | true                                                                                                                                       | If true the all of the connections are logged, if false only denied                                |
-| networkPolicies.logs.namespaceScope | bool   | "network-policy.netcracker.com/collecting-logs"                                                                                             | Namespace label key to disable logs flexible                                                       |
-| networkPolicies.defaultTier         | string | automated                                                                                                                                  | OOB NetworkPolicies Tier                                                                           |
-| networkPolicies.customTier          | string | default                                                                                                                                    | Custom NetworkPolicies Tier                                                                        |
-| dr.install                          | bool   | false                                                                                                                                      | If true RemoteClusterConfig will be created                                                        |
-| dr.localCluster                     | object | {}                                                                                                                                         | Local cluster configuration                                                                        |
-| dr.remoteClusters                   | array  | []                                                                                                                                         | List of remote cluster configuration                                                               |
-| dr.authentication                   | string | token                                                                                                                                      | Type of authentication in DR scheme                                                                |
-| dr.tls                              | string | auto                                                                                                                                       | Automation or manual TLS certificate creation                                                      |
-| dr.tlsJob.image                     | object | {"repository": "ghcr.io/netcracker/qubership-network-policy-job","pullPolicy": "IfNotPresent"}                                             | TLS cetrtificate creation Job specification                                                        |
-| dr.tlsJob.resources                 | object | {"requests": {"cpu": "100m","memory": "128Mi"}}                                                                                            | TLS cetrtificate creation Job specification                                                        |
-| dr.tlsJob.nodeSelector              | object | {"kubernetes.io/os": "linux"}                                                                                                              | TLS cetrtificate creation Job specification                                                        |
-| dr.tlsJob.tolerations               | array  | []                                                                                                                                         | TLS cetrtificate creation Job specification                                                        |
-| dr.tlsJob.securityContext           | object | {"runAsNonRoot": true}                                                                                                                     | TLS cetrtificate creation Job specification                                                        |
+| Parameter | Type | Default value | Description |
+| ----------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| nameOverride | string | "" | Override chart name |
+| fullnameOverride | string | "" | Override FQDN |
+| replicaCount | int | 1 | Number of operator replicas |
+| podAnnotations | object | {} | Custom operator Pod annotations |
+| podLabels | object | {} | Custom operator Pod labels |
+| podSecurityContext | object | {"runAsNonRoot": true} | Pod level Security Context |
+| serviceAccount.create | bool | true | If true Service Account will be created |
+| serviceAccount.automount | bool | true | Automount API credentials for the Service Account |
+| serviceAccount.annotations | object | {} | Custom Service Account annotations |
+| serviceAccount.name | string | "network-policy-operator" | Service Account name |
+| leaderElection.role | string | leader-election-role | Name of the Leader election Role |
+| leaderElection.rolebinding | string | leader-election-rolebinding | Name of the Leader election Rolebinding |
+| manager.image.repository | string | ghcr.io/netcracker/qubership-network-policy-operator | Registry of manager container image |
+| manager.image.pullPolicy | string | IfNotPresent | Pulling policy of manager container image |
+| manager.image.tag | string | "" | Manager container image tag |
+| manager.imagePullSecrets | array | [] | Secret to connect to the registry |
+| manager.rbac.create | bool | true | If true Cluster Role and Rolebindigs will be created for operator |
+| manager.rbac.role | string | network-policy-operator-role | Name of the operator Cluster Role |
+| manager.rbac.rolebinding | string | network-policy-operator-rolebinding | Name of the operator Cluster Rolebinding |
+| manager.securityContext | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} | Manager container Security Context |
+| manager.resources | object | {"limits": {"cpu": "500m", "memory": "512Mi"}, "requests": {"cpu": "100m", "memory": "128Mi"}} | Manager container CPU/memory resource |
+| manager.livenessProbe | object | {"httpGet": {"path": "/healthz", "port": 8081}, "initialDelaySeconds": 15, "periodSeconds": 20} | Manager container liveness probe |
+| manager.readinessProbe | object | {"httpGet": {"path": "/readyz", "port": 8081}, "initialDelaySeconds": 5, "periodSeconds": 10} | Manager container readiness probe |
+| manager.volumes | array | [] | Volumes to add to the pod |
+| manager.volumeMounts | array | [] | Volumes mounts |
+| nodeSelector | object | {} | Node labels for pod assignment |
+| tolerations | array | [] | Node tolerations for pod assignment |
+| affinity | object | {} | Node affinity for pod assignment |
+| args | array |["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"] | Operator container arguments |
+| monitoring.enable | bool | false | GrafanaDashboard and ServiceMonitor creation |
+| networkPolicies.name | string | "default" | NetworkPolicyConfig name |
+| networkPolicies.enabled | bool | true | If true NetworkPolicies will be created |
+| networkPolicies.scope | object | {} | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
+| networkPolicies.allowAnnotation | string | "network-policy.netcracker.com/allowed-from" | Annotation key to identify the allowed namespaces |
+| networkPolicies.controlPlane | string | "kube-,openshift,calico,tigera,ingress-nginx" | Comma-separated list of namespaces that must not be restricted, processed as `start with` |
+| networkPolicies.implicitNamespaces | string | "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress" | Comma-separated list of namespaces that are allowed by default |
+| networkPolicies.customPolicies | string | "" | Custom NetworkPolicies in raw YAML (only Calico notation) |
+| networkPolicies.logs.enabled | bool | false | If true the `Log` action will be added into NetworkPolicies |
+| networkPolicies.logs.collectingAll | bool | true | If true the all of the connections are logged, if false only denied |
+| networkPolicies.logs.namespaceScope | bool | "network-policy.netcracker.com/collecting-logs" | Namespace label key to disable logs flexible |
+| networkPolicies.defaultTier | string | automated | OOB NetworkPolicies Tier |
+| networkPolicies.customTier | string | default | Custom NetworkPolicies Tier |
+| dr.install | bool | false | If true RemoteClusterConfig will be created |
+| dr.localCluster | object | {} | Local cluster configuration |
+| dr.remoteClusters | array | [] | List of remote cluster configuration |
+| dr.authentication | string | token | Type of authentication in DR scheme |
+| dr.tls | string | auto | Automation or manual TLS certificate creation |
+| dr.tlsJob.image | object | {"repository": "ghcr.io/netcracker/qubership-network-policy-job","pullPolicy": "IfNotPresent"} | TLS cetrtificate creation Job specification |
+| dr.tlsJob.resources | object | {"requests": {"cpu": "100m","memory": "128Mi"}} | TLS cetrtificate creation Job specification |
+| dr.tlsJob.nodeSelector | object | {"kubernetes.io/os": "linux"} | TLS cetrtificate creation Job specification |
+| dr.tlsJob.tolerations | array | [] | TLS cetrtificate creation Job specification |
+| dr.tlsJob.securityContext | object | {"runAsNonRoot": true} | TLS cetrtificate creation Job specification |
 
 #### Logs Verbosity Setting
 
@@ -125,31 +125,28 @@ kubectl create ns network-policy-operator
 
 **values.yaml Configuration**
 
-Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
+Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters 
+names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
 * All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`. That access extends to the neighbor clusters in case of DR scheme.
 * The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
 
-```
-...
+```yaml
 networkPolicies:
   name: "default"
   enabled: true
   scope:
     my-label: oob-network-policy
-...
 ```
 
 * The allowed traffic should be decribed in the `namespacesRules` section, e.g.:
 
-```
-...
+```yaml
 networkPolicies:
   namespacesRules:
     - namespace: web-app-1
       allowedTo: ['postgres-1', 'postgres-2']
-...
 ```
 
 the rule above allows a traffic from the `web-app-1` namespace to the `postgres-1` and `postgres-2` namespaces.
@@ -165,13 +162,10 @@ The `logs` section manages the connections logs. There are several options to co
 
 Calico v3.29 and higher needs to set the NetwokPolicies `Tiers`. The default values are the following:
 
-```
-...
+```yaml
 networkPolicies:
-...
   defaultTier: automated
   customTier: default
-...
 ```
 
 * `defaultTier` sets the `Tier` that is used for all OOB NetworkPolicies
@@ -301,7 +295,7 @@ kubectl get cnp -A
 
 The output is similar to the following:
 
-```
+```sh
 NAMESPACE           NAME              CREATED AT
 default             allow-from-ns     2024-10-15T11:15:44Z
 default             allow-within-ns   2024-10-15T11:15:44Z
@@ -336,7 +330,7 @@ kubectl get tiers
 
 The output is similar to the following:
 
-```
+```sh
 NAME                 CREATED AT
 adminnetworkpolicy   2024-12-06T10:47:17Z
 automated            2025-04-08T13:07:32Z
