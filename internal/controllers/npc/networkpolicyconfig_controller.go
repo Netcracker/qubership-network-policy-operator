@@ -515,22 +515,26 @@ func (r *NetworkPolicyConfigReconciler) processNamespace(ns *corev1.Namespace, n
 		return err
 	}
 
-	nsAnn = accessor.GetAnnotations()
-	_, ok = nsAnn[AllowAnnotation]
-	if !ok {
-		log.Info(fmt.Sprintf("%q Namespace is not explicitly annotated to allow incoming traffic", ns.GetName()))
-		// There is no annotation, so only traffic from namespaces that is set implicitly must be allowed
-		allowNS = impNS
+	// Reading the NamespacesRules if it's not empty and adding the namespaces into allowed list
+	// It the NamespacesRules is empty reading AllowAnnotation
+	if len(npc.Spec.NamespacesRules) > 0 {
+		nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
+		log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), nsRules))
+		if len(nsRules) > 0 {
+			// Concatenation of namespaces from NamespacesRules and ImplicitNamespaces
+			allowNS = fmt.Sprintf("%s,%s", impNS, nsRules)
+		}
 	} else {
-		// Concatenation of namespaces from annotation and implicit namespaces
-		allowNS = fmt.Sprintf("%s,%s", nsAnn[AllowAnnotation], impNS)
-	}
-
-	// Reading the NamespacesRules and put the namespaces to allowed list
-	nsRules := getAllowedNamespace(npc.Spec.NamespacesRules, ns.GetName())
-	log.Info(fmt.Sprintf("NamespacesRule list for %q Namespace: %q", ns.GetName(), nsRules))
-	if len(nsRules) > 0 {
-		allowNS = fmt.Sprintf("%s,%s", allowNS, nsRules)
+		nsAnn = accessor.GetAnnotations()
+		_, ok = nsAnn[AllowAnnotation]
+		if !ok {
+			log.Info(fmt.Sprintf("%q Namespace is not explicitly annotated to allow incoming traffic", ns.GetName()))
+			// There is no annotation, so only traffic from namespaces that is set implicitly must be allowed
+			allowNS = impNS
+		} else {
+			// Concatenation of namespaces from annotation and ImplicitNamespaces
+			allowNS = fmt.Sprintf("%s,%s", nsAnn[AllowAnnotation], impNS)
+		}
 	}
 
 	// Deleting log rule if logs disabled or it's needed to collect only denied connection
