@@ -44,7 +44,7 @@ dr:
 #    api: cluster-1.domain.com:6443
 #    name: cluster-1
 # For `tls` authentication it's a prefix. The result name will be `cluster-1-secret-tls`
-    secret: cluster-1-secret
+#    secret: cluster-1-secret
   remoteClusters: []
 #  remoteClusters:
 #    - name: cluster-2
@@ -57,7 +57,7 @@ dr:
   # There are two options: `token` and `tls`
   authentication: token
   # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
-  tls: auto 
+  tls: auto
   # TLS Job manages the TLS certifecates in automatic mode
   tlsJob:
     image: ghcr.io/netcracker/qubership-network-policy-job:main
