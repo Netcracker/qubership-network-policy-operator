@@ -155,7 +155,7 @@ kubectl create ns network-policy-operator
 
 **values.yaml Configuration**
 
-Navigate to the `chart/network-policy-operator/` directory and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters
+Navigate to the `chart/network-policy-operator/` and `chart/network-policy-operator-cr/` directories and edit the `values.yaml` file according to the environment configuration. In case of DR scheme, it is better to use the unified secret naming, that means the secrets with token to connect to the same remote cluster have the same names on different clusters. The clusters
 names must be always unique within the set of cluters. There are several options that must be changed in the `values.yaml` file to get the properly working cluster after NetworkPolicies application. The `networkPolicies` section includes several options that could be configured.
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
@@ -216,8 +216,16 @@ In case of DR scheme, check the [DR Preparation](#dr-preparation) section below.
 
 **Installation**
 
+Install the operator Helm Chart firts:
+
 ```sh
 helm install network-policy-operator . -n network-policy-operator
+```
+
+Then install the CRs Helm Chart:
+
+```sh
+helm install network-policy-operator-cr . -n network-policy-operator
 ```
 
 ### DR Preparation
