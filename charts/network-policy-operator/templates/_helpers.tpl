@@ -81,13 +81,6 @@ Network Policy Operator image.
 {{- end -}}
 
 {{/*
-Remote operator connection Role
-*/}}
-{{- define "network-policy-operator.remoteRole" -}}
-{{- printf "%s-%s" .Values.manager.rbac.role "dr" | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
 TLS Job name.
 */}}
 {{- define "network-policy-operator.tls.name" -}}
@@ -99,20 +92,6 @@ TLS Job image.
 */}}
 {{- define "tlsjob.image" -}}
     {{ .Values.dr.tlsJob.image }}
-{{- end -}}
-
-{{/*
-Restart Job name.
-*/}}
-{{- define "network-policy-operator.restart.name" -}}
-{{- printf "%s-%s" (include "network-policy-operator.name" .) "restart" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Restart Job image.
-*/}}
-{{- define "restartjob.image" -}}
-    {{ .Values.dr.restartJob.image }}
 {{- end -}}
 
 Mertics reader Role
@@ -127,17 +106,3 @@ Mertics reader Rolebinding
 {{- define "network-policy-operator.metricsRolebinding" -}}
 {{- printf "%s-%s-rb" (include "network-policy-operator.namespace" .) .Values.manager.rbac.metrics | trunc 63 | trimSuffix "-" -}}
 {{- end }}
-
-{{/*
-Upgrade Job name.
-*/}}
-{{- define "network-policy-operator.upgrade.name" -}}
-{{- printf "%s-%s" (include "network-policy-operator.name" .) "upgrade" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{/*
-Upgrade Job image.
-*/}}
-{{- define "upgradejob.image" -}}
-    {{ .Values.dr.upgradeJob.image }}
-{{- end -}}
