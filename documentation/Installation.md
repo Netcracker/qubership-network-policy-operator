@@ -52,9 +52,26 @@ The prerequisites for limited Calico CNI configuration are as follows:
 
 The deployment with Helm chart is specified below.
 
+### Charts Structure
+
+The current Helm Chart consists of two separate charts. The first one includes operator and CRDs. The second chart manages a set of custom resources: NetworkPolicyConfig and RemoteClusterConfig.
+
+```shell
+charts/
+├── network-policy-operator
+│   ├── crds
+│   ├── monitoring
+│   ├── resource-profiles
+│   └── templates
+└── network-policy-operator-cr
+    ├── resource-profiles
+    └── templates
+        └── tls
+```
+
 ### Parameters
 
-The parameters for deployment with Helm chart are specified in the below table.
+#### `network-policy-operator` Chart Values
 
 | Parameter | Type | Default value | Description |
 | ----------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
@@ -88,6 +105,19 @@ The parameters for deployment with Helm chart are specified in the below table.
 | affinity | object | {} | Node affinity for pod assignment |
 | args | array | ["--health-probe-bind-address=:8081","--metrics-bind-address=:8443","--metrics-secure=true","--leader-elect","--zap-log-level=error"] | Operator container arguments |
 | monitoring.enable | bool | false | GrafanaDashboard and ServiceMonitor creation |
+
+#### Logs Verbosity Setting
+
+The operator container logs verbosity could be set by changing `--zap-log-level` option in `args` section. It can be one of `debug`, `info`, or `error`. By default it has `error` level.
+
+#### `network-policy-operator-cr` Chart Values
+
+| Parameter | Type | Default value | Description |
+| ----------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| nameOverride | string | "" | Override chart name |
+| fullnameOverride | string | "" | Override FQDN |
+| manager.rbac.role | string | network-policy-operator-role | Name of the operator Cluster Role |
+| manager.rbac.rolebinding | string | network-policy-operator-rolebinding | Name of the operator Cluster Rolebinding |
 | networkPolicies.name | string | "default" | NetworkPolicyConfig name |
 | networkPolicies.enabled | bool | true | If true NetworkPolicies will be created |
 | networkPolicies.scope | object | {} | Namespace label where NetworkPolicies must be created, if empty all of the namespaces are included |
@@ -111,9 +141,7 @@ The parameters for deployment with Helm chart are specified in the below table.
 | dr.tlsJob.tolerations | array | [] | TLS cetrtificate creation Job specification |
 | dr.tlsJob.securityContext | object | {"runAsNonRoot": true} | TLS cetrtificate creation Job specification |
 
-#### Logs Verbosity Setting
-
-The operator container logs verbosity could be set by changing `--zap-log-level` option in `args` section. It can be one of `debug`, `info`, or `error`. By default it has `error` level.
+Pay attention the `manager.rbac.role` and the `manager.rbac.rolebinding` options must be equal to the options in `network-policy-operator` chart.
 
 ### Basic Installation
 
