@@ -36,6 +36,10 @@ networkPolicies:
   defaultTier: automated
   # NetwokPolicies Tier for custom NetworkPolicies
   customTier: default
+  # Allowed Namespaces list
+  # - namespace: web-app-1
+  #   allowedTo: ['postgres-1', 'postgres-2']
+  namespacesRules: []
 # RemoteClusterConfig section
 dr:
   install: false
