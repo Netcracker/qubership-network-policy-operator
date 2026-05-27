@@ -497,6 +497,24 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				}
 			}
 
+			By("Checking if the allow-from-ns is correct in default Namespace. The allowed Namespaces must be equal to implicit Namespaces")
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: allowFromNS, Namespace: nsNameDf}, np)
+			Expect(err).NotTo(HaveOccurred())
+			for i := range np.Spec.Ingress {
+				if np.Spec.Ingress[i].Action == "Allow" && len(np.Spec.Ingress[i].Source.NamespaceSelector) > 0 {
+					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, "kubernetes.io/metadata.name in { ")
+					res, _, _ = strings.Cut(res, " }")
+					res = strings.Replace(res, "\"", "", -1)
+					resSl := strings.Split(res, ", ")
+					impSl := strings.Split(ImplicitNamespaces, ",")
+					slices.Sort(resSl)
+					slices.Sort(impSl)
+					if !slices.Equal(resSl, impSl) {
+						Fail(fmt.Sprintf("The %q Namespace has wrong list: %v; expected: %v", nsNameDf, resSl, impSl))
+					}
+				}
+			}
+
 			By("Reconciling the Namespace")
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName2,
