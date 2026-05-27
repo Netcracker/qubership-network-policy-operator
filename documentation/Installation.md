@@ -180,7 +180,10 @@ networkPolicies:
 ```
 
 the rule above allows a traffic from the `web-app-1` namespace to the `postgres-1` and `postgres-2` namespaces.
-* `allowAnnotation` annotation sets the list of the namespaces that have an access to annotated namespace but this list will be omit if the `namespacesRules` option is not empty. It must be preliminary according to solution internal interaction.
+* `allowAnnotation` annotation annotation sets the list of the namespaces that have an access to annotated namespace (Deprecated). It must be preliminary set according to solution internal interaction.
+
+**Note:** The `allowAnnotation` will be omit if the `namespacesRules` option is not empty.
+
 * `customPolicies` option includes the custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
 * `enabled` option switches on and off NetworkPolicies globally.
 
