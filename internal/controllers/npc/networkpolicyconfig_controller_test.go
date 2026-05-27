@@ -504,7 +504,7 @@ var _ = Describe("NetworkPolicyConfig Controller", func() {
 				if np.Spec.Ingress[i].Action == "Allow" && len(np.Spec.Ingress[i].Source.NamespaceSelector) > 0 {
 					_, res, _ := strings.Cut(np.Spec.Ingress[i].Source.NamespaceSelector, "kubernetes.io/metadata.name in { ")
 					res, _, _ = strings.Cut(res, " }")
-					res = strings.Replace(res, "\"", "", -1)
+					res = strings.ReplaceAll(res, "\"", "")
 					resSl := strings.Split(res, ", ")
 					impSl := strings.Split(ImplicitNamespaces, ",")
 					slices.Sort(resSl)
