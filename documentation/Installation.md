@@ -416,3 +416,11 @@ metadata:
 If the `RemoteClusterConfig` has been delete the operator at first deletes the `ExternalNamespaces` on the neighbor cluster and only after that removes the finalizer.
 
 **Notice**: During the upgrade procedure the RemoteClusterConfig finalazer is being removed by the upgrade Job that runs on `pre-upgrade` stage. The finalizer is being applied again during the regular reconciliation loop.
+
+## Migration from Namespace annotations to the NetworkPolicyConfig description.
+
+The `network-policy.netcracker.com/allowed-from` anntations should be changed to `namespacesRules` section inside NetworkPolicyConfig. Pay attention the annontation set the Namespaces that must have the access to the annotated Namespace whereas `namespacesRules` matches the source Namespace and the list of the allowed target Namespaces for it. The annotations must not be deleted before the `namespacesRules` filling. It's necessary to have the simple rollback in case of `namespacesRules` issue. Basically, the migration procedure is the following:
+1. Collect all of the `network-policy.netcracker.com/allowed-from` annotations and rework it into `namespacesRules`.
+2. Change the NetworkPolicyConfig specification.
+3. Check if the namespaces have correct connectivy to one another.
+4. If the the step 3 is successful delete the annotations. If it's not successful, change the `namespacesRules` and go back to the step 3 until it's fulfilled. In complicated cases the `namespacesRules` could be deleted to work based on annotations again.
