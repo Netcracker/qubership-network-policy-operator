@@ -1,0 +1,165 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "dr": {
+            "type": "object",
+            "properties": {
+                "authentication": {
+                    "type": "string"
+                },
+                "install": {
+                    "type": "boolean"
+                },
+                "localCluster": {
+                    "type": "object"
+                },
+                "remoteClusters": {
+                    "type": "array"
+                },
+                "tls": {
+                    "type": "string"
+                },
+                "tlsJob": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string"
+                        },
+                        "nodeSelector": {
+                            "type": "object",
+                            "properties": {
+                                "kubernetes.io/os": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "pullPolicy": {
+                            "type": "string"
+                        },
+                        "resources": {
+                            "type": "object",
+                            "properties": {
+                                "requests": {
+                                    "type": "object",
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string"
+                                        },
+                                        "memory": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "securityContext": {
+                            "type": "object",
+                            "properties": {
+                                "allowPrivilegeEscalation": {
+                                    "type": "boolean"
+                                },
+                                "capabilities": {
+                                    "type": "object",
+                                    "properties": {
+                                        "drop": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "runAsNonRoot": {
+                                    "type": "boolean"
+                                },
+                                "seccompProfile": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        }
+                    }
+                }
+            }
+        },
+        "fullnameOverride": {
+            "type": "string"
+        },
+        "manager": {
+            "type": "object",
+            "properties": {
+                "rbac": {
+                    "type": "object",
+                    "properties": {
+                        "role": {
+                            "type": "string"
+                        },
+                        "rolebinding": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "nameOverride": {
+            "type": "string"
+        },
+        "networkPolicies": {
+            "type": "object",
+            "properties": {
+                "allowAnnotation": {
+                    "type": "string"
+                },
+                "controlPlane": {
+                    "type": "string"
+                },
+                "customPolicies": {
+                    "type": "string"
+                },
+                "customTier": {
+                    "type": "string"
+                },
+                "defaultTier": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "implicitNamespaces": {
+                    "type": "string"
+                },
+                "logs": {
+                    "type": "object",
+                    "properties": {
+                        "collectingAll": {
+                            "type": "boolean"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "namespaceScope": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespacesRules": {
+                    "type": "array"
+                },
+                "scope": {
+                    "type": "object"
+                }
+            }
+        }
+    }
+}
