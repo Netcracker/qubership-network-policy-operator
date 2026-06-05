@@ -19,6 +19,8 @@ podLabels: {}
 
 podSecurityContext:
   runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
   # fsGroup: 2000
 
 #This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
@@ -55,15 +57,10 @@ manager:
   securityContext:
     runAsNonRoot: true
     allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
     capabilities:
       drop:
         - "ALL"
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
     seccompProfile:
       type: RuntimeDefault
 
@@ -92,6 +89,10 @@ manager:
       port: 8081
     initialDelaySeconds: 5
     periodSeconds: 10
+
+  # Size limit for the /tmp emptyDir volume. JVM, Python, bash and other runtimes write temp files there.
+  tmp:
+    sizeLimit: 100Mi
 
   # Additional volumes on the output Deployment definition.
   volumes: []

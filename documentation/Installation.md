@@ -80,7 +80,7 @@ charts/
 | replicaCount | int | 1 | Number of operator replicas |
 | podAnnotations | object | {} | Custom operator Pod annotations |
 | podLabels | object | {} | Custom operator Pod labels |
-| podSecurityContext | object | {"runAsNonRoot": true} | Pod level Security Context |
+| podSecurityContext | object | {"runAsNonRoot": true, "seccompProfile": {"type": "RuntimeDefault"}} | Pod level Security Context |
 | serviceAccount.create | bool | true | If true Service Account will be created |
 | serviceAccount.automount | bool | true | Automount API credentials for the Service Account |
 | serviceAccount.annotations | object | {} | Custom Service Account annotations |
@@ -94,10 +94,11 @@ charts/
 | manager.rbac.create | bool | true | If true Cluster Role and Rolebindigs will be created for operator |
 | manager.rbac.role | string | network-policy-operator-role | Name of the operator Cluster Role |
 | manager.rbac.rolebinding | string | network-policy-operator-rolebinding | Name of the operator Cluster Rolebinding |
-| manager.securityContext | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} | Manager container Security Context |
+| manager.securityContext | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "readOnlyRootFilesystem": true, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} | Manager container Security Context |
 | manager.resources | object | {"limits": {"cpu": "500m", "memory": "512Mi"}, "requests": {"cpu": "100m", "memory": "128Mi"}} | Manager container CPU/memory resource |
 | manager.livenessProbe | object | {"httpGet": {"path": "/healthz", "port": 8081}, "initialDelaySeconds": 15, "periodSeconds": 20} | Manager container liveness probe |
 | manager.readinessProbe | object | {"httpGet": {"path": "/readyz", "port": 8081}, "initialDelaySeconds": 5, "periodSeconds": 10} | Manager container readiness probe |
+| manager.tmp.sizeLimit | string | 100Mi | Size limit for the /tmp emptyDir volume |
 | manager.volumes | array | [] | Volumes to add to the pod |
 | manager.volumeMounts | array | [] | Volumes mounts |
 | nodeSelector | object | {} | Node labels for pod assignment |
@@ -139,7 +140,8 @@ The operator container logs verbosity could be set by changing `--zap-log-level`
 | dr.tlsJob.resources | object | {"requests": {"cpu": "100m","memory": "128Mi"}} | TLS cetrtificate creation Job specification |
 | dr.tlsJob.nodeSelector | object | {"kubernetes.io/os": "linux"} | TLS cetrtificate creation Job specification |
 | dr.tlsJob.tolerations | array | [] | TLS cetrtificate creation Job specification |
-| dr.tlsJob.securityContext | object | {"runAsNonRoot": true} | TLS cetrtificate creation Job specification |
+| dr.tlsJob.securityContext | object | {"runAsNonRoot": true, "allowPrivilegeEscalation": false, "readOnlyRootFilesystem": true, "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}} | TLS certificate creation Job container Security Context |
+| dr.tlsJob.tmp.sizeLimit | string | 100Mi | Size limit for the /tmp emptyDir volume used by the TLS generation script |
 
 Pay attention the `manager.rbac.role` and the `manager.rbac.rolebinding` options must be equal to the options in `network-policy-operator` chart.
 
