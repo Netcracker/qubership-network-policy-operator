@@ -77,6 +77,11 @@ Prometheus metrics are registered at startup via `monitoring.RegisterMetrics()` 
 
 Each time the @charts/network-policy-operator/values.yaml and @charts/network-policy-operator-cr/values.yaml have changed, update the documentation accordingly.
 
+
+## Schema update
+
+Each time the @charts/network-policy-operator/values.yaml and @charts/network-policy-operator-cr/values.yaml have changed, the @charts/network-policy-operator/values.schema.json and @charts/network-policy-operator-cr/values.schema.json must be updates accordingly.
+
 ## Chart Test
 
 Changes in chart must be tested by `helm template`. The fist run with default values.yaml the second must include changes in the `dr` section
