@@ -1,163 +1,363 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
+    "additionalProperties": false,
+    "$defs": {
+        "ContainerSecurityContext": {
+            "type": "object",
+            "description": "Security context applied to a container.",
+            "additionalProperties": false,
+            "properties": {
+                "allowPrivilegeEscalation": {
+                    "type": "boolean",
+                    "description": "Whether the container process may gain more privileges than its parent process.",
+                    "default": false
+                },
+                "runAsNonRoot": {
+                    "type": "boolean",
+                    "description": "Require the container to run as a non-root user.",
+                    "default": true
+                },
+                "runAsUser": {
+                    "type": "integer",
+                    "description": "UID to run the container process as."
+                },
+                "runAsGroup": {
+                    "type": "integer",
+                    "description": "GID to run the container process as."
+                },
+                "readOnlyRootFilesystem": {
+                    "type": "boolean",
+                    "description": "Mount the container root filesystem as read-only."
+                },
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "drop": {
+                            "type": "array",
+                            "description": "Linux capabilities to drop from the container.",
+                            "items": { "type": "string" },
+                            "default": ["ALL"]
+                        },
+                        "add": {
+                            "type": "array",
+                            "description": "Linux capabilities to add to the container.",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "Seccomp profile type to apply to the container.",
+                            "enum": ["RuntimeDefault", "Localhost", "Unconfined"],
+                            "default": "RuntimeDefault"
+                        },
+                        "localhostProfile": {
+                            "type": "string",
+                            "description": "Path to a pre-configured profile on the node relative to the kubelet seccomp profile location. Required when type is 'Localhost'."
+                        }
+                    }
+                }
+            }
+        },
+        "RemoteCluster": {
+            "type": "object",
+            "description": "Configuration for a remote cluster used in Disaster Recovery.",
+            "additionalProperties": false,
+            "required": ["name", "api"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Logical name of the remote cluster."
+                },
+                "api": {
+                    "type": "string",
+                    "description": "API server address of the remote cluster (e.g. 'cluster-2.domain.com:6443')."
+                },
+                "secret": {
+                    "type": "string",
+                    "description": "Secret name prefix for TLS authentication. The full secret name will be '<secret>-tls'."
+                }
+            }
+        }
+    },
     "properties": {
+        "nameOverride": {
+            "type": "string",
+            "description": "Override for the chart name."
+        },
+        "fullnameOverride": {
+            "type": "string",
+            "description": "Full override for the chart name."
+        },
+        "manager": {
+            "type": "object",
+            "description": "Manager configuration.",
+            "additionalProperties": false,
+            "properties": {
+                "rbac": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "role": {
+                            "type": "string",
+                            "description": "Name of the RBAC Role.",
+                            "default": "network-policy-operator-role"
+                        },
+                        "rolebinding": {
+                            "type": "string",
+                            "description": "Name of the RBAC RoleBinding.",
+                            "default": "network-policy-operator-rolebinding"
+                        }
+                    }
+                }
+            }
+        },
+        "networkPolicies": {
+            "type": "object",
+            "description": "NetworkPolicyConfig section.",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the NetworkPolicyConfig resource.",
+                    "default": "default"
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable or disable NetworkPolicy management.",
+                    "default": true
+                },
+                "scope": {
+                    "type": "object",
+                    "description": "Namespace label selector that indicates processed namespaces. Each key-value pair is a label name and its required value.",
+                    "additionalProperties": { "type": "string" }
+                },
+                "allowAnnotation": {
+                    "type": "string",
+                    "description": "Namespace annotation holding a comma-separated list of namespaces from which access must be allowed.",
+                    "default": "network-policy.netcracker.com/allowed-from"
+                },
+                "controlPlane": {
+                    "type": "string",
+                    "description": "Comma-separated list of namespace prefixes that are never restricted by NetworkPolicies.",
+                    "default": "kube-,openshift,calico,tigera,ingress-nginx"
+                },
+                "implicitNamespaces": {
+                    "type": "string",
+                    "description": "Comma-separated list of namespaces that are implicitly added to the allowed namespaces.",
+                    "default": "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
+                },
+                "customPolicies": {
+                    "type": "string",
+                    "description": "Custom NetworkPolicies expressed in Calico notation."
+                },
+                "logs": {
+                    "type": "object",
+                    "description": "Log collection configuration.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable or disable log collection.",
+                            "default": false
+                        },
+                        "collectingAll": {
+                            "type": "boolean",
+                            "description": "When true, collect logs from all namespaces regardless of the namespaceScope label.",
+                            "default": true
+                        },
+                        "namespaceScope": {
+                            "type": "string",
+                            "description": "Namespace label key used to opt namespaces in or out of log collection.",
+                            "default": "network-policy.netcracker.com/collecting-logs"
+                        }
+                    }
+                },
+                "defaultTier": {
+                    "type": "string",
+                    "description": "Default NetworkPolicies tier.",
+                    "default": "automated"
+                },
+                "customTier": {
+                    "type": "string",
+                    "description": "NetworkPolicies tier used for custom NetworkPolicies.",
+                    "default": "default"
+                },
+                "namespacesRules": {
+                    "type": "array",
+                    "description": "List of namespace-level allow rules.",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["namespace"],
+                        "properties": {
+                            "namespace": {
+                                "type": "string",
+                                "description": "Source namespace name."
+                            },
+                            "allowedTo": {
+                                "type": "array",
+                                "description": "List of namespaces this namespace is allowed to reach.",
+                                "items": { "type": "string" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "dr": {
             "type": "object",
+            "description": "RemoteClusterConfig section for Disaster Recovery.",
+            "additionalProperties": false,
             "properties": {
-                "authentication": {
-                    "type": "string"
-                },
                 "install": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Enable or disable the Disaster Recovery feature.",
+                    "default": false
                 },
                 "localCluster": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Configuration for the local cluster.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "api": {
+                            "type": "string",
+                            "description": "API server address of the local cluster (e.g. 'cluster-1.domain.com:6443')."
+                        },
+                        "name": {
+                            "type": "string",
+                            "description": "Logical name of the local cluster."
+                        },
+                        "secret": {
+                            "type": "string",
+                            "description": "Secret name prefix for TLS authentication. The full secret name will be '<secret>-tls'."
+                        }
+                    }
                 },
                 "remoteClusters": {
-                    "type": "array"
+                    "type": "array",
+                    "description": "List of remote clusters to connect to for DR.",
+                    "items": { "$ref": "#/$defs/RemoteCluster" }
+                },
+                "authentication": {
+                    "type": "string",
+                    "description": "Authentication method used to connect to remote clusters.",
+                    "enum": ["token", "tls"],
+                    "default": "token"
                 },
                 "tls": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "'auto' runs the TLS certificate creation job; 'manual' means the certificate was created manually.",
+                    "enum": ["auto", "manual"],
+                    "default": "auto"
                 },
                 "tlsJob": {
                     "type": "object",
+                    "description": "Configuration for the TLS certificate management job (used when tls=auto).",
+                    "additionalProperties": false,
                     "properties": {
                         "image": {
-                            "type": "string"
-                        },
-                        "nodeSelector": {
-                            "type": "object",
-                            "properties": {
-                                "kubernetes.io/os": {
-                                    "type": "string"
-                                }
-                            }
+                            "type": "string",
+                            "description": "Container image for the TLS job.",
+                            "default": "ghcr.io/netcracker/qubership-network-policy-job:main"
                         },
                         "pullPolicy": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Image pull policy for the TLS job container.",
+                            "enum": ["Always", "IfNotPresent", "Never"],
+                            "default": "IfNotPresent"
                         },
                         "resources": {
                             "type": "object",
+                            "description": "Compute resource requirements for the TLS job container.",
+                            "additionalProperties": false,
                             "properties": {
                                 "requests": {
                                     "type": "object",
+                                    "description": "Minimum resource requests.",
+                                    "additionalProperties": false,
                                     "properties": {
                                         "cpu": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "CPU request (e.g. '100m').",
+                                            "default": "100m"
                                         },
                                         "memory": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "Memory request (e.g. '128Mi').",
+                                            "default": "128Mi"
+                                        }
+                                    }
+                                },
+                                "limits": {
+                                    "type": "object",
+                                    "description": "Maximum resource limits.",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "description": "CPU limit (e.g. '200m')."
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "description": "Memory limit (e.g. '256Mi')."
                                         }
                                     }
                                 }
                             }
                         },
-                        "securityContext": {
+                        "nodeSelector": {
                             "type": "object",
+                            "description": "Node selector labels for scheduling the TLS job pod.",
+                            "additionalProperties": { "type": "string" },
                             "properties": {
-                                "allowPrivilegeEscalation": {
-                                    "type": "boolean"
-                                },
-                                "capabilities": {
-                                    "type": "object",
-                                    "properties": {
-                                        "drop": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "runAsNonRoot": {
-                                    "type": "boolean"
-                                },
-                                "seccompProfile": {
-                                    "type": "object",
-                                    "properties": {
-                                        "type": {
-                                            "type": "string"
-                                        }
-                                    }
+                                "kubernetes.io/os": {
+                                    "type": "string",
+                                    "description": "Target node OS.",
+                                    "default": "linux"
                                 }
                             }
                         },
                         "tolerations": {
-                            "type": "array"
-                        }
-                    }
-                }
-            }
-        },
-        "fullnameOverride": {
-            "type": "string"
-        },
-        "manager": {
-            "type": "object",
-            "properties": {
-                "rbac": {
-                    "type": "object",
-                    "properties": {
-                        "role": {
-                            "type": "string"
+                            "type": "array",
+                            "description": "Tolerations for the TLS job pod.",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "key": {
+                                        "type": "string",
+                                        "description": "Taint key the toleration applies to."
+                                    },
+                                    "operator": {
+                                        "type": "string",
+                                        "description": "'Exists' matches any taint value; 'Equal' requires the value to match.",
+                                        "enum": ["Exists", "Equal"]
+                                    },
+                                    "value": {
+                                        "type": "string",
+                                        "description": "Taint value to match (used when operator is 'Equal')."
+                                    },
+                                    "effect": {
+                                        "type": "string",
+                                        "description": "Taint effect to tolerate. Empty matches all effects.",
+                                        "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+                                    },
+                                    "tolerationSeconds": {
+                                        "type": "integer",
+                                        "description": "How long (in seconds) to tolerate the taint before eviction (only relevant for effect 'NoExecute')."
+                                    }
+                                }
+                            }
                         },
-                        "rolebinding": {
-                            "type": "string"
-                        }
+                        "securityContext": { "$ref": "#/$defs/ContainerSecurityContext" }
                     }
-                }
-            }
-        },
-        "nameOverride": {
-            "type": "string"
-        },
-        "networkPolicies": {
-            "type": "object",
-            "properties": {
-                "allowAnnotation": {
-                    "type": "string"
-                },
-                "controlPlane": {
-                    "type": "string"
-                },
-                "customPolicies": {
-                    "type": "string"
-                },
-                "customTier": {
-                    "type": "string"
-                },
-                "defaultTier": {
-                    "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "implicitNamespaces": {
-                    "type": "string"
-                },
-                "logs": {
-                    "type": "object",
-                    "properties": {
-                        "collectingAll": {
-                            "type": "boolean"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "namespaceScope": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "namespacesRules": {
-                    "type": "array"
-                },
-                "scope": {
-                    "type": "object"
                 }
             }
         }
