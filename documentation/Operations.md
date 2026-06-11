@@ -18,7 +18,7 @@ Before the new application installation the following steps must be performed to
 * If the new application id a part of control-pale, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
-Then create namespace for the application and set the list of allowed namespaces into `network-policy.netcracker.com/allowed-from` annotation.
+Then create the rule in `namespacesRules` section in NetworkPolicyConfig for the application. Pay attention that notation works in different manner then the `network-policy.netcracker.com/allowed-from` annotation.
 
 After that, check the list of NetworkPolicies in the application namespace and install the application if it is acceptable for a particular case.
 
