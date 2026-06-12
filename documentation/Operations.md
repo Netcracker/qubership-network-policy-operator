@@ -1,3 +1,5 @@
+# Operations guide
+
 This section provides information on the operations performed for the Network Policy Operator.
 
 It consists of the following:
@@ -34,7 +36,7 @@ The control-plane namespace doesn't have any policies, the others must have the 
 
 Standalone cluster:
 
-```
+```shell
 NAME                          CREATED AT
 allow-from-ns                 2024-11-29T09:18:35Z
 allow-within-ns               2024-11-29T09:18:35Z
@@ -43,7 +45,7 @@ default-deny                  2024-11-29T09:18:36Z
 
 DR clusters:
 
-```
+```shell
 NAME                          CREATED AT
 allow-from-ns                 2024-11-29T09:18:35Z
 allow-within-ns               2024-11-29T09:18:35Z
@@ -92,9 +94,8 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   
 
 The `NetworkPolicyConfig` allows to manage the connections logs collecting. The following NetworkPolicyConfig options allows to configure logs.
 
-```
+```yaml
 spec:
-...
   logs:
     enabled: false
     collectingAll: true
