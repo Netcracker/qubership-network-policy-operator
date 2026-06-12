@@ -1,0 +1,2 @@
+dr.tlsJob.resources.requests.cpu: 100m
+dr.tlsJob.resources.requests.memory: 128Mi

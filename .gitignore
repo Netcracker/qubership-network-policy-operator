@@ -26,5 +26,10 @@ go.work
 *.swp
 *.swo
 *~
+# Helm template and --dry-run
 charts/network-policy-operator/run.yaml
+charts/network-policy-operator-cr/run.yaml
 tmpl.yaml
+
+# Claude
+.claude/*

@@ -26,6 +26,11 @@ type LogsSpec struct {
 	NamespaceLabel string `json:"namespaceScope,omitempty"`
 }
 
+type NamespacesRule struct {
+	Namespace string   `json:"namespace"`
+	AllowedTo []string `json:"allowedTo"`
+}
+
 // NetworkPolicyConfigSpec defines the desired state of NetworkPolicyConfig
 type NetworkPolicyConfigSpec struct {
 	Enabled            bool              `json:"enabled"`
@@ -37,6 +42,7 @@ type NetworkPolicyConfigSpec struct {
 	Logs               LogsSpec          `json:"logs"`
 	DefaultTier        string            `json:"defaultTier,omitempty"`
 	CustomTier         string            `json:"customTier,omitempty"`
+	NamespacesRules    []NamespacesRule  `json:"namespacesRules,omitempty"`
 }
 
 // NetworkPolicyConfigStatus defines the observed state of NetworkPolicyConfig

@@ -1,6 +1,9 @@
 archives:
-  - source: charts
-    outputName: helm-charts
+  - source: charts/network-policy-operator
+    outputName: network-policy-operator
+    archiveType: tar.gz
+  - source: charts/network-policy-operator-cr
+    outputName: network-policy-operator-cr
     archiveType: tar.gz
   - source: docs
     outputName: docs

@@ -2,8 +2,3 @@ manager.resources.limits.cpu: 500m
 manager.resources.limits.memory: 512Mi
 manager.resources.requests.cpu: 100m
 manager.resources.requests.memory: 128Mi
-dr.authentication: tls
-dr.tlsJob.resources.requests.cpu: 100m
-dr.tlsJob.resources.requests.memory: 128Mi
-dr.restartJob.resources.requests.cpu: 100m
-dr.restartJob.resources.requests.memory: 128Mi

@@ -11,7 +11,7 @@ fullnameOverride: ""
 replicaCount: 1
 
 # This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/ 
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations: {}
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
@@ -45,7 +45,7 @@ manager:
 
   # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
-  
+
   rbac:
     create: true
     role: network-policy-operator-role
@@ -66,8 +66,8 @@ manager:
     # runAsUser: 1000
     seccompProfile:
       type: RuntimeDefault
-  
-  resources: 
+
+  resources:
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -99,7 +99,7 @@ manager:
   #   secret:
   #     secretName: mysecret
   #     optional: false
-  
+
   # Additional volumeMounts on the output Deployment definition.
   volumeMounts: []
   # - name: foo
@@ -131,70 +131,3 @@ args:
 
 monitoring:
   enable: false
-
-# NetworkPolicyConfig section
-networkPolicies:
-  name: "default"
-  enabled: true
-  # Namespace label that indicates processed namespaces, e.g.:
-  # scope:
-  #   my-lable: skiped-namespace
-  scope: {}
-  # Namespace annotation that is a coma separated list of namespaces from where access must be allowed
-  allowAnnotation: "network-policy.netcracker.com/allowed-from"
-  # List of namespaces prefixes that are not restricted by NetworkPlolicies, therefore connections to pods in that namespaces are allowed
-  # `kube-` means `kube-sytem`, `kube-public` `kube-node-lease` namespace are not resticted
-  controlPlane: "kube-,openshift,calico,tigera,ingress-nginx"
-  # Coma separated list of namespaces that are implicitly added to the 'allowed' namespaces
-  implicitNamespaces: "openshift-monitoring,platform-monitoring,ingress-nginx,openshift-ingress"
-  # Custom NetworkPolicies in Calico notation
-  customPolicies: ""
-  logs:
-    enabled: false
-    collectingAll: true
-    namespaceScope: "network-policy.netcracker.com/collecting-logs"
-  # Default NetwokPolicies Tier
-  defaultTier: automated
-  # NetwokPolicies Tier for custom NetworkPolicies
-  customTier: default
-# RemoteClusterConfig section
-dr:
-  install: false
-  localCluster: {}
-#  localCluster:
-#    api: cluster-1.domain.com:6443
-#    name: cluster-1
-# For `tls` authentication it's a prefix. The result name will be `cluster-1-secret-tls`
-#    secret: cluster-1-secret
-  remoteClusters: []
-#  remoteClusters:
-#    - name: cluster-2
-#      api: cluster-2.domain.com:6443
-# For `tls` authentication it's a prefix. The result name will be `cluster-2-secret-tls`
-#      secret: cluster-2-secret
-#    - name: cluster-3
-#      api: cluster-3.domain.com:6443
-#      secret: cluster-3-secret
-  # There are two options: `token` and `tls`
-  authentication: token
-  # `auto` runs the TLS certificate creation job, `manual` means the TLS certificate has been created maually
-  tls: auto
-  # TLS Job manages the TLS certifecates in automatic mode
-  tlsJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
-    pullPolicy: IfNotPresent
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-    nodeSelector:
-      kubernetes.io/os: linux
-    tolerations: []
-    securityContext:
-      runAsNonRoot: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - "ALL"
-      seccompProfile:
-        type: RuntimeDefault

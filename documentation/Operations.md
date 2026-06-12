@@ -1,3 +1,5 @@
+# Operations guide
+
 This section provides information on the operations performed for the Network Policy Operator.
 
 It consists of the following:
@@ -18,7 +20,7 @@ Before the new application installation the following steps must be performed to
 * If the new application id a part of control-pale, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
-Then create namespace for the application and set the list of allowed namespaces into `network-policy.netcracker.com/allowed-from` annotation.
+Then create the rule in `namespacesRules` section in NetworkPolicyConfig for the application. Pay attention that notation works in different manner then the `network-policy.netcracker.com/allowed-from` annotation.
 
 After that, check the list of NetworkPolicies in the application namespace and install the application if it is acceptable for a particular case.
 
@@ -34,7 +36,7 @@ The control-plane namespace doesn't have any policies, the others must have the 
 
 Standalone cluster:
 
-```
+```shell
 NAME                          CREATED AT
 allow-from-ns                 2024-11-29T09:18:35Z
 allow-within-ns               2024-11-29T09:18:35Z
@@ -43,7 +45,7 @@ default-deny                  2024-11-29T09:18:36Z
 
 DR clusters:
 
-```
+```shell
 NAME                          CREATED AT
 allow-from-ns                 2024-11-29T09:18:35Z
 allow-within-ns               2024-11-29T09:18:35Z
@@ -92,9 +94,8 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   
 
 The `NetworkPolicyConfig` allows to manage the connections logs collecting. The following NetworkPolicyConfig options allows to configure logs.
 
-```
+```yaml
 spec:
-...
   logs:
     enabled: false
     collectingAll: true

@@ -18,6 +18,9 @@ spec:
     namespaceScope: {{ .Values.networkPolicies.logs.namespaceScope }}
   defaultTier: {{ .Values.networkPolicies.defaultTier }}
   customTier: {{ .Values.networkPolicies.customTier }}
+  {{- if .Values.networkPolicies.namespacesRules }}
+  namespacesRules: {{- toYaml .Values.networkPolicies.namespacesRules | nindent 4 }}
+  {{- end }}
   policies:
     AllowWithinNamespace: |
       apiVersion: projectcalico.org/v3
