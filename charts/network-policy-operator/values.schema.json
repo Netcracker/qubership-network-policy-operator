@@ -1,0 +1,484 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "$defs": {
+        "ContainerSecurityContext": {
+            "type": "object",
+            "description": "Security context applied to a container.",
+            "additionalProperties": false,
+            "properties": {
+                "allowPrivilegeEscalation": {
+                    "type": "boolean",
+                    "description": "Whether the container process may gain more privileges than its parent process.",
+                    "default": false
+                },
+                "runAsNonRoot": {
+                    "type": "boolean",
+                    "description": "Require the container to run as a non-root user.",
+                    "default": true
+                },
+                "runAsUser": {
+                    "type": "integer",
+                    "description": "UID to run the container process as."
+                },
+                "runAsGroup": {
+                    "type": "integer",
+                    "description": "GID to run the container process as."
+                },
+                "readOnlyRootFilesystem": {
+                    "type": "boolean",
+                    "description": "Mount the container root filesystem as read-only."
+                },
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "drop": {
+                            "type": "array",
+                            "description": "Linux capabilities to drop from the container.",
+                            "items": { "type": "string" },
+                            "default": ["ALL"]
+                        },
+                        "add": {
+                            "type": "array",
+                            "description": "Linux capabilities to add to the container.",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "Seccomp profile type to apply to the container.",
+                            "enum": ["RuntimeDefault", "Localhost", "Unconfined"],
+                            "default": "RuntimeDefault"
+                        },
+                        "localhostProfile": {
+                            "type": "string",
+                            "description": "Path to a pre-configured profile on the node relative to the kubelet seccomp profile location. Required when type is 'Localhost'."
+                        }
+                    }
+                }
+            }
+        },
+        "PodSecurityContext": {
+            "type": "object",
+            "description": "Security context applied at the Pod level.",
+            "additionalProperties": false,
+            "properties": {
+                "runAsNonRoot": {
+                    "type": "boolean",
+                    "description": "Require all containers in the pod to run as a non-root user.",
+                    "default": true
+                },
+                "runAsUser": {
+                    "type": "integer",
+                    "description": "UID to run all containers in the pod as."
+                },
+                "runAsGroup": {
+                    "type": "integer",
+                    "description": "GID to run all containers in the pod as."
+                },
+                "fsGroup": {
+                    "type": "integer",
+                    "description": "Supplemental GID applied to all containers; also used as the owner GID for mounted volumes."
+                },
+                "fsGroupChangePolicy": {
+                    "type": "string",
+                    "description": "Controls when volume ownership and permissions are changed.",
+                    "enum": ["Always", "OnRootMismatch"]
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "Seccomp profile type to apply to the pod.",
+                            "enum": ["RuntimeDefault", "Localhost", "Unconfined"]
+                        },
+                        "localhostProfile": {
+                            "type": "string",
+                            "description": "Path to a pre-configured profile on the node. Required when type is 'Localhost'."
+                        }
+                    }
+                },
+                "supplementalGroups": {
+                    "type": "array",
+                    "description": "List of additional GIDs applied to all containers.",
+                    "items": { "type": "integer" }
+                },
+                "sysctls": {
+                    "type": "array",
+                    "description": "List of namespaced sysctls for the pod.",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["name", "value"],
+                        "properties": {
+                            "name": { "type": "string", "description": "Sysctl name." },
+                            "value": { "type": "string", "description": "Sysctl value." }
+                        }
+                    }
+                }
+            }
+        },
+        "ResourceRequirements": {
+            "type": "object",
+            "description": "Compute resource requirements for a container.",
+            "additionalProperties": false,
+            "properties": {
+                "requests": {
+                    "type": "object",
+                    "description": "Minimum resource requests.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "cpu": {
+                            "type": "string",
+                            "description": "CPU request (e.g. '100m').",
+                            "default": "100m"
+                        },
+                        "memory": {
+                            "type": "string",
+                            "description": "Memory request (e.g. '128Mi').",
+                            "default": "128Mi"
+                        }
+                    }
+                },
+                "limits": {
+                    "type": "object",
+                    "description": "Maximum resource limits.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "cpu": {
+                            "type": "string",
+                            "description": "CPU limit (e.g. '500m').",
+                            "default": "500m"
+                        },
+                        "memory": {
+                            "type": "string",
+                            "description": "Memory limit (e.g. '512Mi').",
+                            "default": "512Mi"
+                        }
+                    }
+                }
+            }
+        },
+        "HttpProbe": {
+            "type": "object",
+            "description": "HTTP-based liveness or readiness probe configuration.",
+            "additionalProperties": false,
+            "properties": {
+                "httpGet": {
+                    "type": "object",
+                    "description": "HTTP GET action to perform for the probe.",
+                    "additionalProperties": false,
+                    "required": ["path", "port"],
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "HTTP path to request."
+                        },
+                        "port": {
+                            "type": "integer",
+                            "description": "Port number to access on the container."
+                        },
+                        "scheme": {
+                            "type": "string",
+                            "description": "Scheme to use for the HTTP request.",
+                            "enum": ["HTTP", "HTTPS"],
+                            "default": "HTTP"
+                        }
+                    }
+                },
+                "initialDelaySeconds": {
+                    "type": "integer",
+                    "description": "Seconds after the container starts before the probe is first initiated.",
+                    "minimum": 0
+                },
+                "periodSeconds": {
+                    "type": "integer",
+                    "description": "How often (in seconds) to perform the probe.",
+                    "minimum": 1
+                },
+                "timeoutSeconds": {
+                    "type": "integer",
+                    "description": "Seconds after which the probe times out.",
+                    "minimum": 1
+                },
+                "successThreshold": {
+                    "type": "integer",
+                    "description": "Minimum consecutive successes for the probe to be considered successful after failure.",
+                    "minimum": 1
+                },
+                "failureThreshold": {
+                    "type": "integer",
+                    "description": "Consecutive failures required before the probe is considered failed.",
+                    "minimum": 1
+                }
+            }
+        },
+        "Toleration": {
+            "type": "object",
+            "description": "Kubernetes pod toleration.",
+            "additionalProperties": false,
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "Taint key the toleration applies to."
+                },
+                "operator": {
+                    "type": "string",
+                    "description": "'Exists' matches any taint value; 'Equal' requires the value to match.",
+                    "enum": ["Exists", "Equal"]
+                },
+                "value": {
+                    "type": "string",
+                    "description": "Taint value to match (used when operator is 'Equal')."
+                },
+                "effect": {
+                    "type": "string",
+                    "description": "Taint effect to tolerate. Empty matches all effects.",
+                    "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+                },
+                "tolerationSeconds": {
+                    "type": "integer",
+                    "description": "How long (in seconds) to tolerate the taint before eviction (only relevant for effect 'NoExecute')."
+                }
+            }
+        },
+        "VolumeMount": {
+            "type": "object",
+            "description": "Describes a volume mount inside a container.",
+            "additionalProperties": false,
+            "required": ["name", "mountPath"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the volume to mount. Must match a volume name in the pod spec."
+                },
+                "mountPath": {
+                    "type": "string",
+                    "description": "Absolute path within the container where the volume is mounted."
+                },
+                "subPath": {
+                    "type": "string",
+                    "description": "Path within the volume to mount into the container instead of the volume root."
+                },
+                "readOnly": {
+                    "type": "boolean",
+                    "description": "Mount the volume as read-only.",
+                    "default": false
+                }
+            }
+        },
+        "ImagePullSecret": {
+            "type": "object",
+            "description": "Reference to a secret in the same namespace to use for pulling container images.",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the image pull secret."
+                }
+            }
+        }
+    },
+    "properties": {
+        "nameOverride": {
+            "type": "string",
+            "description": "Override for the chart name."
+        },
+        "fullnameOverride": {
+            "type": "string",
+            "description": "Full override for the chart name."
+        },
+        "replicaCount": {
+            "type": "integer",
+            "description": "Number of operator pod replicas.",
+            "minimum": 1,
+            "default": 1
+        },
+        "podAnnotations": {
+            "type": "object",
+            "description": "Annotations to add to the operator pod.",
+            "additionalProperties": { "type": "string" }
+        },
+        "podLabels": {
+            "type": "object",
+            "description": "Labels to add to the operator pod.",
+            "additionalProperties": { "type": "string" }
+        },
+        "podSecurityContext": {
+            "$ref": "#/$defs/PodSecurityContext",
+            "description": "Pod-level security context for the operator pod."
+        },
+        "serviceAccount": {
+            "type": "object",
+            "description": "Service account configuration for the operator.",
+            "additionalProperties": false,
+            "properties": {
+                "create": {
+                    "type": "boolean",
+                    "description": "Whether to create a ServiceAccount for the operator.",
+                    "default": true
+                },
+                "automount": {
+                    "type": "boolean",
+                    "description": "Automatically mount the ServiceAccount API credentials into the pod.",
+                    "default": true
+                },
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotations to add to the ServiceAccount.",
+                    "additionalProperties": { "type": "string" }
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the ServiceAccount. If not set and create is true, a name is generated from the fullname template.",
+                    "default": "network-policy-operator"
+                }
+            }
+        },
+        "leaderElection": {
+            "type": "object",
+            "description": "RBAC resources used for leader election.",
+            "additionalProperties": false,
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "description": "Name of the leader election Role.",
+                    "default": "leader-election-role"
+                },
+                "rolebinding": {
+                    "type": "string",
+                    "description": "Name of the leader election RoleBinding.",
+                    "default": "leader-election-rolebinding"
+                }
+            }
+        },
+        "manager": {
+            "type": "object",
+            "description": "Operator manager container configuration.",
+            "additionalProperties": false,
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "Container image for the operator manager.",
+                    "default": "ghcr.io/netcracker/qubership-network-policy-operator:main"
+                },
+                "pullPolicy": {
+                    "type": "string",
+                    "description": "Image pull policy for the operator manager container.",
+                    "enum": ["Always", "IfNotPresent", "Never"],
+                    "default": "IfNotPresent"
+                },
+                "imagePullSecrets": {
+                    "type": "array",
+                    "description": "List of image pull secrets for pulling the operator image from a private registry.",
+                    "items": { "$ref": "#/$defs/ImagePullSecret" }
+                },
+                "rbac": {
+                    "type": "object",
+                    "description": "RBAC resources created for the operator manager.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "create": {
+                            "type": "boolean",
+                            "description": "Whether to create the RBAC resources.",
+                            "default": true
+                        },
+                        "role": {
+                            "type": "string",
+                            "description": "Name of the operator ClusterRole.",
+                            "default": "network-policy-operator-role"
+                        },
+                        "rolebinding": {
+                            "type": "string",
+                            "description": "Name of the operator ClusterRoleBinding.",
+                            "default": "network-policy-operator-rolebinding"
+                        },
+                        "metrics": {
+                            "type": "string",
+                            "description": "Name of the ClusterRole for metrics scraping.",
+                            "default": "metrics-reader"
+                        }
+                    }
+                },
+                "securityContext": { "$ref": "#/$defs/ContainerSecurityContext" },
+                "resources": { "$ref": "#/$defs/ResourceRequirements" },
+                "livenessProbe": {
+                    "$ref": "#/$defs/HttpProbe",
+                    "description": "Liveness probe for the operator manager container."
+                },
+                "readinessProbe": {
+                    "$ref": "#/$defs/HttpProbe",
+                    "description": "Readiness probe for the operator manager container."
+                },
+                "volumes": {
+                    "type": "array",
+                    "description": "Additional volumes to attach to the operator pod.",
+                    "items": {
+                        "type": "object",
+                        "description": "Kubernetes Volume definition.",
+                        "required": ["name"],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Volume name, must be unique within the pod."
+                            }
+                        }
+                    }
+                },
+                "volumeMounts": {
+                    "type": "array",
+                    "description": "Additional volume mounts for the operator manager container.",
+                    "items": { "$ref": "#/$defs/VolumeMount" }
+                }
+            }
+        },
+        "nodeSelector": {
+            "type": "object",
+            "description": "Node selector labels for scheduling the operator pod.",
+            "additionalProperties": { "type": "string" }
+        },
+        "tolerations": {
+            "type": "array",
+            "description": "Tolerations for the operator pod.",
+            "items": { "$ref": "#/$defs/Toleration" }
+        },
+        "affinity": {
+            "type": "object",
+            "description": "Affinity and anti-affinity rules for scheduling the operator pod. Accepts any valid Kubernetes affinity spec."
+        },
+        "args": {
+            "type": "array",
+            "description": "Command-line arguments passed to the operator manager binary.",
+            "items": { "type": "string" },
+            "default": [
+                "--health-probe-bind-address=:8081",
+                "--metrics-bind-address=:8443",
+                "--metrics-secure=true",
+                "--leader-elect",
+                "--zap-log-level=error"
+            ]
+        },
+        "monitoring": {
+            "type": "object",
+            "description": "Prometheus / Grafana monitoring configuration.",
+            "additionalProperties": false,
+            "properties": {
+                "enable": {
+                    "type": "boolean",
+                    "description": "Enable ServiceMonitor and Grafana dashboard resources.",
+                    "default": false
+                }
+            }
+        }
+    }
+}
