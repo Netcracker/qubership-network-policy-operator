@@ -76,8 +76,12 @@ dr:
     securityContext:
       runAsNonRoot: true
       allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
       capabilities:
         drop:
           - "ALL"
       seccompProfile:
         type: RuntimeDefault
+    # Size limit for the /tmp emptyDir volume used by the TLS generation script.
+    tmp:
+      sizeLimit: 100Mi

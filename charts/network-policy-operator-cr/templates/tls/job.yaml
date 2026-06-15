@@ -123,6 +123,13 @@ spec:
           {{- if .Values.dr.tlsJob.securityContext }}
           securityContext: {{ toYaml .Values.dr.tlsJob.securityContext | nindent 12 }}
           {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.dr.tlsJob.tmp.sizeLimit }}
       restartPolicy: OnFailure
       serviceAccountName: {{ include "network-policy-operator.tls.name" . }}
     {{- if .Values.dr.tlsJob.nodeSelector }}
