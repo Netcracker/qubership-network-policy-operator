@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
-    "additionalProperties": false,
+    "additionalProperties": true,
     "$defs": {
         "ContainerSecurityContext": {
             "type": "object",
@@ -356,7 +356,19 @@
                                 }
                             }
                         },
-                        "securityContext": { "$ref": "#/$defs/ContainerSecurityContext" }
+                        "securityContext": { "$ref": "#/$defs/ContainerSecurityContext" },
+                        "tmp": {
+                            "type": "object",
+                            "description": "Configuration for the /tmp emptyDir volume used by the TLS generation script.",
+                            "additionalProperties": false,
+                            "properties": {
+                                "sizeLimit": {
+                                    "type": "string",
+                                    "description": "Size limit for the /tmp emptyDir volume (e.g. '100Mi').",
+                                    "default": "100Mi"
+                                }
+                            }
+                        }
                     }
                 }
             }
