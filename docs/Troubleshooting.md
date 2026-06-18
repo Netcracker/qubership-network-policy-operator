@@ -30,7 +30,8 @@ sigs.k8s.io/controller-runtime/pkg/internal/controller.(*Controller).Start.func2
 "remoteclusterconfig", "controllerGroup": "netcracker.com", "controllerKind": "RemoteClusterConfig", "RemoteClusterConfig": {"name":"remoteclusterconfig-ocp-cert-2","namespace":"network-policy-operator"}, "namespace": "network-policy-operator", "name": "remoteclusterconfig-ocp-cert-2", "reconcileID": "60b39a34-1b3e-4c68-ab95-a330e3ddcca5"}
 2025-07-14T15:41:26Z INFO RemoteClusterConfig Reconciler loop has been finished {"controller": "remoteclusterconfig", "controllerGroup": "netcracker.com", "controllerKind": "RemoteClusterConfig", "RemoteClusterConfig": {"name":"remoteclusterconfig-ocp-cert-2","namespace":"network-policy-operator"}, "namespace":
 "network-policy-operator", "name": "remoteclusterconfig-ocp-cert-2", "reconcileID": "60b39a34-1b3e-4c68-ab95-a330e3ddcca5"}
-2025-07-14T15:41:26Z ERROR Reconciler error {"controller": "remoteclusterconfig", "controllerGroup": "netcracker.com", "controllerKind": "RemoteClusterConfig", "RemoteClusterConfig": {"name":"remoteclusterconfig-ocp-cert-2","namespace":"network-policy-operator"}, "namespace": "network-policy-operator", "name": "remoteclusterconfig-ocp-cert-2", "reconcileID": "60b39a34-1b3e-4c68-ab95-a330e3ddcca5", "error": "identification error"}
+2025-07-14T15:41:26Z ERROR Reconciler error {"controller": "remoteclusterconfig", "controllerGroup": "netcracker.com", "controllerKind": "RemoteClusterConfig", "RemoteClusterConfig": {"name":"remoteclusterconfig-ocp-cert-2","namespace":"network-policy-operator"}, "namespace": "network-policy-operator", "name":
+"remoteclusterconfig-ocp-cert-2", "reconcileID": "60b39a34-1b3e-4c68-ab95-a330e3ddcca5", "error": "identification error"}
 ```
 
 ### How to Resolve
