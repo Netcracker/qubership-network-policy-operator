@@ -45,7 +45,7 @@ Four reconcilers, each in its own package:
 | `cnp/` | `NetworkPolicyReconciler` | Calico `NetworkPolicy` (projectcalico.org/v1) — drives cross-cluster (DR) policies stay in sync |
 | `rclc/` | `RemoteClusterConfigReconciler` | `RemoteClusterConfig` — manages cross-cluster connectivity for DR scenarios, syncing `ExternalNamespace` objects |
 
-The `npc` controller is the primary orchestrator. It reads `NetworkPolicyConfig`, iterates over namespaces, and creates/updates/deletes Calico `NetworkPolicy` objects. The `ns`, `cnp`, and `rclc` controllers manage cross-cluster `NetworkPolies`.
+The `npc` controller is the primary orchestrator. It reads `NetworkPolicyConfig`, iterates over namespaces, and creates/updates/deletes Calico `NetworkPolicy` objects. The `ns`, `cnp`, and `rclc` controllers manage cross-cluster `NetworkPolicies`.
 
 ### Custom Resources (`api/v1alpha1/`)
 
@@ -80,8 +80,8 @@ Each time the @charts/network-policy-operator/values.yaml and @charts/network-po
 
 ## Schema update
 
-Each time the @charts/network-policy-operator/values.yaml and @charts/network-policy-operator-cr/values.yaml have changed, the @charts/network-policy-operator/values.schema.json and @charts/network-policy-operator-cr/values.schema.json must be updates accordingly.
+Each time the @charts/network-policy-operator/values.yaml and @charts/network-policy-operator-cr/values.yaml have changed, the @charts/network-policy-operator/values.schema.json and @charts/network-policy-operator-cr/values.schema.json must be updated accordingly.
 
 ## Chart Test
 
-Changes in chart must be tested by `helm template`. The fist run with default values.yaml the second must include changes in the `dr` section
+Changes in chart must be tested by `helm template`. The first run with default values.yaml the second must include changes in the `dr` section

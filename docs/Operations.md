@@ -17,7 +17,7 @@ You can enable or disable the OOB NetworkPolicies globally by making changes in 
 
 Before the new application installation the following steps must be performed to get the working application:
 
-* If the new application id a part of control-pale, add namespace into `spec.controlPlane`
+* If the new application is a part of control-plane, add namespace into `spec.controlPlane`
 * If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
 
 Then create the rule in `namespacesRules` section in NetworkPolicyConfig for the application. Pay attention that notation works in different manner then the `network-policy.netcracker.com/allowed-from` annotation.
