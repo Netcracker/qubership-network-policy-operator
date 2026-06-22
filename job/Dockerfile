@@ -12,7 +12,7 @@ RUN set -x \
         --no-check-certificate \
         -nv \
         -O /usr/bin/kubectl \
-        "https://dl.k8s.io/v1.36.2/bin/linux/${TARGETARCH}/kubectl" \
+        "https://dl.k8s.io/v1.36.2/bin/linux/amd64/kubectl" \
     && chmod +x /usr/bin/kubectl
 
 USER 1001
