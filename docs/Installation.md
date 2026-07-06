@@ -8,7 +8,7 @@ The prerequisites for the installation are specified in the below sections.
 
 ### Overall Calico CNI Configuration
 
-The prerequisites for the overall Calico CNI configuration are as follwos:
+The prerequisites for the overall Calico CNI configuration are as follows:
 
 - kubectl version v1.11.3+
 - Calico CNI with API server version v3.28.1+
@@ -162,7 +162,7 @@ names must be always unique within the set of cluters. There are several options
 
 * `controlPlane` sets the namespaces prefixes for the namespaces that must not be restricted by NetworkPolicies. That means, any incoming connections to the pods in that namespaces are allowed.
 * All of the namespaces that need unconditional access to any other namespace such as monitoring, ingress controller must be added to `implicitNamespaces`. That access extends to the neighbor clusters in case of DR scheme.
-* The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vender environmens or during testing and adjustment. Part of `values.yaml` example:
+* The processed namespaces could be limited by label that specified in `scope` option. That could be useful in multi-vendor environments or during testing and adjustment. Part of `values.yaml` example:
 
 ```yaml
 networkPolicies:
@@ -186,7 +186,7 @@ the rule above allows a traffic from the `web-app-1` namespace to the `postgres-
 
 **Note:** The `allowAnnotation` will be omit if the `namespacesRules` option is not empty.
 
-* `customPolicies` option includes the custom Calico NetworkPolicies in YAML syntax. These polilies are being applied as-is.
+* `customPolicies` option includes the custom Calico NetworkPolicies in YAML syntax. These policies are being applied as-is.
 * `enabled` option switches on and off NetworkPolicies globally.
 
 The `logs` section manages the connections logs. There are several options to configure it:
@@ -195,7 +195,7 @@ The `logs` section manages the connections logs. There are several options to co
 * `namespaceScope` defines the label that must be set in `false` or `none` to exclude the labeled namespace connections from logs.
 * `enabled` option enables and disables the connections logs globally within the cluster.
 
-Calico v3.29 and higher needs to set the NetwokPolicies `Tiers`. The default values are the following:
+Calico v3.29 and higher needs to set the NetworkPolicies `Tiers`. The default values are the following:
 
 ```yaml
 networkPolicies:
@@ -206,7 +206,7 @@ networkPolicies:
 * `defaultTier` sets the `Tier` that is used for all OOB NetworkPolicies
 * `customTier` sets the custom NetworkPolicies `Tier`
 
-The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind that the `customTier` order must be biger than `defaultTier` order, which is `10000`. For more information, refer to the _Official Documentation_ at [https://docs.tigera.io/calico/latest/reference/resources/tier](https://docs.tigera.io/calico/latest/reference/resources/tier).
+The `defaultTier` is being created during the installation whereas the `customTier` is the `Tier` that provided by Calico CNI itself. In case of change the `customTier` create the resource preliminary. Keep in mind that the `customTier` order must be bigger than `defaultTier` order, which is `10000`. For more information, refer to the _Official Documentation_ at [https://docs.tigera.io/calico/latest/reference/resources/tier](https://docs.tigera.io/calico/latest/reference/resources/tier).
 
 The monitoring section enables GrafanaDashboard and ServiceMonitor resources creation. The following metrics are available:
 * NetworkPolicyConfig status
@@ -221,7 +221,7 @@ In case of DR scheme, check the [DR Preparation](#dr-preparation) section below.
 
 **Installation**
 
-Install the operator Helm Chart firts:
+Install the operator Helm Chart first:
 
 ```sh
 helm install network-policy-operator . -n network-policy-operator
@@ -239,7 +239,7 @@ The DR preparation includes two steps. The first one must be performed before in
 
 #### Pre-installation
 
-The `dr` section includes options to configure the interation between clusters in DR scheme.
+The `dr` section includes options to configure the interaction between clusters in DR scheme.
 
 * `install` option enables/disables `RemoteClusterConfig` creation
 * `localCluster` describes local cluster settings
@@ -248,7 +248,7 @@ The `dr` section includes options to configure the interation between clusters i
 Cluster settings:
 
 * `name` option is a cluster name, it must be uniq in clusters list
-* `api` option is a particular Kubernetes API endopint, FQDN and port
+* `api` option is a particular Kubernetes API endpoint, FQDN and port
 * `secret` option is secret to connect to the particular cluster, the secret located in operator namespace
 * `authentication` defines the authentication type; `token` is default; `tls` means that operators will use TLS certificates to connect to other clusters
 
@@ -421,10 +421,10 @@ If the `RemoteClusterConfig` has been delete the operator at first deletes the `
 
 ## Migration from Namespace annotations to the NetworkPolicyConfig description
 
-The `network-policy.netcracker.com/allowed-from` anntations should be changed to `namespacesRules` section inside NetworkPolicyConfig. Pay attention the annontation set the Namespaces that must have the access to the
+The `network-policy.netcracker.com/allowed-from` annotations should be changed to `namespacesRules` section inside NetworkPolicyConfig. Pay attention the annotation set the Namespaces that must have the access to the
 annotated Namespace whereas `namespacesRules` matches the source Namespace and the list of the allowed target Namespaces for it. The annotations must not be deleted before the `namespacesRules` filling. It's necessary to
 have the simple rollback in case of `namespacesRules` issue. Basically, the migration procedure is the following:
 1. Collect all of the `network-policy.netcracker.com/allowed-from` annotations and rework it into `namespacesRules`.
 2. Change the NetworkPolicyConfig specification.
-3. Check if the namespaces have correct connectivy to one another.
+3. Check if the namespaces have correct connectivity to one another.
 4. If the the step 3 is successful delete the annotations. If it's not successful, change the `namespacesRules` and go back to the step 3 until it's fulfilled. In complicated cases the `namespacesRules` could be deleted to work based on annotations again.

@@ -60,7 +60,7 @@ All of the NetworkPolicies are managed by the Kubernetes operator. Operator is b
 
 ### Risks and Mitigations
 
-The huge number of custom resource in Kubernetes cluster affects ETCD size, that leads to control-palne performnace decrease. The number of custom resources could be limited as the prerequisite to solution use case
+The huge number of custom resource in Kubernetes cluster affects ETCD size, that leads to control-plane performance decrease. The number of custom resources could be limited as the prerequisite to solution use case
 
 The operator request/limits need to be assessed during special tests
 
@@ -224,7 +224,7 @@ The DR part of operator consists of the following controllers:
 
 Let's call the NetworkPolicy that must be extended to cover remote cluster pods an `origin` policy. The Networkpolicy that will be created during reconciliation loop of operator is a `target` policy. During reconsiliation loop operator creates/updates/delete the ExternalNamespaces on remote cluster.
 It makes possible to use the ExternalNamespaces on remote cluster to create/update the `target` NetworkPolicy. The `target` policy is labeled to be indicated as `target` policy. The `RemoteClusterConfig` resources must be created on both clusters to start the pods specification swap.
-In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different maner.
+In DR scheme all of the labels in clusters are transparent for both sides, therefor traffic to/from namespaces in different clusters but with the same names is allowed by default. The pod to service connection NetworkPolicy works in a different manner.
 It explicitly allowes outgoing connections to particular services from allowed namespaces in neighbor cluster and denies connections to other service. The outgoing traffic to any endpoints out of the service subnet of neighbor cluster must be allowed
 
 `RemoteClusterConfig` spec example:
@@ -371,11 +371,11 @@ Iterations:
 
 ### Upgrade / Downgrade Strategy
 
-Downgarade is prohibited
+Downgrade is prohibited
 
 ### Version Skew Strategy
 
-Company bast practice
+Company best practice
 
 ## Production Readiness Review Questionnaire
 
@@ -407,7 +407,7 @@ e2e tests
 
 ### Rollout, Upgrade and Rollback Planning
 
-It's an independant feature
+It's an independent feature
 
 #### How can a rollout or rollback fail? Can it impact already running workloads?
 
@@ -472,7 +472,7 @@ TODO
 
 ## Alternatives
 
-There is no any alternatives for OOB NetworkPolicies
+There are no alternatives for OOB NetworkPolicies
 
 Operator for DR scheme could be replaced by:
 [Calico Enterprise](https://docs.tigera.io/calico-enterprise/latest/about)
