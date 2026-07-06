@@ -7,4 +7,8 @@ charts:
     image:
       - ghcr.io/netcracker/qubership-network-policy-operator-transfer:${release}
       - ghcr.io/netcracker/qubership-network-policy-operator:${release}
+  - name: qubership-network-policy-operator
+    chart_file: charts/network-policy-operator-cr/Chart.yaml
+    values_file: charts/network-policy-operator-cr/values.yaml
+    image:
       - ghcr.io/netcracker/qubership-network-policy-job:${release}
