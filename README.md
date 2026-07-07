@@ -4,7 +4,7 @@ QuberShip Network Policy Operator manages Calico NetworkPolicies in OCP/Kubernet
 
 ## Description
 
-* [Out of the box NetworkPolicies Design](./docs/Design.md)
-* [Installation Guide](./docs/Installation.md)
-* [Operations Guide](./docs/Operations.md)
-* [Development](./docs/Development.md)
+* [Out of the box NetworkPolicies Design](./docs/public/Design.md)
+* [Installation Guide](./docs/public/Installation.md)
+* [Operations Guide](./docs/public/Operations.md)
+* [Development](./docs/public/Development.md)
