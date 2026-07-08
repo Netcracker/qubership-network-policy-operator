@@ -64,7 +64,7 @@ dr:
   tls: auto
   # TLS Job manages the TLS certifecates in automatic mode
   tlsJob:
-    image: ghcr.io/netcracker/qubership-network-policy-job:main
+    image: ghcr.io/netcracker/qubership-network-policy-job:0.8.1
     pullPolicy: IfNotPresent
     resources:
       requests:
