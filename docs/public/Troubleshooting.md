@@ -1,12 +1,47 @@
 <!-- #GFCFilterMarkerStart# -->
 # Network Policy Operator Troubleshooting Guide
+- [Calico API Unavailability](#calico-api-unavailability)
+- [HostNetwork Pods cannot reach other Pods](#hostnetwork-pods-cannot-reach-other-pods)
 - [DR Authentication Errors](#dr-authentication-errors)
 <!-- #GFCFilterMarkerEnd# -->
 This guide provides information on errors troubleshooting for Network Policy Operator.
 
-## DR Authentication Errors
+## Calico API Unavailability
 
-The troubleshooting information for DR authentication errors is provided below.
+### Description
+
+The Network Policy operator has error messages like the following:
+
+```
+2026-08-20T06:50:23Z    ERROR   controller-runtime.source.EventHandler  if kind is a CRD, it should be installed before calling Start  {"kind": "NetworkPolicy.projectcalico.org", "error": "no matches for kind \"NetworkPolicy\" in version \"projectcalico.org/v3\""}
+```
+
+### Root Cause
+
+The Calico API server hasn't been installed
+
+### How to Resolve
+
+1. Install Calico API server
+2. Restart Network Policy operator
+
+## HostNetwork Pods cannot reach other Pods
+
+### Description
+
+Pod that are using HostNetwork can't reach usual pods after the Network Policy has been created. For instance some webhook unavailable.
+
+### Root Cause
+
+The IPPool incorrect configuration
+
+### How to Resolve
+
+1. Check the installation guide [configuration](https://github.com/Netcracker/qubership-network-policy-operator/blob/main/docs/public/Installation.md#overall-calico-cni-configuration). Set `ipipMode` correctly.
+2. Restart all of the calico-nodes pods one by one
+3. Restart Network Policy operator
+
+## DR Authentication Errors
 
 ### Description
 
@@ -33,6 +68,10 @@ sigs.k8s.io/controller-runtime/pkg/internal/controller.(*Controller).Start.func2
 2025-07-14T15:41:26Z ERROR Reconciler error {"controller": "remoteclusterconfig", "controllerGroup": "netcracker.com", "controllerKind": "RemoteClusterConfig", "RemoteClusterConfig": {"name":"remoteclusterconfig-ocp-cert-2","namespace":"network-policy-operator"}, "namespace": "network-policy-operator", "name":
 "remoteclusterconfig-ocp-cert-2", "reconcileID": "60b39a34-1b3e-4c68-ab95-a330e3ddcca5", "error": "identification error"}
 ```
+
+### Root Cause
+
+**Undefined**
 
 ### How to Resolve
 
