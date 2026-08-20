@@ -12,7 +12,7 @@ This guide provides information on errors troubleshooting for Network Policy Ope
 
 The Network Policy operator has error messages like the following:
 
-```
+```text
 2026-08-20T06:50:23Z    ERROR   controller-runtime.source.EventHandler  if kind is a CRD, it should be installed before calling Start  {"kind": "NetworkPolicy.projectcalico.org", "error": "no matches for kind \"NetworkPolicy\" in version \"projectcalico.org/v3\""}
 ```
 
