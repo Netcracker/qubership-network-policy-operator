@@ -7,7 +7,7 @@ on:
       - docs/public/Troubleshooting.md
   schedule:
     - cron: "0 2 * * 1"
-  workflow_dispatch:
+  workflow_dispatch: null
 
 permissions:
   contents: write
