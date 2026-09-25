@@ -31,5 +31,10 @@ charts/network-policy-operator/run.yaml
 charts/network-policy-operator-cr/run.yaml
 tmpl.yaml
 
-# Claude
-.claude/*
+# APM dependencies
+apm_modules/
+
+# Keep APM-generated agent files tracked.
+!.claude/
+!.claude/**
+!/CLAUDE.md
