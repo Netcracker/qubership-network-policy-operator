@@ -1,0 +1,111 @@
+lockfile_version: '1'
+generated_at: '2026-09-25T06:03:33.547776+00:00'
+apm_version: 0.29.0
+dependencies:
+- repo_url: _local/troubleshoot-qubership-network-policy-operator
+  name: troubleshoot-qubership-network-policy-operator
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/troubleshoot-qubership-network-policy-operator
+  - .agents/skills/troubleshoot-qubership-network-policy-operator/SKILL.md
+  - .agents/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md
+  - .claude/rules/troubleshoot-qubership-network-policy-operator.md
+  - .claude/skills/troubleshoot-qubership-network-policy-operator
+  - .claude/skills/troubleshoot-qubership-network-policy-operator/SKILL.md
+  - .claude/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md
+  - .cursor/rules/troubleshoot-qubership-network-policy-operator.mdc
+  - .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md
+  deployed_file_hashes:
+    .agents/skills/troubleshoot-qubership-network-policy-operator/SKILL.md: sha256:6c9d3d654bbfabeec0fd832369c9908b171d6676c3abeef661be055c1050ffd4
+    .agents/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:219bd87d67ab357ebdac3538f8d289440005b3b93fc5ca14b2740cadf26cae91
+    .claude/rules/troubleshoot-qubership-network-policy-operator.md: sha256:6c23b9316a2a577f33b896677c08ca32553c4d4e97fa9c64ff59171d95570f62
+    .claude/skills/troubleshoot-qubership-network-policy-operator/SKILL.md: sha256:6c9d3d654bbfabeec0fd832369c9908b171d6676c3abeef661be055c1050ffd4
+    .claude/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:219bd87d67ab357ebdac3538f8d289440005b3b93fc5ca14b2740cadf26cae91
+    .cursor/rules/troubleshoot-qubership-network-policy-operator.mdc: sha256:967ee5bf0bcad66bbf748d2e4fdb88b622c59cbdb8eafb49e43506cdf18e5aa6
+    .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md: sha256:050a3d5f9c4ab88867c037d20accfbdae2ffc23e043068e565e56cc556c0b42b
+  source: local
+  local_path: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  is_dev: true
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/troubleshoot-qubership-network-policy-operator.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:6c23b9316a2a577f33b896677c08ca32553c4d4e97fa9c64ff59171d95570f62
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-qubership-network-policy-operator
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-qubership-network-policy-operator/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:6c9d3d654bbfabeec0fd832369c9908b171d6676c3abeef661be055c1050ffd4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:219bd87d67ab357ebdac3538f8d289440005b3b93fc5ca14b2740cadf26cae91
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-qubership-network-policy-operator
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-qubership-network-policy-operator/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:6c9d3d654bbfabeec0fd832369c9908b171d6676c3abeef661be055c1050ffd4
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:219bd87d67ab357ebdac3538f8d289440005b3b93fc5ca14b2740cadf26cae91
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:050a3d5f9c4ab88867c037d20accfbdae2ffc23e043068e565e56cc556c0b42b
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/troubleshoot-qubership-network-policy-operator.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
+  content_hash: sha256:967ee5bf0bcad66bbf748d2e4fdb88b622c59cbdb8eafb49e43506cdf18e5aa6

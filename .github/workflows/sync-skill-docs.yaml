@@ -1,0 +1,40 @@
+name: Sync troubleshooting guide into APM skill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/public/Troubleshooting.md
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch: null
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sync troubleshooting guide
+        uses: netcracker/qubership-workflow-hub/actions/sync-files-action@288a6a0d9a78e80dfdefccab1be6497a39deb746 # v2.8.0
+        with:
+          files: |
+            [
+              {
+                "from": "docs/public/Troubleshooting.md",
+                "to": "agent-packages/troubleshoot-qubership-network-policy-operator/.apm/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md"
+              }
+            ]
+          branch: main
+          pr-branch: chore/sync-npo-troubleshooting-guide
+          title: "chore(apm): sync Network Policy Operator troubleshooting guide"
+          commit-message: "chore(apm): sync Network Policy Operator troubleshooting guide"
+          auto-merge: "true"
+          token: ${{ secrets.APM_UPDATE_TOKEN }}
