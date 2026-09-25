@@ -6,6 +6,8 @@ description: >-
   traffic rules, DR cluster coupling, or remote-cluster TLS and token authentication.
 ---
 
+# Troubleshoot Qubership Network Policy Operator
+
 ## Deployment model
 
 Network Policy Operator is delivered through two Helm charts:
