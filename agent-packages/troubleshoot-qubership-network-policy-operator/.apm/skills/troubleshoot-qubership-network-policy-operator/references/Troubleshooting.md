@@ -41,7 +41,8 @@ sigs.k8s.io/controller-runtime/pkg/internal/controller.(*Controller).Start.func2
 
 The resoltion information for the DR authentication errors is specified below.
 
-1. Check if the [DR Preparation](/docs/public/Installation.md#dr-preparation) has been fulfilled.
+<!-- markdownlint-disable-next-line MD013 -->
+1. Check if the [DR Preparation](https://github.com/Netcracker/qubership-network-policy-operator/blob/main/docs/public/Installation.md#dr-preparation) has been fulfilled.
 2. In case of TLS authentication usage, it could be known issue. The fix is to add `-tls` suffix in
    the DR `RoleBinding` in Network Policy Operator namespace, for example:
 
