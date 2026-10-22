@@ -320,6 +320,9 @@ kubectl apply -f secret.yaml
 
 Repeat the procedure for all of the clusters in DR scheme.
 
+**Note**: TLS certificates expire after some time. The validity period depends on the environment, on KubeMarine envs it is usually 1 year, on OpenShift is is much shorter, one month or less.
+You must monitor certificate expiration (e.g. using cert-exporter), renew them by re-deploying CRs chart and repeat above procedure to sync renewed certificate to remote cluster. If expiration is a problem, use token-based authentication instead.
+
 ### Check Installation
 
 You can check the successful installation by `NetworkPolicyConfig` custom resource:
