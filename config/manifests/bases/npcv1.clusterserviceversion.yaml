@@ -57,8 +57,8 @@ spec:
   - name: Npcv1
     url: https://npcv1.domain
   maintainers:
-  - email: aleksandr.arefev@netcracker.com
-    name: Aleksandr Arefev
+  - email: opensourcegroup@netcracker.com
+    name: OpenSource Group
   maturity: alpha
   provider:
     name: netcracker.com
