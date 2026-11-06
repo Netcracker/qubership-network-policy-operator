@@ -1,11 +1,8 @@
 <!-- #GFCFilterMarkerStart# -->
-
 # Network Policy Operator Troubleshooting Guide
-
 - [Calico API Unavailability](#calico-api-unavailability)
 - [HostNetwork Pods cannot reach other Pods](#hostnetwork-pods-cannot-reach-other-pods)
 - [DR Authentication Errors](#dr-authentication-errors)
-
 <!-- #GFCFilterMarkerEnd# -->
 This guide provides information on errors troubleshooting for Network Policy Operator.
 
@@ -32,8 +29,7 @@ The Calico API server hasn't been installed
 
 ### Description
 
-Pod that are using HostNetwork can't reach usual pods after the Network Policy has been created.
-For instance some webhook unavailable.
+Pod that are using HostNetwork can't reach usual pods after the Network Policy has been created. For instance some webhook unavailable.
 
 ### Root Cause
 
@@ -41,7 +37,6 @@ The IPPool incorrect configuration
 
 ### How to Resolve
 
-<!-- markdownlint-disable-next-line MD013 -->
 1. Check the installation guide [configuration](https://github.com/Netcracker/qubership-network-policy-operator/blob/main/docs/public/Installation.md#overall-calico-cni-configuration). Set `ipipMode` correctly.
 2. Restart all of the calico-nodes pods one by one
 3. Restart Network Policy operator
@@ -76,16 +71,14 @@ sigs.k8s.io/controller-runtime/pkg/internal/controller.(*Controller).Start.func2
 
 ### Root Cause
 
-Undefined.
+**Undefined**
 
 ### How to Resolve
 
 The resoltion information for the DR authentication errors is specified below.
 
-<!-- markdownlint-disable-next-line MD013 -->
 1. Check if the [DR Preparation](https://github.com/Netcracker/qubership-network-policy-operator/blob/main/docs/public/Installation.md#dr-preparation) has been fulfilled.
-2. In case of TLS authentication usage, it could be known issue. The fix is to add `-tls` suffix in
-   the DR `RoleBinding` in Network Policy Operator namespace, for example:
+2. In case of TLS authentication usage, it could be known issue. The fix is to add `-tls` suffix in the DR `RoleBinding` in Network Policy Operator namespace, for example:
 
 The original notation:
 

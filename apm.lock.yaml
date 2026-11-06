@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-11-06T08:09:36.190873+00:00'
+generated_at: '2026-11-06T08:40:13.028948+00:00'
 apm_version: 0.29.0
 dependencies:
 - repo_url: _local/troubleshoot-qubership-network-policy-operator
@@ -18,10 +18,10 @@ dependencies:
   - .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md
   deployed_file_hashes:
     .agents/skills/troubleshoot-qubership-network-policy-operator/SKILL.md: sha256:7fbe152e74a42946e59827250d8750c77531fecb9d2f6c968ac06e3409fbd957
-    .agents/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:7e5ec03ec56d6cf0358d70f13296e5c25725d6018eab0f08a9dc0a432038f1aa
+    .agents/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:bc7a6f26653d55d4761b1b8b3ed358dda13086b28a42268826c4896c7c5712be
     .claude/rules/troubleshoot-qubership-network-policy-operator.md: sha256:6c23b9316a2a577f33b896677c08ca32553c4d4e97fa9c64ff59171d95570f62
     .claude/skills/troubleshoot-qubership-network-policy-operator/SKILL.md: sha256:7fbe152e74a42946e59827250d8750c77531fecb9d2f6c968ac06e3409fbd957
-    .claude/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:7e5ec03ec56d6cf0358d70f13296e5c25725d6018eab0f08a9dc0a432038f1aa
+    .claude/skills/troubleshoot-qubership-network-policy-operator/references/Troubleshooting.md: sha256:bc7a6f26653d55d4761b1b8b3ed358dda13086b28a42268826c4896c7c5712be
     .cursor/rules/troubleshoot-qubership-network-policy-operator.mdc: sha256:967ee5bf0bcad66bbf748d2e4fdb88b622c59cbdb8eafb49e43506cdf18e5aa6
     .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md: sha256:050a3d5f9c4ab88867c037d20accfbdae2ffc23e043068e565e56cc556c0b42b
   source: local
@@ -63,7 +63,7 @@ deployments:
   owners:
   - ./agent-packages/troubleshoot-qubership-network-policy-operator/
   active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
-  content_hash: sha256:7e5ec03ec56d6cf0358d70f13296e5c25725d6018eab0f08a9dc0a432038f1aa
+  content_hash: sha256:bc7a6f26653d55d4761b1b8b3ed358dda13086b28a42268826c4896c7c5712be
 - kind: project-relative
   target: copilot
   value: .agents/skills/troubleshoot-qubership-network-policy-operator
@@ -90,7 +90,7 @@ deployments:
   owners:
   - ./agent-packages/troubleshoot-qubership-network-policy-operator/
   active_owner: ./agent-packages/troubleshoot-qubership-network-policy-operator/
-  content_hash: sha256:7e5ec03ec56d6cf0358d70f13296e5c25725d6018eab0f08a9dc0a432038f1aa
+  content_hash: sha256:bc7a6f26653d55d4761b1b8b3ed358dda13086b28a42268826c4896c7c5712be
 - kind: project-relative
   target: copilot
   value: .github/instructions/troubleshoot-qubership-network-policy-operator.instructions.md
