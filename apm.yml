@@ -1,0 +1,15 @@
+name: qubership-network-policy-operator
+version: 1.0.0
+description: APM project for Qubership Network Policy Operator
+targets:
+  - claude
+  - copilot
+  - cursor
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}
+devDependencies:
+  apm:
+    - ./agent-packages/troubleshoot-qubership-network-policy-operator/
