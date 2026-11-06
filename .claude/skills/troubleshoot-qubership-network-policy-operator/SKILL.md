@@ -23,7 +23,7 @@ for the remote Kubernetes API.
 
 ## Evidence sources
 
-| Artifact | Assessment purpose |
+| Artifact | Diagnostic purpose |
 | --- | --- |
 | Helm or ArgoCD deployment log | chart order, CRD, RBAC, and admission failures |
 | Operator pod log | reconciliation, remote API, authentication, and policy-generation errors |
@@ -37,7 +37,7 @@ for the remote Kubernetes API.
 If the required artifacts are absent or insufficient, recommend only the evidence needed for the
 reported symptom, and stop without selecting a cause.
 
-## Assessment flow
+## Troubleshooting flow
 
 1. Confirm the issue belongs to Network Policy Operator. Look for its controller names,
    `NetworkPolicyConfig`, `RemoteClusterConfig`, `ExternalNamespace`, or
@@ -81,7 +81,7 @@ grep -n "^## " references/Troubleshooting.md
 
 ## Forbidden actions
 
-- Do not expose Secret `.data` or decoded credentials in an assessment.
+- Do not expose Secret `.data` or decoded credentials in diagnostic output.
 - Do not delete CRDs; that removes component resources cluster-wide.
 - Do not edit or delete operator-managed Calico policies as a durable fix; reconciliation restores
   desired state.
