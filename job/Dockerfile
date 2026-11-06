@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-docker-kubectl:0.0.9
+FROM ghcr.io/netcracker/qubership-docker-kubectl:0.0.11
 
 LABEL maintainer=""
 

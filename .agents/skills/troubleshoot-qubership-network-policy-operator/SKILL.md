@@ -72,6 +72,18 @@ grep -n "^## " references/Troubleshooting.md
 
 ## Failure modes
 
+### Calico API unavailable
+
+**Signature:** operator logs report `no matches for kind "NetworkPolicy" in version
+"projectcalico.org/v3"` and that a CRD must be installed before calling Start.
+→ see `references/Troubleshooting.md` section **Calico API Unavailability**.
+
+### HostNetwork pods cannot reach other pods
+
+**Signature:** pods using HostNetwork cannot reach other pods after NetworkPolicies are created,
+including failures reaching webhooks.
+→ see `references/Troubleshooting.md` section **HostNetwork Pods cannot reach other Pods**.
+
 ### DR TLS authentication forbidden
 
 **Signature:** operator logs report that a user such as `<secret-name>-tls` cannot list
