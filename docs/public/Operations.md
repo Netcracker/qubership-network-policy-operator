@@ -3,6 +3,7 @@
 This section provides information on the operations performed for the Network Policy Operator.
 
 It consists of the following:
+
 * Global Changes
 * New Application Configuration
 * Operator Check
@@ -11,22 +12,29 @@ It consists of the following:
 
 ## Global Changes
 
-You can enable or disable the OOB NetworkPolicies globally by making changes in the NetworkPolicyConfig resource. Set the `spec.enabled` option to `true` to switch on OOB NetworkPolicies or set it to `false` to switch off OOB NetworkPolicies. The `spec.scope` option defines the label that could be set to namespace to reduce the scope of namespaces that are processed by network-policy-operator.
+You can enable or disable the OOB NetworkPolicies globally by making changes in the NetworkPolicyConfig resource.
+Set the `spec.enabled` option to `true` to switch on OOB NetworkPolicies or set it to `false` to switch off
+OOB NetworkPolicies. The `spec.scope` option defines the label that could be set to namespace to reduce the scope
+of namespaces that are processed by network-policy-operator.
 
 ## New Application Configuration
 
 Before the new application installation the following steps must be performed to get the working application:
 
 * If the new application is a part of control-plane, add namespace into `spec.controlPlane`
-* If the new application must have access to all of the other namespaces (for instance, to monitor some metrics) add namespace into `spec.implicitNamespaces`
+* If the new application must have access to all of the other namespaces (for instance, to monitor some metrics)
+  add namespace into `spec.implicitNamespaces`
 
-Then create the rule in `namespacesRules` section in NetworkPolicyConfig for the application. Pay attention that notation works in different manner then the `network-policy.netcracker.com/allowed-from` annotation.
+Then create the rule in `namespacesRules` section in NetworkPolicyConfig for the application.
+Pay attention that notation works in different manner then the `network-policy.netcracker.com/allowed-from` annotation.
 
-After that, check the list of NetworkPolicies in the application namespace and install the application if it is acceptable for a particular case.
+After that, check the list of NetworkPolicies in the application namespace and install the application
+if it is acceptable for a particular case.
 
 ## Operator Check
 
-After successful installation/upgrade, the operator manipulates the NetworkPlolicies in each namespace. There is a simple way to check if the operator is working correctly. Run the following command and check the output:
+After successful installation/upgrade, the operator manipulates the NetworkPlolicies in each namespace.
+There is a simple way to check if the operator is working correctly. Run the following command and check the output:
 
 ```sh
 kubectl -n <NAMESPACE> get cnp
@@ -65,7 +73,8 @@ The outgoing traffic policy:
 
 * restrict-service restricts egress connections to the neighbor cluster services subnet
 
-All of the NetworkPolicies that has been created by operator have `network-policy.netcracker.com/generated: "true"` label. `ens-netpol` NetworkPolicies have `network-policy.netcracker.com/target-policy: "true"` label in addition.
+All of the NetworkPolicies that has been created by operator have `network-policy.netcracker.com/generated: "true"` label.
+`ens-netpol` NetworkPolicies have `network-policy.netcracker.com/target-policy: "true"` label in addition.
 
 In DR clusters `Externalnamespaces` will be created after the clusters are coupled.
 
@@ -82,7 +91,8 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-5a66930b-4ddd-4e87-b523-c685848790d2   
 ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-5dd0c278-6f59-455b-a764-dcfa2846df0f   43h
 ```
 
-Due to long names, it is easier to get the particular `Externalnamespace` by label that describes the original name of namespace:
+Due to long names, it is easier to get the particular `Externalnamespace` by label
+that describes the original name of namespace:
 
 ```sh
 $ kubectl -n network-policy-operator get extns -l kubernetes.io/metadata.name=postgres-test
@@ -92,7 +102,8 @@ ens-28f4567e-c009-4549-8c83-a0d3d3fdc5bf-0c83b447-0319-47a0-8c31-7c839a23adb6   
 
 ## Audit Logs
 
-The `NetworkPolicyConfig` allows to manage the connections logs collecting. The following NetworkPolicyConfig options allows to configure logs.
+The `NetworkPolicyConfig` allows to manage the connections logs collecting.
+The following NetworkPolicyConfig options allows to configure logs.
 
 ```yaml
 spec:
@@ -104,9 +115,11 @@ spec:
 
 * `logs.enable` enables and disables the collecting connection logs
 * `logs.collectingAll` allowes to change collecting logs for all of the connections or only denied connections
-* `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace.
+* `logs.namespaceScope` sets the namespace label key that could be used to exclude some namespaces from collecting
+  logs flexibly, if the values of the label is `none` or `false` connections are not logged in that namespace.
 
-Connections logs for a particular pod are collected on the node, where the pod has been started. If the logs collecting has been enabled, it is possible to revise them on the following manner:
+Connections logs for a particular pod are collected on the node, where the pod has been started.
+If the logs collecting has been enabled, it is possible to revise them on the following manner:
 
 1. Connect to the particular node by SSH or by usage the `kubectl debug` option.
 2. Run the `journalctl` command, for example:
@@ -120,7 +133,9 @@ Dec 20 08:06:03 k8s-1-master-1 kernel: calico-packet: IN=tunl0 OUT=cali5da413c9a
 
 ## Upgrade with Helm Chart
 
-Check the [Prerequisites](https://github.com/Netcracker/qubership-network-policy-operator/tree/main/documentation/Installation.md#prerequisites) from the _Network Policy Operator Installation Procedure_. Navigate to the `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration. Upgrade CRDs:
+Check the [Prerequisites](Installation.md#prerequisites) from the _Network Policy Operator Installation Procedure_.
+Navigate to the `chart/network-policy-operator/` directory and edit `values.yaml` according to environment configuration.
+Upgrade CRDs:
 
 ```sh
 kubectl apply -f crds/
@@ -132,4 +147,5 @@ Run upgrade procedure:
 helm upgrade npc-operator . -f values.yaml -n network-policy-operator
 ```
 
-**Notice:** `RemoteClusterConfig` resource is being recreated during the upgrade procedure it causes the `ExternalNamespaces` deletion on both sides
+**Notice:** `RemoteClusterConfig` resource is being recreated during the upgrade procedure
+it causes the `ExternalNamespaces` deletion on both sides

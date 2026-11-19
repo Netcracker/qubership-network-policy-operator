@@ -1,0 +1,13 @@
+name: troubleshoot-qubership-network-policy-operator
+version: 1.0.0
+description: Skill to troubleshoot public Qubership Network Policy Operator deployments
+type: skill
+targets:
+  - claude
+  - copilot
+  - cursor
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}
